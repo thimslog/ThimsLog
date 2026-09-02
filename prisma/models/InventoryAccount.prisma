@@ -1,0 +1,26 @@
+model InventoryAccount {
+  id String @id @default(uuid())
+
+  accountTypeId String
+  accountType   AccountType @relation(fields: [accountTypeId], references: [id], onDelete: Cascade)
+
+  name     String?
+  username String?
+  email    String?
+
+  url      String?
+  
+  status InventoryAccountStatus @default(AVAILABLE)
+
+  country String?
+  followers Int?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountTypeId])
+  @@index([status])
+  @@index([country])
+}

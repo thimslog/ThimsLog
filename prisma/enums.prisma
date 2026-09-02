@@ -1,0 +1,24 @@
+enum Status {
+    ACTIVE
+    INACTIVE
+    SUSPENDED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  SUPPORT
+}
+
+enum InventoryCategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum InventoryAccountStatus {
+  AVAILABLE
+  ASSIGNED
+  SOLD
+  SUSPENDED
+  DISABLED
+}

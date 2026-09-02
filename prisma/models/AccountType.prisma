@@ -1,0 +1,18 @@
+model AccountType {
+  id          String             @id @default(uuid())
+  name        String
+  description String?
+
+  categoryId String
+  category   InventoryCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  price Decimal @default(0.0) @db.Decimal(10, 2)
+
+  accounts InventoryAccount[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([categoryId, name])
+  @@index([categoryId])
+}

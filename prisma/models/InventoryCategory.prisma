@@ -1,0 +1,13 @@
+model InventoryCategory {
+  id          String                  @id @default(uuid())
+  name        String                  @unique
+  description String?
+  status      InventoryCategoryStatus @default(ACTIVE)
+
+  accountTypes AccountType[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}

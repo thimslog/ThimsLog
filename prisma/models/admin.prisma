@@ -1,0 +1,34 @@
+model Admin {
+    id String @id @default(uuid())
+
+    firstName    String
+    lastName     String
+    userName     String? @unique
+    phoneNumber  String?
+    profileImage String?
+    email        String  @unique
+    password     String
+    status       Status  @default(ACTIVE)
+
+    role AdminRole @default(ADMIN)
+
+    isVerified                      Boolean   @default(false)
+    verificationToken               String?
+    verificationTokenExpirationDate DateTime?
+    verified                        DateTime?
+
+    resetToken               String?
+    resetTokenExpirationDate DateTime?
+    isResetTokenVerified     Boolean   @default(false)
+
+    loggedInTimes Int       @default(0)
+    lastLoggedIn  DateTime?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    adminAuditLog AdminAuditLog[]
+
+    @@index([email])
+    @@index([status])
+}
