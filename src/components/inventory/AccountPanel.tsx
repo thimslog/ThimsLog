@@ -256,7 +256,9 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
     setError(null);
 
     try {
-      const data = await AccountAPI.list(accountTypeId);
+      const response = (await AccountAPI.list(accountTypeId)) as any; // Type assertion to any to access the json() method
+
+      const data = await response?.data;
 
       setAccounts(data ?? []);
     } catch (err: unknown) {
@@ -273,17 +275,18 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
   function handleSaved(saved: InventoryAccount) {
     setFormTarget(undefined);
 
-    setAccounts((prev) => {
-      const exists = prev.some((account) => account.id === saved.id);
+    // setAccounts((prev) => {
+    //   const exists = prev.some((account) => account.id === saved.id);
 
-      if (exists) {
-        return prev.map((account) =>
-          account.id === saved.id ? saved : account,
-        );
-      }
+    //   if (exists) {
+    //     return prev.map((account) =>
+    //       account.id === saved.id ? saved : account,
+    //     );
+    //   }
 
-      return [...prev, saved];
-    });
+    //   return [...prev, saved];
+    // });
+    load();
   }
 
   async function handleDelete() {
@@ -323,7 +326,7 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
       {!accountTypeId ? (
         <EmptyState
           icon={UserSquare2}
-          text="Select an account type to see its accounts"
+          text="Select an account type to see its accounts overflow-hidden max-h-[calc(60vh-16rem)] overflow-y-auto"
         />
       ) : loading ? (
         <div className="py-8 flex justify-center">

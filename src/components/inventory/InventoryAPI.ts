@@ -36,10 +36,10 @@ const apiRequest = async <T = unknown>(
 
 export const CategoryAPI = {
   list: () =>
-    apiRequest("/categories"),
+    apiRequest("/inventory/categories"),
 
   create: (data: Record<string, unknown>) =>
-    apiRequest("/categories", {
+    apiRequest("/inventory/categories", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -48,13 +48,13 @@ export const CategoryAPI = {
     id: string,
     data: Record<string, unknown>
   ) =>
-    apiRequest(`/categories/${id}`, {
-      method: "PUT",
+    apiRequest(`/inventory/categories/${id}`, {
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
 
   remove: (id: string) =>
-    apiRequest(`/categories/${id}`, {
+    apiRequest(`/inventory/categories/${id}`, {
       method: "DELETE",
     }),
 };
@@ -62,11 +62,11 @@ export const CategoryAPI = {
 export const AccountTypeAPI = {
   list: (categoryId: string) =>
     apiRequest<AccountType[]>(
-      `/account-types?categoryId=${encodeURIComponent(categoryId)}`
+      `/inventory/account-types?categoryId=${encodeURIComponent(categoryId)}`
     ),
 
   create: (data: Record<string, unknown>) =>
-    apiRequest<AccountType>("/account-types", {
+    apiRequest<AccountType>("/inventory/account-types", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -75,13 +75,13 @@ export const AccountTypeAPI = {
     id: string,
     data: Record<string, unknown>
   ) =>
-    apiRequest<AccountType>(`/account-types/${id}`, {
-      method: "PUT",
+    apiRequest<AccountType>(`/inventory/account-types/${id}`, {
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
 
   remove: (id: string) =>
-    apiRequest<void>(`/account-types/${id}`, {
+    apiRequest<void>(`/inventory/account-types/${id}`, {
       method: "DELETE",
     }),
 };
@@ -89,11 +89,11 @@ export const AccountTypeAPI = {
 export const AccountAPI = {
   list: (accountTypeId: string) =>
     apiRequest<InventoryAccount[]>(
-      `/accounts?accountTypeId=${encodeURIComponent(accountTypeId)}`
+      `/inventory/accounts?accountTypeId=${encodeURIComponent(accountTypeId)}`
     ),
 
   create: (data: Record<string, unknown>) =>
-    apiRequest<InventoryAccount>("/accounts", {
+    apiRequest<InventoryAccount>("/inventory/accounts", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -102,13 +102,13 @@ export const AccountAPI = {
     id: string,
     data: Record<string, unknown>
   ) =>
-    apiRequest<InventoryAccount>(`/accounts/${id}`, {
-      method: "PUT",
+    apiRequest<InventoryAccount>(`/inventory/accounts/${id}`, {
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
 
   remove: (id: string) =>
-    apiRequest<void>(`/accounts/${id}`, {
+    apiRequest<void>(`/inventory/accounts/${id}`, {
       method: "DELETE",
     }),
 };

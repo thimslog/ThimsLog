@@ -1,7 +1,10 @@
-import { Topbar } from "@/components/admin/topbar";
+"use client"
+
+import { useEffect } from "react";
 import { StatCard } from "@/components/admin/stat-card";
 import { StatusPill } from "@/components/admin/status-pill";
 import { dashboardStats, inventorySnapshot } from "@/lib/mock-data";
+import { useAdminPage } from "@/context/admin-page-context";
 
 const statusMap = {
   in_stock: { label: "In stock", tone: "good" as const },
@@ -16,9 +19,18 @@ const categoryLabel = {
 };
 
 export default function DashboardPage() {
+  const { setPageTitle } = useAdminPage();
+
+  useEffect(() => {
+    setPageTitle({
+      title: "Dashboard",
+      subtitle: "Snapshot of sales, users and inventory",
+    });
+  }, [setPageTitle]);
+
   return (
     <>
-      <Topbar title="Dashboard" subtitle="Snapshot of sales, users and inventory" />
+      {/* <Topbar title="Dashboard" subtitle="Snapshot of sales, users and inventory" /> */}
 
       <main className="p-6 space-y-6">
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -29,8 +41,13 @@ export default function DashboardPage() {
 
         <section className="rounded-card border border-base-border bg-base-surface">
           <div className="flex items-center justify-between px-5 py-4 border-b border-base-border">
-            <h2 className="font-display text-[15px] text-ink">Inventory snapshot</h2>
-            <a href="/admin/inventory/social" className="text-[12.5px] text-brand hover:underline">
+            <h2 className="font-display text-[15px] text-ink">
+              Inventory snapshot
+            </h2>
+            <a
+              href="/admin/inventory/social"
+              className="text-[12.5px] text-brand hover:underline"
+            >
               View catalog
             </a>
           </div>
@@ -50,7 +67,9 @@ export default function DashboardPage() {
                   const status = statusMap[item.status];
                   return (
                     <tr key={item.id} className="border-t border-base-border">
-                      <td className="px-5 py-3 text-[13.5px] text-ink">{item.label}</td>
+                      <td className="px-5 py-3 text-[13.5px] text-ink">
+                        {item.label}
+                      </td>
                       <td className="px-5 py-3 text-[13px] text-ink-muted">
                         {/* {categoryLabel[item.category]} */}
                       </td>

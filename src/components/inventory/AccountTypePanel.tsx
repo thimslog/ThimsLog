@@ -198,7 +198,9 @@ function AccountTypePanel({
     setError(null);
 
     try {
-      const data = await AccountTypeAPI.list(categoryId);
+      const response = await AccountTypeAPI.list(categoryId) as any; // Type assertion to any to access the json() method
+
+      const data = await response?.data;
 
       setTypes(data ?? []);
     } catch (err: unknown) {
@@ -222,19 +224,20 @@ function AccountTypePanel({
   function handleSaved(saved: AccountType) {
     setFormTarget(undefined);
 
-    setTypes((prev) => {
-      const exists = prev.some(
-        (type) => type.id === saved.id
-      );
+    // setTypes((prev) => {
+    //   const exists = prev.some(
+    //     (type) => type.id === saved.id
+    //   );
 
-      if (exists) {
-        return prev.map((type) =>
-          type.id === saved.id ? saved : type
-        );
-      }
+    //   if (exists) {
+    //     return prev.map((type) =>
+    //       type.id === saved.id ? saved : type
+    //     );
+    //   }
 
-      return [...prev, saved];
-    });
+    //   return [...prev, saved];
+    // });
+    load()
   }
 
   async function handleDelete() {
@@ -297,12 +300,12 @@ function AccountTypePanel({
           text="No account types in this category yet"
         />
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-1 overflow-hidden max-h-[calc(60vh-16rem)] overflow-y-auto">
           {types.map((type) => (
             <ListRow
               key={type.id}
               title={type.name}
-              subtitle={`$${Number(type.price).toFixed(2)}`}
+              subtitle={`#${Number(type.price).toFixed(2)}`}
               active={type.id === selectedId}
               onClick={() => onSelect(type.id)}
               onEdit={() => setFormTarget(type)}

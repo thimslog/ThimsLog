@@ -1,20 +1,19 @@
+import { sidebarLinks } from "./data";
 import SidebarBrand from "./SidebarBrand";
 import SidebarLink from "./SidebarLink";
 import SidebarProfile from "./SidebarProfile";
 import SidebarSectionLabel from "./SidebarSectionLabel";
 
 import {
-  Mail,
-  Home,
-  Users,
-  Phone,
   RotateCcw,
-  DollarSign,
   ListChecks,
   Wallet,
   UserCircle,
   LogOut,
 } from "lucide-react";
+
+import { usePathname } from "next/navigation";
+import WhatsAppCard from "./WhatsAppCard";
 
 interface SidebarUser {
   id: string;
@@ -31,8 +30,10 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user }) => {
+  const pathname = usePathname();
+
   return (
-    <aside className="w-64 shrink-0 bg-white border-r border-slate-100 flex flex-col">
+    <aside className="w-64 shrink-0 bg-white border-r border-slate-100 flex flex-col fixed overflow-y-scroll">
       <SidebarBrand />
       <SidebarProfile
         name={`${user.firstName} ${user.lastName}`}
@@ -42,12 +43,15 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
       <nav className="flex-1 overflow-y-auto pb-4">
         <SidebarSectionLabel>Marketplace</SidebarSectionLabel>
         <div className="px-2 space-y-1">
-          <SidebarLink icon={Home} label="Dashboard" active />
-          <SidebarLink icon={Users} label="Buy Social Accounts" />
-          <SidebarLink icon={Phone} label="Buy Number" />
-          <SidebarLink icon={Mail} label="Buy Emails" />
-          <SidebarLink icon={RotateCcw} label="Manage Rentals" />
-          <SidebarLink icon={DollarSign} label="Bill Payments" badge="NEW" />
+          {sidebarLinks.map((link) => (
+            <SidebarLink
+              key={link.path}
+              icon={link.icon}
+              label={link.label}
+              active={pathname === link.path}
+              href={link.path}
+            />
+          ))}
         </div>
 
         <SidebarSectionLabel>History</SidebarSectionLabel>
@@ -60,6 +64,10 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
         <SidebarSectionLabel>Account</SidebarSectionLabel>
         <div className="px-2 space-y-1">
           <SidebarLink icon={UserCircle} label="Profile Settings" />
+        </div>
+
+        <div className="px-2 mt-8">
+          <WhatsAppCard />
         </div>
       </nav>
 

@@ -3,6 +3,7 @@ interface SidebarLinkProps {
   label: string;
   active?: boolean;
   badge?: string;
+  href?: string;
 }
 
 const SidebarLink = ({
@@ -10,10 +11,11 @@ const SidebarLink = ({
   label,
   active,
   badge,
+  href
 }: SidebarLinkProps) => {
   return (
     <a
-      href="#"
+      href={href}
       className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
         active
           ? "bg-sky-100 text-sky-700"

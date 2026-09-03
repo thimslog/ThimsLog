@@ -34,6 +34,8 @@ export default function SignInPage() {
 
       const data = await response.json();
 
+      console.log(response.ok)
+
       if (!response.ok) {
         setError(data.message || "Invalid email or password");
         return;

@@ -12,6 +12,7 @@ import { StatusPill } from "@/components/admin/status-pill";
 import { AddAdminModal } from "@/components/admin/add-admin-modal";
 
 import { AdminRecord } from "@/lib/types";
+import { useAdminPage } from "@/context/admin-page-context";
 
 const roleLabel: Record<string, string> = {
   SUPER_ADMIN: "Super admin",
@@ -58,6 +59,7 @@ interface AdminsResponse {
 }
 
 export default function AdminsPage() {
+  const { setPageTitle } = useAdminPage();
   const [admins, setAdmins] = useState<AdminRecord[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -70,6 +72,16 @@ export default function AdminsPage() {
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState("");
+
+
+  useEffect(() => {
+    setPageTitle({
+      title: "Admins",
+      subtitle: pagination
+        ? `${pagination.total} added admins`
+        : "Admin Accounts",
+    });
+  }, [setPageTitle, pagination]);
 
   const fetchAdmins = useCallback(
     async (requestedPage = page) => {
@@ -145,14 +157,14 @@ export default function AdminsPage() {
 
   return (
     <>
-      <Topbar
+      {/* <Topbar
         title="Admins"
         subtitle={
           pagination
             ? `${pagination.total} admin accounts`
             : "Admin accounts"
         }
-      />
+      /> */}
 
       <main className="space-y-4 p-6">
         {/* Header */}
@@ -215,7 +227,7 @@ export default function AdminsPage() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-5 py-10 text-center text-[13px] text-ink-muted"
+                      className="px-5 py-10 text-center text-[13px] text-sky-900"
                     >
                       Loading admins...
                     </td>

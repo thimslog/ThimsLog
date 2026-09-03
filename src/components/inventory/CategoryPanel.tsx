@@ -188,7 +188,8 @@ function CategoryPanel({ selectedId, onSelect }: CategoryPanelProps) {
     setError(null);
 
     try {
-      const data = await CategoryAPI.list();
+      const response = (await CategoryAPI.list()) as any; // Type assertion to any to access the json() method
+      const data = await response?.data;
 
       setCategories((data ?? []) as Category[]);
     } catch (err: unknown) {
@@ -209,13 +210,14 @@ function CategoryPanel({ selectedId, onSelect }: CategoryPanelProps) {
   function handleSaved(saved: Category) {
     setFormTarget(undefined);
 
-    setCategories((prev) => {
-      const exists = prev.some((category) => category.id === saved.id);
+    // setCategories((prev) => {
+    //   const exists = prev.some((category) => category.id === saved.id);
 
-      return exists
-        ? prev.map((category) => (category.id === saved.id ? saved : category))
-        : [...prev, saved];
-    });
+    //   return exists
+    //     ? prev.map((category) => (category.id === saved.id ? saved : category))
+    //     : [...prev, saved];
+    // });
+    load();
   }
 
   /* =========================
@@ -268,7 +270,7 @@ function CategoryPanel({ selectedId, onSelect }: CategoryPanelProps) {
       ) : categories.length === 0 ? (
         <EmptyState icon={FolderOpen} text="No categories yet" />
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-1 overflow-hidden max-h-[calc(60vh-16rem)] overflow-y-auto">
           {categories.map((category) => (
             <ListRow
               key={category.id}
