@@ -6,8 +6,10 @@ import { getPayment } from "@/services/paymonetra";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+
   const userData = await getCurrentUser();
   const userId = userData?.id;
   if (!userId) {
@@ -19,7 +21,7 @@ export async function POST(
     return NextResponse.json({ message: "Wallet not found" }, { status: 404 });
   }
 
-  const transaction = await prisma.transaction.findUnique({ where: { id: params.id } });
+  const transaction = await prisma.transaction.findUnique({ where: { id } });
   if (!transaction || transaction.walletId !== wallet.id) {
     return NextResponse.json({ message: "Transaction not found" }, { status: 404 });
   }

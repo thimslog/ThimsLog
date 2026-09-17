@@ -6,9 +6,11 @@ import { getPayment } from "@/services/paymonetra";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     const admin = await getCurrentAdmin();
     if (!admin) {
       return NextResponse.json(
@@ -18,7 +20,7 @@ export async function POST(
     }
 
     const transaction = await prisma.transaction.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         wallet: {
           include: {
