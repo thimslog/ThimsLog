@@ -1,16 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  ExternalLink,
-  Loader2,
-  Video,
-  Send,
-  Globe,
-  Youtube,
-  MessageCircle,
-  Users,
-} from "lucide-react";
+import Link from "next/link";
+import { ExternalLink, Loader2, Video, Send, MessageSquare } from "lucide-react";
 
 interface HelpCenterLink {
   id: string;
@@ -104,11 +96,30 @@ export default function HelpCenterPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 pb-16">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Help Center
-        </h1>
+      {/* Page Title & Quick Action Navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Help Center
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/dashboard/help-center/tickets"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-50 dark:bg-purple-500/10 border border-purple-200/80 dark:border-purple-500/25 text-[#7c3aed] dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 text-xs font-bold shadow-xs transition-all cursor-pointer"
+          >
+            <MessageSquare size={15} className="text-[#7c3aed] dark:text-purple-400" />
+            <span>View My Tickets</span>
+          </Link>
+
+          <Link
+            href="/dashboard/help-center/tickets/create"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+          >
+            <span>+ Open Ticket</span>
+          </Link>
+        </div>
       </div>
 
       {loading ? (
@@ -319,16 +330,31 @@ export default function HelpCenterPage() {
           {/* ========================================================= */}
           {/* FOOTER CALLOUT: SUPPORT TICKET LINK                      */}
           {/* ========================================================= */}
-          <div className="pt-4 flex items-center gap-1.5 text-[13.5px] text-slate-500 dark:text-slate-400 font-medium">
-            <span>Need more help?</span>
-            <a
-              href={process.env.NEXT_PUBLIC_TELEGRAM_URL || "https://t.me/thimslog1"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold text-[#7c3aed] dark:text-purple-400 hover:text-[#6d28d9] dark:hover:text-purple-300 hover:underline transition-colors"
+          <div className="pt-6 border-t border-slate-100 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  Need personalized assistance?
+                </span>
+                <Link
+                  href="/dashboard/help-center/tickets/create"
+                  className="font-bold text-xs text-[#7c3aed] dark:text-purple-400 hover:text-[#6d28d9] hover:underline"
+                >
+                  Open a ticket →
+                </Link>
+              </div>
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                Our team usually responds to inquiries within a few minutes.
+              </p>
+            </div>
+
+            <Link
+              href="/dashboard/help-center/tickets"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 border border-purple-200/80 dark:border-purple-500/30 text-[#7c3aed] dark:text-purple-300 text-xs font-bold shadow-xs transition-all cursor-pointer"
             >
-              Open a support ticket
-            </a>
+              <MessageSquare size={15} />
+              <span>View My Tickets</span>
+            </Link>
           </div>
         </div>
       )}

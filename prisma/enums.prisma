@@ -37,3 +37,16 @@ enum TransactionStatus {
   OVERPAID
   EXPIRED
 }
+
+enum TicketStatus {
+  OPEN
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}

@@ -1,0 +1,31 @@
+model SupportTicket {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   String
+  message   String
+  priority  TicketPriority @default(HIGH)
+  status    TicketStatus   @default(OPEN)
+
+  responses TicketResponse[]
+
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+}
+
+model TicketResponse {
+  id         String        @id @default(uuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderType String        // "USER" | "ADMIN"
+  senderName String?
+  message    String
+
+  createdAt  DateTime      @default(now())
+
+  @@index([ticketId])
+}

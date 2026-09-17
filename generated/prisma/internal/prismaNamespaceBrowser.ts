@@ -58,6 +58,8 @@ export const ModelName = {
   AdminAuditLog: 'AdminAuditLog',
   HelpCenterLink: 'HelpCenterLink',
   Order: 'Order',
+  SupportTicket: 'SupportTicket',
+  TicketResponse: 'TicketResponse',
   Transaction: 'Transaction',
   User: 'User',
   Wallet: 'Wallet'
@@ -199,6 +201,32 @@ export const OrderScalarFieldEnum = {
 } as const
 
 export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
+
+
+export const SupportTicketScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  subject: 'subject',
+  message: 'message',
+  priority: 'priority',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SupportTicketScalarFieldEnum = (typeof SupportTicketScalarFieldEnum)[keyof typeof SupportTicketScalarFieldEnum]
+
+
+export const TicketResponseScalarFieldEnum = {
+  id: 'id',
+  ticketId: 'ticketId',
+  senderType: 'senderType',
+  senderName: 'senderName',
+  message: 'message',
+  createdAt: 'createdAt'
+} as const
+
+export type TicketResponseScalarFieldEnum = (typeof TicketResponseScalarFieldEnum)[keyof typeof TicketResponseScalarFieldEnum]
 
 
 export const TransactionScalarFieldEnum = {

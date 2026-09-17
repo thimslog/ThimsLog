@@ -77,6 +77,16 @@ export type HelpCenterLink = Prisma.HelpCenterLinkModel
  */
 export type Order = Prisma.OrderModel
 /**
+ * Model SupportTicket
+ * 
+ */
+export type SupportTicket = Prisma.SupportTicketModel
+/**
+ * Model TicketResponse
+ * 
+ */
+export type TicketResponse = Prisma.TicketResponseModel
+/**
  * Model Transaction
  * 
  */

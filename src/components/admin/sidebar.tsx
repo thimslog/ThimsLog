@@ -16,6 +16,7 @@ import {
   LogOut,
   Loader2,
   LifeBuoy,
+  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/context/admin-auth-context";
 import { toast } from "@/components/ui/toast";
@@ -95,6 +96,11 @@ const navGroups: NavGroup[] = [
   {
     title: "System",
     items: [
+      {
+        href: "/admin/tickets",
+        label: "Support Tickets",
+        icon: MessageSquare,
+      },
       {
         href: "/admin/help-center",
         label: "Help Center",
