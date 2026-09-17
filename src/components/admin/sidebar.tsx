@@ -15,6 +15,7 @@ import {
   Receipt,
   LogOut,
   Loader2,
+  LifeBuoy,
 } from "lucide-react";
 import { useAuth } from "@/context/admin-auth-context";
 import { toast } from "@/components/ui/toast";
@@ -94,6 +95,11 @@ const navGroups: NavGroup[] = [
   {
     title: "System",
     items: [
+      {
+        href: "/admin/help-center",
+        label: "Help Center",
+        icon: LifeBuoy,
+      },
       {
         href: "/admin/settings",
         label: "Settings",

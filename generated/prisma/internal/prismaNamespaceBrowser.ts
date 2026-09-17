@@ -56,6 +56,7 @@ export const ModelName = {
   InventoryCategory: 'InventoryCategory',
   Admin: 'Admin',
   AdminAuditLog: 'AdminAuditLog',
+  HelpCenterLink: 'HelpCenterLink',
   Order: 'Order',
   Transaction: 'Transaction',
   User: 'User',
@@ -166,6 +167,22 @@ export const AdminAuditLogScalarFieldEnum = {
 } as const
 
 export type AdminAuditLogScalarFieldEnum = (typeof AdminAuditLogScalarFieldEnum)[keyof typeof AdminAuditLogScalarFieldEnum]
+
+
+export const HelpCenterLinkScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  url: 'url',
+  section: 'section',
+  iconType: 'iconType',
+  order: 'order',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type HelpCenterLinkScalarFieldEnum = (typeof HelpCenterLinkScalarFieldEnum)[keyof typeof HelpCenterLinkScalarFieldEnum]
 
 
 export const OrderScalarFieldEnum = {

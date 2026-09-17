@@ -1,0 +1,16 @@
+model HelpCenterLink {
+  id          String   @id @default(uuid())
+  
+  title       String
+  description String?
+  url         String
+  section     String   @default("WHATSAPP_CHANNEL") // "TUTORIALS_CHANNEL", "WHATSAPP_CHANNEL", "COMMUNITY_SUPPORT" or custom
+  iconType    String?  @default("whatsapp")         // "whatsapp", "video", "community", "telegram", "link"
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([section])
+  @@index([isActive])
+}

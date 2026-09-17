@@ -402,6 +402,7 @@ export const ModelName = {
   InventoryCategory: 'InventoryCategory',
   Admin: 'Admin',
   AdminAuditLog: 'AdminAuditLog',
+  HelpCenterLink: 'HelpCenterLink',
   Order: 'Order',
   Transaction: 'Transaction',
   User: 'User',
@@ -421,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "accountType" | "inventoryAccount" | "inventoryCategory" | "admin" | "adminAuditLog" | "order" | "transaction" | "user" | "wallet"
+    modelProps: "accountType" | "inventoryAccount" | "inventoryCategory" | "admin" | "adminAuditLog" | "helpCenterLink" | "order" | "transaction" | "user" | "wallet"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -792,6 +793,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AdminAuditLogCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AdminAuditLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    HelpCenterLink: {
+      payload: Prisma.$HelpCenterLinkPayload<ExtArgs>
+      fields: Prisma.HelpCenterLinkFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.HelpCenterLinkFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.HelpCenterLinkFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload>
+        }
+        findFirst: {
+          args: Prisma.HelpCenterLinkFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.HelpCenterLinkFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload>
+        }
+        findMany: {
+          args: Prisma.HelpCenterLinkFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload>[]
+        }
+        create: {
+          args: Prisma.HelpCenterLinkCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload>
+        }
+        createMany: {
+          args: Prisma.HelpCenterLinkCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.HelpCenterLinkCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload>[]
+        }
+        delete: {
+          args: Prisma.HelpCenterLinkDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload>
+        }
+        update: {
+          args: Prisma.HelpCenterLinkUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload>
+        }
+        deleteMany: {
+          args: Prisma.HelpCenterLinkDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.HelpCenterLinkUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.HelpCenterLinkUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload>[]
+        }
+        upsert: {
+          args: Prisma.HelpCenterLinkUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HelpCenterLinkPayload>
+        }
+        aggregate: {
+          args: Prisma.HelpCenterLinkAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateHelpCenterLink>
+        }
+        groupBy: {
+          args: Prisma.HelpCenterLinkGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.HelpCenterLinkGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.HelpCenterLinkCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.HelpCenterLinkCountAggregateOutputType> | number
         }
       }
     }
@@ -1218,6 +1293,22 @@ export const AdminAuditLogScalarFieldEnum = {
 } as const
 
 export type AdminAuditLogScalarFieldEnum = (typeof AdminAuditLogScalarFieldEnum)[keyof typeof AdminAuditLogScalarFieldEnum]
+
+
+export const HelpCenterLinkScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  url: 'url',
+  section: 'section',
+  iconType: 'iconType',
+  order: 'order',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type HelpCenterLinkScalarFieldEnum = (typeof HelpCenterLinkScalarFieldEnum)[keyof typeof HelpCenterLinkScalarFieldEnum]
 
 
 export const OrderScalarFieldEnum = {
@@ -1664,6 +1755,7 @@ export type GlobalOmitConfig = {
   inventoryCategory?: Prisma.InventoryCategoryOmit
   admin?: Prisma.AdminOmit
   adminAuditLog?: Prisma.AdminAuditLogOmit
+  helpCenterLink?: Prisma.HelpCenterLinkOmit
   order?: Prisma.OrderOmit
   transaction?: Prisma.TransactionOmit
   user?: Prisma.UserOmit

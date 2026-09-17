@@ -7,6 +7,7 @@ import {
   ListChecks,
   Wallet,
   UserCircle,
+  LifeBuoy,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,21 +26,6 @@ export const sidebarLinks: {
     label: "Buy Social Accounts",
     path: "/dashboard/products",
   },
-  // {
-  //   icon: Phone,
-  //   label: "Buy Number",
-  //   path: "/dashboard/numbers",
-  // },
-  // {
-  //   icon: Mail,
-  //   label: "Buy Emails",
-  //   path: "/dashboard/emails",
-  // },
-  //   {
-  //     icon: RotateCcw,
-  //     label: "Manage Rentals",
-  //     path: "/dashboard/rentals",
-  //   },
 ];
 
 export const sidebarHistoryLinks: {
@@ -74,5 +60,11 @@ export const sidebarAccountLinks: {
     label: "Profile Settings",
     path: "/dashboard/settings",
   },
+  {
+    icon: LifeBuoy,
+    label: "Help Center",
+    path: "/dashboard/help-center",
+  },
 ];
+
 

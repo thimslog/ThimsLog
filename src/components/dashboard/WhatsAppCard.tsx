@@ -1,9 +1,89 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ExternalLink } from "lucide-react";
+
+interface HelpLink {
+  id: string;
+  title: string;
+  description: string | null;
+  url: string;
+  section: string;
+  iconType: string | null;
+  isActive: boolean;
+}
+
+const DEFAULT_WHATSAPP_FALLBACK =
+  process.env.NEXT_PUBLIC_WHATSAPP_URL ||
+  process.env.NEXT_PUBLIC_TELEGRAM_URL ||
+  "https://t.me/thimslog1";
+
 export default function WhatsAppCard() {
+  const [targetUrl, setTargetUrl] = useState<string>(DEFAULT_WHATSAPP_FALLBACK);
+  const [cardTitle, setCardTitle] = useState<string>("ThimsLog News");
+  const [cardSubtitle, setCardSubtitle] = useState<string>(
+    "Get exclusive updates & drops"
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLink() {
+      try {
+        const res = await fetch("/api/user/help-center", { cache: "no-store" });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          const links: HelpLink[] = data.data;
+
+          // Priority 1: Specifically WHATSAPP_CHANNEL section
+          const whatsappChannel = links.find(
+            (l) => l.section === "WHATSAPP_CHANNEL" && l.url
+          );
+
+          // Priority 2: Any link with whatsapp icon
+          const whatsappIconLink = links.find(
+            (l) => l.iconType?.toLowerCase() === "whatsapp" && l.url
+          );
+
+          // Priority 3: Community & Support group link
+          const communityLink = links.find(
+            (l) => l.section === "COMMUNITY_SUPPORT" && l.url
+          );
+
+          // Priority 4: Any first active link available
+          const firstAvailable = links.find((l) => l.url);
+
+          const chosen =
+            whatsappChannel ||
+            whatsappIconLink ||
+            communityLink ||
+            firstAvailable;
+
+          if (chosen && isMounted) {
+            setTargetUrl(chosen.url);
+            if (chosen.title) setCardTitle(chosen.title);
+            if (chosen.description) setCardSubtitle(chosen.description);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load WhatsApp link from backend:", err);
+      }
+    }
+
+    loadLink();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
-    <div className="relative flex max-w-xs flex-col items-center overflow-hidden rounded-3xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-950/20 px-6 py-7 text-center shadow-xs transition-colors">
+    <div className="relative flex max-w-xs flex-col items-center overflow-hidden rounded-3xl border border-emerald-200/90 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-950/20 px-5 py-6 text-center shadow-xs transition-all hover:shadow-md">
       {/* Background Watermark Icon */}
       <svg
-        className="pointer-events-none absolute -right-6 -top-4 h-48 w-48 text-[#25D366]/10"
+        className="pointer-events-none absolute -right-6 -top-4 h-44 w-44 text-[#25D366]/10"
         viewBox="0 0 24 24"
         fill="currentColor"
       >
@@ -11,9 +91,9 @@ export default function WhatsAppCard() {
       </svg>
 
       {/* Top Floating Circular Icon */}
-      <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-md shadow-[#25D366]/30">
+      <div className="relative z-10 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-md shadow-[#25D366]/30">
         <svg
-          className="h-6 w-6"
+          className="h-5.5 w-5.5"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -27,22 +107,28 @@ export default function WhatsAppCard() {
       </div>
 
       {/* Text Content */}
-      <div className="relative z-10 mt-4 space-y-1">
-        <h3 className="text-base font-bold tracking-tight text-emerald-950 dark:text-emerald-300">
-          ThimsLog News
+      <div className="relative z-10 mt-3.5 space-y-0.5">
+        <h3 className="text-[14.5px] font-bold tracking-tight text-emerald-950 dark:text-emerald-300 truncate max-w-[180px]">
+          {cardTitle}
         </h3>
-        <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-          Get exclusive updates &amp; drops
+        <p className="text-[11.5px] font-medium text-emerald-700 dark:text-emerald-400 line-clamp-2">
+          {cardSubtitle}
         </p>
       </div>
 
-      {/* Action Button */}
-      <button
-        type="button"
-        className="relative z-10 mt-5 w-full rounded-xl bg-[#25D366] py-2 text-xs font-bold text-white shadow-[0_4px_14px_rgba(37,211,102,0.3)] transition duration-200 hover:bg-[#20ba59] active:scale-[0.98] cursor-pointer"
+      {/* Action Button linking to backend WhatsApp / available link */}
+      <a
+        href={targetUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group relative z-10 mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#25D366] py-2 text-xs font-bold text-white shadow-[0_4px_14px_rgba(37,211,102,0.3)] transition duration-200 hover:bg-[#20ba59] active:scale-[0.98] cursor-pointer"
       >
-        Join WhatsApp
-      </button>
+        <span>Join Channel</span>
+        <ExternalLink
+          size={13}
+          className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+        />
+      </a>
     </div>
   );
 }

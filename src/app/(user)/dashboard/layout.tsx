@@ -9,6 +9,7 @@ import { ThemeProvider, useTheme } from "@/context/theme-context";
 
 import Sidebar from "@/components/dashboard/Sidebar";
 import TopBar from "@/components/dashboard/TopBar";
+import TelegramSupportButton from "@/components/dashboard/TelegramSupportButton";
 
 function DashboardContainer({
   children,
@@ -41,6 +42,9 @@ function DashboardContainer({
         />
 
         <main className="flex-1 px-4 sm:px-8 pb-8 pt-4">{children}</main>
+        
+        {/* Floating Telegram Support Button */}
+        <TelegramSupportButton />
       </div>
     </div>
   );

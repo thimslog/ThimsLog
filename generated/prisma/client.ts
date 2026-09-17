@@ -67,6 +67,11 @@ export type Admin = Prisma.AdminModel
  */
 export type AdminAuditLog = Prisma.AdminAuditLogModel
 /**
+ * Model HelpCenterLink
+ * 
+ */
+export type HelpCenterLink = Prisma.HelpCenterLinkModel
+/**
  * Model Order
  * 
  */
