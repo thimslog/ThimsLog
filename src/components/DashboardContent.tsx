@@ -227,6 +227,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ user }) => {
       {/* Wallet Balance Card */}
       <BalanceCard
         name={user.firstName}
+        username={user.userName}
         balance={Number(user?.wallet?.balance ?? 0)}
       />
 

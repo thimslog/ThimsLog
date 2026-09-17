@@ -57,6 +57,7 @@ export const ModelName = {
   Admin: 'Admin',
   AdminAuditLog: 'AdminAuditLog',
   HelpCenterLink: 'HelpCenterLink',
+  Notification: 'Notification',
   Order: 'Order',
   SupportTicket: 'SupportTicket',
   TicketResponse: 'TicketResponse',
@@ -187,6 +188,21 @@ export const HelpCenterLinkScalarFieldEnum = {
 export type HelpCenterLinkScalarFieldEnum = (typeof HelpCenterLinkScalarFieldEnum)[keyof typeof HelpCenterLinkScalarFieldEnum]
 
 
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  title: 'title',
+  message: 'message',
+  type: 'type',
+  read: 'read',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
 export const OrderScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -255,6 +271,7 @@ export const UserScalarFieldEnum = {
   email: 'email',
   phoneNumber: 'phoneNumber',
   userName: 'userName',
+  usernameChangedAt: 'usernameChangedAt',
   password: 'password',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

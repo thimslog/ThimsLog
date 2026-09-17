@@ -2,25 +2,40 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, Plus, ArrowRight, X, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Plus, ArrowRight, X, Loader2, Send, Copy, Check } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import TransferFundsModal from "./TransferFundsModal";
+import { useAuth } from "@/context/auth-context";
 
 interface BalanceCardProps {
   name: string;
   balance: number;
   currency?: string;
+  username?: string;
 }
 
 const BalanceCard: React.FC<BalanceCardProps> = ({
   name,
   balance,
   currency = "NGN",
+  username,
 }) => {
+  const { refreshUser } = useAuth();
   const [showBalance, setShowBalance] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [amountInput, setAmountInput] = useState("");
   const [error, setError] = useState("");
+  const [copiedUsername, setCopiedUsername] = useState(false);
+
+  const handleCopyUsername = () => {
+    if (!username) return;
+    navigator.clipboard.writeText(`@${username}`);
+    setCopiedUsername(true);
+    toast.success(`Copied @${username} to clipboard!`);
+    setTimeout(() => setCopiedUsername(false), 2000);
+  };
 
   // Handle browser back navigation or window refocus from payment checkout
   useEffect(() => {
@@ -96,12 +111,29 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-600 to-sky-900 text-white px-8 py-7 flex items-center justify-between shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-600 to-sky-900 text-white px-6 sm:px-8 py-7 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-sm">
         <div className="absolute -right-10 -top-16 w-64 h-64 rounded-full bg-white/5" />
         <div className="relative">
-          <p className="text-lg font-semibold flex items-center gap-2">
-            Dashboard Overview, {name} <span>👋</span>
-          </p>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <p className="text-lg font-semibold flex items-center gap-2">
+              Dashboard Overview, {name} <span>👋</span>
+            </p>
+            {username && (
+              <button
+                type="button"
+                onClick={handleCopyUsername}
+                className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold bg-white/10 hover:bg-white/20 text-sky-100 px-2.5 py-0.5 rounded-full border border-white/15 transition-colors cursor-pointer"
+                title="Click to copy username"
+              >
+                <span>@{username}</span>
+                {copiedUsername ? (
+                  <Check size={11} className="text-emerald-300" />
+                ) : (
+                  <Copy size={11} className="text-sky-200" />
+                )}
+              </button>
+            )}
+          </div>
           <div className="mt-4 text-[11px] tracking-wider text-sky-200 flex items-center gap-2">
             <span>ACCOUNT BALANCE</span>
             <button
@@ -114,29 +146,49 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
               {showBalance ? <Eye size={13} /> : <EyeOff size={13} />}
             </button>
           </div>
-          <p className="text-4xl font-bold mt-1 tracking-tight select-none">
+          <p className="text-3xl sm:text-4xl font-bold mt-1 tracking-tight select-none">
             {showBalance ? formattedBalance : "••••••••"}
           </p>
         </div>
 
-        <div className="relative flex flex-col items-end gap-2.5">
-          <button
-            type="button"
-            onClick={openModal}
-            className="flex items-center gap-1.5 bg-white text-sky-700 text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-sky-50 shadow-xs hover:shadow transition-all cursor-pointer"
-          >
-            <Plus size={15} />
-            Add Funds
-          </button>
+        <div className="relative flex flex-wrap items-center sm:flex-col sm:items-end gap-2.5">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={openModal}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-white text-sky-700 text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-full hover:bg-sky-50 shadow-xs hover:shadow transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Plus size={15} />
+              Add Funds
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTransferModal(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-sky-500/30 text-white border border-white/20 text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-full hover:bg-sky-500/40 shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Send size={14} />
+              Send Money
+            </button>
+          </div>
           <Link
             href="/dashboard/transactions"
-            className="flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-white/20 transition-all"
+            className="flex items-center gap-1.5 bg-white/10 text-white text-xs sm:text-sm font-medium px-4 py-1.5 rounded-full hover:bg-white/20 transition-all"
           >
             History
             <ArrowRight size={14} />
           </Link>
         </div>
       </div>
+
+      {/* Transfer Funds Modal */}
+      <TransferFundsModal
+        isOpen={showTransferModal}
+        onClose={() => setShowTransferModal(false)}
+        availableBalance={Number(balance) || 0}
+        onSuccess={() => {
+          refreshUser();
+        }}
+      />
 
       {showModal && (
         <div

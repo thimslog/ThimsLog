@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, ShoppingCart, RotateCcw, ListChecks, MessageCircle } from "lucide-react";
+import { Plus, Send, ShoppingCart, RotateCcw, ListChecks, MessageCircle } from "lucide-react";
 
 const QuickActionsBar = () => {
   const actions = [
     { icon: Plus, label: "Fund Wallet", href: "/dashboard/wallet", primary: true },
+    { icon: Send, label: "Send Money", href: "/dashboard/wallet?action=transfer" },
     { icon: ShoppingCart, label: "Buy Accounts", href: "/dashboard/products" },
     { icon: RotateCcw, label: "Order History", href: "/dashboard/order-history" },
     { icon: ListChecks, label: "Transactions", href: "/dashboard/transactions" },

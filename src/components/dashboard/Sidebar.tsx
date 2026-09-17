@@ -64,6 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, open = false, onClose }) => {
         <SidebarProfile
           name={`${user.firstName} ${user.lastName}`}
           email={user.email}
+          username={user.userName}
           onClick={onClose}
         />
 

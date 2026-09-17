@@ -48,6 +48,11 @@ export type AdminAuditLog = Prisma.AdminAuditLogModel
  */
 export type HelpCenterLink = Prisma.HelpCenterLinkModel
 /**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel
+/**
  * Model Order
  * 
  */

@@ -29,9 +29,17 @@ export async function GET() {
     const balanceBefore = runningBalance;
     const effectiveAmount = tx.amount ?? tx.amountRequested;
 
-    // Credit for FUNDING and REFUND, Debit for PAYMENT
+    const meta = tx.metadata as any;
+    const normalizedType =
+      tx.type === "TRANSFER_SENT" || meta?.transferType === "TRANSFER_SENT"
+        ? "TRANSFER_SENT"
+        : tx.type === "TRANSFER_RECEIVED" || meta?.transferType === "TRANSFER_RECEIVED"
+        ? "TRANSFER_RECEIVED"
+        : tx.type;
+
+    // Credit for FUNDING, REFUND, TRANSFER_RECEIVED; Debit for PAYMENT, TRANSFER_SENT
     if (tx.status === "SUCCESS" && effectiveAmount) {
-      if (tx.type === "PAYMENT") {
+      if (normalizedType === "PAYMENT" || normalizedType === "TRANSFER_SENT") {
         runningBalance = runningBalance.sub(effectiveAmount);
       } else {
         runningBalance = runningBalance.add(effectiveAmount);
@@ -40,7 +48,7 @@ export async function GET() {
 
     return {
       id: tx.id,
-      type: tx.type,
+      type: normalizedType,
       status: tx.status,
       amount: effectiveAmount.toString(),
       merchantReference: tx.merchantReference,
@@ -48,6 +56,7 @@ export async function GET() {
       provider: tx.provider,
       balanceBefore: balanceBefore.toString(),
       balanceAfter: runningBalance.toString(),
+      metadata: tx.metadata,
       createdAt: tx.createdAt,
     };
   });

@@ -6,6 +6,7 @@ import {
   RotateCcw,
   ListChecks,
   Wallet,
+  Bell,
   UserCircle,
   LifeBuoy,
   type LucideIcon,
@@ -55,6 +56,11 @@ export const sidebarAccountLinks: {
   label: string;
   path: string;
 }[] = [
+  {
+    icon: Bell,
+    label: "Notifications",
+    path: "/dashboard/notifications",
+  },
   {
     icon: UserCircle,
     label: "Profile Settings",

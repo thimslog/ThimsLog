@@ -1,9 +1,10 @@
 "use client";
 
-import { Bell, ChevronDown, Sun, Moon, Menu } from "lucide-react";
+import { ChevronDown, Sun, Moon, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "@/context/theme-context";
+import NotificationBell from "./NotificationBell";
 
 interface TopBarProps {
   user: {
@@ -53,10 +54,7 @@ const TopBar: React.FC<TopBarProps> = ({ user, onOpenSidebar }) => {
         </button>
 
         {/* Notifications */}
-        <button className="relative w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer shadow-2xs">
-          <Bell size={16} className="text-slate-600 dark:text-slate-300" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-sky-500 rounded-full" />
-        </button>
+        <NotificationBell />
 
         {/* Profile */}
         <Link

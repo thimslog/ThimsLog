@@ -22,9 +22,11 @@ import {
   CreditCard,
   CheckCircle,
   Lock,
+  Send,
 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { toast } from "@/components/ui/toast";
+import TransferFundsModal from "@/components/dashboard/TransferFundsModal";
 
 interface WalletData {
   id?: string;
@@ -51,6 +53,7 @@ function WalletContent() {
 
   // Manual / Online funding state
   const amountPresets = [1000, 2500, 5000, 10000, 20000, 50000];
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [showManualFund, setShowManualFund] = useState(false);
   const [manualAmount, setManualAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("paymonetra");
@@ -112,10 +115,15 @@ function WalletContent() {
     };
   }, [fetchWallet]);
 
-  // Handle URL payment return status
+  // Handle URL payment return status or transfer action
   useEffect(() => {
     const payment = searchParams.get("payment");
     const amount = searchParams.get("amount");
+    const action = searchParams.get("action");
+
+    if (action === "transfer") {
+      setShowTransferModal(true);
+    }
 
     if (payment === "success") {
       const formatted = amount
@@ -293,8 +301,29 @@ function WalletContent() {
           <p className="text-xs sm:text-sm text-sky-100/90 font-medium">
             Account Owner: <span className="font-semibold text-white">{user?.firstName} {user?.lastName}</span>
           </p>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowTransferModal(true)}
+              className="inline-flex items-center gap-1.5 bg-white text-sky-700 hover:bg-sky-50 text-xs sm:text-sm font-bold px-5 py-2.5 rounded-full shadow-md shadow-sky-900/20 hover:shadow-lg transition-all cursor-pointer active:scale-95"
+            >
+              <Send size={14} />
+              <span>Send Money to User</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Transfer Funds Modal */}
+      <TransferFundsModal
+        isOpen={showTransferModal}
+        onClose={() => setShowTransferModal(false)}
+        availableBalance={Number(wallet?.balance ?? user?.wallet?.balance ?? 0)}
+        onSuccess={() => {
+          fetchWallet(true);
+        }}
+      />
 
       {/* Instant Funding Section Header */}
       <div className="text-center space-y-1.5 pt-2">

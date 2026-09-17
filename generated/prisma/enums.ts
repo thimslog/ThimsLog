@@ -49,10 +49,23 @@ export type InventoryAccountStatus = (typeof InventoryAccountStatus)[keyof typeo
 export const TransactionType = {
   FUNDING: 'FUNDING',
   PAYMENT: 'PAYMENT',
-  REFUND: 'REFUND'
+  REFUND: 'REFUND',
+  TRANSFER_SENT: 'TRANSFER_SENT',
+  TRANSFER_RECEIVED: 'TRANSFER_RECEIVED'
 } as const
 
 export type TransactionType = (typeof TransactionType)[keyof typeof TransactionType]
+
+
+export const NotificationType = {
+  SYSTEM: 'SYSTEM',
+  TRANSFER_SENT: 'TRANSFER_SENT',
+  TRANSFER_RECEIVED: 'TRANSFER_RECEIVED',
+  ORDER_UPDATE: 'ORDER_UPDATE',
+  WALLET_FUNDED: 'WALLET_FUNDED'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
 
 
 export const TransactionStatus = {

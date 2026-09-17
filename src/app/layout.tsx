@@ -68,20 +68,27 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                var savedTheme = localStorage.getItem('thimslog_theme');
+                var pathname = window.location.pathname || '';
+                var isAdmin = pathname.indexOf('/admin') !== -1;
+                var savedTheme = isAdmin
+                  ? (localStorage.getItem('thimslog_admin_theme') || localStorage.getItem('thimslog_theme'))
+                  : (localStorage.getItem('thimslog_user_theme') || localStorage.getItem('thimslog_theme'));
+                
                 if (savedTheme === 'dark') {
                   document.documentElement.classList.add('dark');
                   document.documentElement.setAttribute('data-theme', 'dark');
+                  document.documentElement.style.colorScheme = 'dark';
                 } else {
                   document.documentElement.classList.remove('dark');
                   document.documentElement.setAttribute('data-theme', 'light');
+                  document.documentElement.style.colorScheme = 'light';
                 }
               } catch (e) {}
             `,
           }}
         />
       </head>
-      <body className="font-body bg-slate-50 text-slate-900 dark:bg-[#060a14] dark:text-slate-200 antialiased transition-colors duration-200">
+      <body className="font-body bg-slate-50 text-slate-900 dark:bg-[#060a14] dark:text-slate-200 antialiased">
         <ToastProvider>
           {children}
           <PwaRegister />

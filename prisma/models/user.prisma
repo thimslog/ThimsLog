@@ -7,12 +7,14 @@ model User {
     email       String @unique
     phoneNumber String @unique
     userName    String @unique
+    usernameChangedAt DateTime?
 
     password    String
 
     wallet      Wallet?
     orders      Order[]
     tickets     SupportTicket[]
+    notifications Notification[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

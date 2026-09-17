@@ -28,16 +28,19 @@ export function AdminThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Read admin-specific theme storage
-    const saved = localStorage.getItem("thimslog_admin_theme") as Theme | null;
+    const saved = (localStorage.getItem("thimslog_admin_theme") ||
+      localStorage.getItem("thimslog_theme")) as Theme | null;
     const initialTheme: Theme = saved === "dark" || saved === "light" ? saved : "light";
 
     setThemeState(initialTheme);
     if (initialTheme === "dark") {
       document.documentElement.classList.add("dark");
       document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.style.colorScheme = "dark";
     } else {
       document.documentElement.classList.remove("dark");
       document.documentElement.setAttribute("data-theme", "light");
+      document.documentElement.style.colorScheme = "light";
     }
     setMounted(true);
   }, []);
@@ -45,12 +48,15 @@ export function AdminThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem("thimslog_admin_theme", newTheme);
+    localStorage.setItem("thimslog_theme", newTheme);
     if (newTheme === "dark") {
       document.documentElement.classList.add("dark");
       document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.style.colorScheme = "dark";
     } else {
       document.documentElement.classList.remove("dark");
       document.documentElement.setAttribute("data-theme", "light");
+      document.documentElement.style.colorScheme = "light";
     }
   };
 
@@ -61,7 +67,7 @@ export function AdminThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <AdminThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
-      <div className={theme === "dark" ? "dark" : ""}>{children}</div>
+      {children}
     </AdminThemeContext.Provider>
   );
 }

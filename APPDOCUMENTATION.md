@@ -243,9 +243,53 @@ ThimsLog is a fully installable **Progressive Web App (PWA)** providing native-a
 
 ---
 
-## 8. Setup & Deployment Guidelines
+---
 
-### 7.1 Environment Variables
+## 8. Peer-to-Peer (P2P) Internal Wallet Transfers & In-App Notifications
+
+### 8.1 P2P Fund Transfer Workflow
+Customers can send wallet balance to any registered Thimslog customer with zero transaction fees:
+1. **Recipient Lookup & Live Verification** (`/api/wallet/transfer/lookup?username=...`):
+   - Debounced lookup dynamically queries the recipient by username.
+   - Confirms the recipient's full name, username, and verified badge before money is sent.
+   - Prevents self-transfers and transfers to non-existent accounts.
+2. **Race-Condition & Double-Spend Prevention**:
+   - Executes inside `prisma.$transaction`.
+   - Acquires PostgreSQL row-level locks (`SELECT * FROM "Wallet" WHERE "userId" = ... FOR UPDATE`) in deterministic sorted order to prevent deadlocks and race conditions.
+   - Validates balance at the locked row level before balance decrement/increment.
+   - Creates double-entry audit records: `TRANSFER_SENT` (debit) for Sender and `TRANSFER_RECEIVED` (credit) for Recipient.
+3. **In-App Notification Dispatch**:
+   - Automatically generates a `TRANSFER_RECEIVED` notification for Customer B ("You received ₦X from @username") and a `TRANSFER_SENT` notification for Customer A.
+
+### 8.2 In-App Notification System
+- **Prisma Model** (`prisma/models/notification.prisma`):
+  - Fields: `id`, `userId`, `title`, `message`, `type` (`SYSTEM`, `TRANSFER_SENT`, `TRANSFER_RECEIVED`, `ORDER_UPDATE`, `WALLET_FUNDED`), `read` (boolean), `metadata` (JSON), `createdAt`.
+- **Topbar Bell & Badge** (`src/components/dashboard/NotificationBell.tsx`):
+  - Displays real-time unread count badge.
+  - Floating popover preview with quick "Mark as Read", relative timestamps, and direct link to notification center.
+  - Periodic background polling ensures instant updates.
+- **Notification Center Page** (`/dashboard/notifications`):
+  - Tabbed filters for **All** and **Unread** notifications.
+  - One-click **"Mark All as Read"** and individual mark-read actions.
+  - Rich badges and formatted transfer summaries.
+
+### 8.3 Username Management & 3-Month Edit Rule
+- **Display & 1-Click Copy**:
+  - Displayed prominently in the **Profile Settings Header** (`/dashboard/settings`), **Sidebar Profile Card** (`SidebarProfile.tsx`), and **Overview Balance Card** (`BalanceCard.tsx`) with a 1-click copy badge (`@username`).
+- **3-Month Rate Limit (Cooldown)**:
+  - Users can change their username only once every 3 months (90 days).
+  - The system tracks `usernameChangedAt` on the `User` model.
+  - If changed within 90 days, the input is disabled and locked with an exact countdown: *"🔒 Username locked: Next change available in X days on Month DD, YYYY"*.
+- **Strict Uniqueness & Format Validation**:
+  - Live debounced uniqueness check via `GET /api/user/profile/check-username?username=...`.
+  - Enforces 3-30 character alphanumeric and underscore format (`/^[a-zA-Z0-9_]{3,30}$/`).
+  - Strict case-insensitive uniqueness validation on the database level.
+
+---
+
+## 9. Setup & Deployment Guidelines
+
+### 9.1 Environment Variables
 Ensure the following keys are present in `.env`:
 ```env
 DATABASE_URL="postgresql://user:password@host:port/dbname?schema=public"
@@ -256,7 +300,7 @@ PAYMONETRA_API_KEY="your-paymonetra-key"
 PAYMONETRA_SECRET_KEY="your-paymonetra-secret"
 ```
 
-### 7.2 Database Migration Commands
+### 9.2 Database Migration Commands
 To synchronize your database schema with the Prisma models:
 ```bash
 # Push schema updates to the database
@@ -266,7 +310,7 @@ npx prisma db push
 npx prisma generate
 ```
 
-### 7.3 Development & Build
+### 9.3 Development & Build
 ```bash
 # Run local development server
 npm run dev
@@ -277,3 +321,4 @@ npm run build
 # Start production server
 npm start
 ```
+

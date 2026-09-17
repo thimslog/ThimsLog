@@ -27,6 +27,16 @@ enum TransactionType {
   FUNDING   // adding money to wallet
   PAYMENT   // spending wallet balance on a product
   REFUND
+  TRANSFER_SENT     // sent funds to another user
+  TRANSFER_RECEIVED // received funds from another user
+}
+
+enum NotificationType {
+  SYSTEM
+  TRANSFER_SENT
+  TRANSFER_RECEIVED
+  ORDER_UPDATE
+  WALLET_FUNDED
 }
 
 enum TransactionStatus {

@@ -14,8 +14,39 @@ export async function GET() {
       );
     }
 
+    // Check 3-month (90 days) cooldown
+    const usernameChangedAt = (user as any).usernameChangedAt
+      ? new Date((user as any).usernameChangedAt)
+      : null;
+
+    const threeMonthsMs = 90 * 24 * 60 * 60 * 1000;
+    const now = new Date();
+
+    let canChangeUsername = true;
+    let nextAllowedDate: Date | null = null;
+    let daysRemaining = 0;
+
+    if (usernameChangedAt) {
+      nextAllowedDate = new Date(usernameChangedAt.getTime() + threeMonthsMs);
+      if (now < nextAllowedDate) {
+        canChangeUsername = false;
+        daysRemaining = Math.ceil(
+          (nextAllowedDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        );
+      }
+    }
+
     return NextResponse.json(
-      { success: true, user },
+      {
+        success: true,
+        user: {
+          ...user,
+          usernameChangedAt,
+          canChangeUsername,
+          nextAllowedDate: nextAllowedDate?.toISOString() || null,
+          daysRemaining,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {
@@ -39,7 +70,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { firstName, lastName, phoneNumber } = body;
+    const { firstName, lastName, phoneNumber, userName } = body;
 
     if (!firstName?.trim() || !lastName?.trim()) {
       return NextResponse.json(
@@ -48,7 +79,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Check if phone number is being changed and if it is already taken by another user
+    // Check if phone number is being changed and if it is already taken
     if (phoneNumber && phoneNumber.trim() !== currentUser.phoneNumber) {
       const existingPhone = await prisma.user.findFirst({
         where: {
@@ -65,26 +96,131 @@ export async function PUT(request: Request) {
       }
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: currentUser.id },
-      data: {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        ...(phoneNumber ? { phoneNumber: phoneNumber.trim() } : {}),
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phoneNumber: true,
-        userName: true,
-        createdAt: true,
-        wallet: { select: { balance: true } },
-      },
-    });
+    // Check if username is being changed
+    let updatedUsername = currentUser.userName;
+    let newUsernameChangedAt: Date | undefined = undefined;
 
-    // Refresh token with updated name
+    if (userName && userName.trim() !== currentUser.userName) {
+      const cleanUsername = userName.trim().toLowerCase().replace(/^@/, "");
+
+      // Validation rule: 3-30 alphanumeric or underscore
+      if (!/^[a-zA-Z0-9_]{3,30}$/.test(cleanUsername)) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Username must be 3-30 characters long and contain only letters, numbers, and underscores.",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Check 3-month (90 days) cooldown
+      const lastChanged = (currentUser as any).usernameChangedAt
+        ? new Date((currentUser as any).usernameChangedAt)
+        : null;
+
+      if (lastChanged) {
+        const threeMonthsMs = 90 * 24 * 60 * 60 * 1000;
+        const nextAllowed = new Date(lastChanged.getTime() + threeMonthsMs);
+        if (new Date() < nextAllowed) {
+          const days = Math.ceil(
+            (nextAllowed.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+          );
+          const formattedDate = nextAllowed.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          });
+          return NextResponse.json(
+            {
+              success: false,
+              message: `You can only edit your username once every 3 months. You can change it again in ${days} day(s) on ${formattedDate}.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Check uniqueness
+      const existingUsername = await prisma.user.findFirst({
+        where: {
+          userName: {
+            equals: cleanUsername,
+            mode: "insensitive",
+          },
+          id: { not: currentUser.id },
+        },
+      });
+
+      if (existingUsername) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `@${cleanUsername} is already taken. Please choose another username.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      updatedUsername = cleanUsername;
+      newUsernameChangedAt = new Date();
+    }
+
+    const updateData: any = {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      ...(phoneNumber ? { phoneNumber: phoneNumber.trim() } : {}),
+      ...(updatedUsername !== currentUser.userName ? { userName: updatedUsername } : {}),
+    };
+
+    // Attempt to set usernameChangedAt if field exists
+    if (newUsernameChangedAt) {
+      try {
+        updateData.usernameChangedAt = newUsernameChangedAt;
+      } catch {}
+    }
+
+    let updatedUser: any;
+    try {
+      updatedUser = await prisma.user.update({
+        where: { id: currentUser.id },
+        data: updateData,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phoneNumber: true,
+          userName: true,
+          createdAt: true,
+          wallet: { select: { balance: true } },
+        },
+      });
+    } catch (dbErr: any) {
+      // Fallback if usernameChangedAt column isn't in database yet
+      if (updateData.usernameChangedAt) {
+        delete updateData.usernameChangedAt;
+        updatedUser = await prisma.user.update({
+          where: { id: currentUser.id },
+          data: updateData,
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phoneNumber: true,
+            userName: true,
+            createdAt: true,
+            wallet: { select: { balance: true } },
+          },
+        });
+      } else {
+        throw dbErr;
+      }
+    }
+
+    // Refresh token with updated details
     const newToken = generateToken({
       id: updatedUser.id,
       email: updatedUser.email,
@@ -108,10 +244,10 @@ export async function PUT(request: Request) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Update profile error:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to update profile" },
+      { success: false, message: error?.message || "Failed to update profile" },
       { status: 500 }
     );
   }

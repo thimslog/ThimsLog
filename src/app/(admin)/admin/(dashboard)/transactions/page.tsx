@@ -40,7 +40,7 @@ interface UserInfo {
 interface TransactionRecord {
   id: string;
   walletId: string;
-  type: "FUNDING" | "PAYMENT" | "REFUND";
+  type: "FUNDING" | "PAYMENT" | "REFUND" | "TRANSFER_SENT" | "TRANSFER_RECEIVED" | string;
   status: "PENDING" | "SUCCESS" | "FAILED" | "UNDERPAID" | "OVERPAID" | "EXPIRED";
   amountRequested: string | number;
   amount: string | number | null;
@@ -562,6 +562,8 @@ function AdminTransactionsContent() {
             <option value="ALL">All Types</option>
             <option value="FUNDING">Funding</option>
             <option value="PAYMENT">Payment</option>
+            <option value="TRANSFER_SENT">Transfer Sent</option>
+            <option value="TRANSFER_RECEIVED">Transfer Received</option>
             <option value="REFUND">Refund</option>
           </select>
 
@@ -681,11 +683,21 @@ function AdminTransactionsContent() {
                           {tx.type === "PAYMENT" && (
                             <ArrowUpRight size={14} className="text-sky-500 shrink-0" />
                           )}
+                          {tx.type === "TRANSFER_SENT" && (
+                            <ArrowUpRight size={14} className="text-rose-500 shrink-0" />
+                          )}
+                          {tx.type === "TRANSFER_RECEIVED" && (
+                            <ArrowDownLeft size={14} className="text-emerald-500 shrink-0" />
+                          )}
                           {tx.type === "REFUND" && (
                             <RotateCcw size={14} className="text-amber-500 shrink-0" />
                           )}
                           <span className="font-medium text-slate-800 dark:text-slate-200">
-                            {tx.type}
+                            {tx.type === "TRANSFER_SENT"
+                              ? "Transfer Out"
+                              : tx.type === "TRANSFER_RECEIVED"
+                              ? "Transfer In"
+                              : tx.type}
                           </span>
                         </div>
                       </td>
