@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Search,
   RefreshCw,
@@ -20,6 +21,7 @@ import {
   User as UserIcon,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 
 import { StatusPill } from "@/components/admin/status-pill";
@@ -83,31 +85,46 @@ function formatMoney(value: string | number | null | undefined) {
 }
 
 function formatDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
 }
 
-export default function AdminTransactionsPage() {
+function AdminTransactionsContent() {
   const { setPageTitle } = useAdminPage();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const initialPage = Math.max(Number(searchParams.get("page")) || 1, 1);
+  const initialStatus = searchParams.get("status") || "ALL";
+  const initialType = searchParams.get("type") || "ALL";
+  const initialSearch = searchParams.get("search") || "";
 
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [pagination, setPagination] = useState<Pagination | null>(null);
 
-  const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [typeFilter, setTypeFilter] = useState("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
+  const [page, setPage] = useState(initialPage);
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [typeFilter, setTypeFilter] = useState(initialType);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [appliedSearch, setAppliedSearch] = useState(initialSearch);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchedKeyRef = useRef<string>("");
 
   // Requerying state
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
@@ -120,6 +137,7 @@ export default function AdminTransactionsPage() {
   const [selectedTx, setSelectedTx] = useState<TransactionRecord | null>(null);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
 
+  // Core fetch transactions function
   const fetchTransactions = useCallback(
     async (
       requestedPage = page,
@@ -138,7 +156,7 @@ export default function AdminTransactionsPage() {
 
         if (status !== "ALL") params.append("status", status);
         if (type !== "ALL") params.append("type", type);
-        if (search) params.append("search", search);
+        if (search.trim()) params.append("search", search.trim());
 
         const res = await fetch(`/api/admin/transactions?${params.toString()}`, {
           method: "GET",
@@ -166,9 +184,34 @@ export default function AdminTransactionsPage() {
     [page, statusFilter, typeFilter, appliedSearch]
   );
 
+  // Initial load
   useEffect(() => {
-    fetchTransactions(1, statusFilter, typeFilter, appliedSearch);
-  }, [statusFilter, typeFilter, appliedSearch]);
+    fetchTransactions(initialPage, initialStatus, initialType, initialSearch);
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [fetchTransactions, initialPage, initialStatus, initialType, initialSearch]);
+
+  // Handle browser Back / Forward history buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const p = Math.max(Number(urlParams.get("page")) || 1, 1);
+      const s = urlParams.get("status") || "ALL";
+      const t = urlParams.get("type") || "ALL";
+      const q = urlParams.get("search") || "";
+
+      setPage(p);
+      setStatusFilter(s);
+      setTypeFilter(t);
+      setAppliedSearch(q);
+      setSearchQuery(q);
+      fetchTransactions(p, s, t, q);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [fetchTransactions]);
 
   useEffect(() => {
     setPageTitle({
@@ -179,10 +222,93 @@ export default function AdminTransactionsPage() {
     });
   }, [setPageTitle, pagination]);
 
+  const updateUrl = (
+    newPage: number,
+    newStatus: string,
+    newType: string,
+    newSearch: string,
+    replace = false
+  ) => {
+    const params = new URLSearchParams();
+    if (newPage > 1) params.set("page", String(newPage));
+    if (newStatus !== "ALL") params.set("status", newStatus);
+    if (newType !== "ALL") params.set("type", newType);
+    if (newSearch.trim()) params.set("search", newSearch.trim());
+
+    const qs = params.toString();
+    const url = `${pathname}${qs ? `?${qs}` : ""}`;
+    if (replace) {
+      router.replace(url, { scroll: false });
+    } else {
+      router.push(url, { scroll: false });
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage === page || newPage < 1) return;
+    if (pagination && newPage > pagination.totalPages) return;
+    setPage(newPage);
+    updateUrl(newPage, statusFilter, typeFilter, appliedSearch);
+    fetchTransactions(newPage, statusFilter, typeFilter, appliedSearch);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    setStatusFilter(newStatus);
+    setPage(1);
+    updateUrl(1, newStatus, typeFilter, appliedSearch);
+    fetchTransactions(1, newStatus, typeFilter, appliedSearch);
+  };
+
+  const handleTypeChange = (newType: string) => {
+    setTypeFilter(newType);
+    setPage(1);
+    updateUrl(1, statusFilter, newType, appliedSearch);
+    fetchTransactions(1, statusFilter, newType, appliedSearch);
+  };
+
+  // Live search debounce (350ms)
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      const clean = value.trim();
+      setAppliedSearch(clean);
+      setPage(1);
+      updateUrl(1, statusFilter, typeFilter, clean, true);
+      fetchTransactions(1, statusFilter, typeFilter, clean);
+    }, 350);
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setAppliedSearch(searchQuery);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    const clean = searchQuery.trim();
+    setAppliedSearch(clean);
     setPage(1);
+    updateUrl(1, statusFilter, typeFilter, clean);
+    fetchTransactions(1, statusFilter, typeFilter, clean);
+  };
+
+  const handleClearSearch = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    setSearchQuery("");
+    setAppliedSearch("");
+    setPage(1);
+    updateUrl(1, statusFilter, typeFilter, "");
+    fetchTransactions(1, statusFilter, typeFilter, "");
+  };
+
+  const handleRefresh = () => {
+    fetchTransactions(page, statusFilter, typeFilter, appliedSearch);
+    toast.success("Transactions refreshed");
   };
 
   const handleQueryTransaction = async (txId: string) => {
@@ -304,18 +430,20 @@ export default function AdminTransactionsPage() {
             </div>
           </div>
           <div className="mt-3">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
               {metrics?.successCount ?? 0}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Successful operations</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Confirmed transactions
+            </p>
           </div>
         </div>
 
-        {/* Total Transactions */}
+        {/* Total Count */}
         <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Total Recorded
+              Total Logged
             </span>
             <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 flex items-center justify-center">
               <CreditCard size={16} />
@@ -368,7 +496,7 @@ export default function AdminTransactionsPage() {
         <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 dark:bg-rose-500/10 dark:border-rose-500/20 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">
           <span>{error}</span>
           <button
-            onClick={() => fetchTransactions(page)}
+            onClick={() => fetchTransactions(page, statusFilter, typeFilter, appliedSearch)}
             className="font-semibold underline cursor-pointer hover:opacity-80"
           >
             Retry
@@ -387,10 +515,19 @@ export default function AdminTransactionsPage() {
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search by Reference, User Email, Name..."
-            className="w-full pl-10 pr-20 py-2 text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600 transition-colors"
+            className="w-full pl-10 pr-20 py-2 text-xs bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600 transition-colors font-medium"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="absolute right-16 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+            >
+              <X size={13} />
+            </button>
+          )}
           <button
             type="submit"
             className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-xs"
@@ -404,26 +541,23 @@ export default function AdminTransactionsPage() {
           {/* Status Select */}
           <select
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="bg-slate-50 dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-xl px-3 py-2 focus:outline-none focus:border-sky-600 cursor-pointer"
+            onChange={(e) => handleStatusChange(e.target.value)}
+            aria-label="Filter by transaction status"
+            className="bg-slate-50 dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-sky-600 cursor-pointer"
           >
             <option value="ALL">All Statuses</option>
             <option value="PENDING">Pending (Queryable)</option>
             <option value="SUCCESS">Success</option>
             <option value="FAILED">Failed</option>
+            <option value="EXPIRED">Expired</option>
           </select>
 
           {/* Type Select */}
           <select
             value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setPage(1);
-            }}
-            className="bg-slate-50 dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-xl px-3 py-2 focus:outline-none focus:border-sky-600 cursor-pointer"
+            onChange={(e) => handleTypeChange(e.target.value)}
+            aria-label="Filter by transaction type"
+            className="bg-slate-50 dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-sky-600 cursor-pointer"
           >
             <option value="ALL">All Types</option>
             <option value="FUNDING">Funding</option>
@@ -434,14 +568,12 @@ export default function AdminTransactionsPage() {
           {/* Refresh Button */}
           <button
             type="button"
-            onClick={() =>
-              fetchTransactions(page, statusFilter, typeFilter, appliedSearch)
-            }
+            onClick={handleRefresh}
             title="Refresh Transactions"
-            className="px-3 py-2 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-medium"
+            className="px-3.5 py-2 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold shadow-2xs"
           >
             <RefreshCw
-              size={14}
+              size={13}
               className={loading ? "animate-spin text-sky-600 dark:text-sky-400" : ""}
             />
             <span className="hidden sm:inline">Refresh</span>
@@ -449,13 +581,36 @@ export default function AdminTransactionsPage() {
         </div>
       </div>
 
+      {/* Active Search Filter Pill */}
+      {appliedSearch && (
+        <div className="flex items-center justify-between px-1 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-2">
+            <span>
+              Search results for{" "}
+              <strong className="text-slate-900 dark:text-white">
+                &ldquo;{appliedSearch}&rdquo;
+              </strong>
+            </span>
+            <button
+              onClick={handleClearSearch}
+              className="text-sky-600 dark:text-sky-400 hover:underline font-semibold cursor-pointer"
+            >
+              Clear filter
+            </button>
+          </div>
+          {pagination && (
+            <span>{pagination.total} transactions found</span>
+          )}
+        </div>
+      )}
+
       {/* Transactions Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] shadow-xs">
+      <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.02] text-[11.5px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+            <thead className="bg-slate-50/80 dark:bg-white/[0.02] border-b border-slate-200 dark:border-white/10 text-[11.5px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
               <tr>
-                <th className="px-5 py-3.5">User</th>
+                <th className="px-5 py-3.5">Customer / User</th>
                 <th className="px-5 py-3.5">Type</th>
                 <th className="px-5 py-3.5">Amount</th>
                 <th className="px-5 py-3.5">Status</th>
@@ -465,20 +620,24 @@ export default function AdminTransactionsPage() {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {loading ? (
+            <tbody
+              className={`divide-y divide-slate-100 dark:divide-white/5 text-xs transition-opacity duration-150 ${
+                loading ? "opacity-50 pointer-events-none" : "opacity-100"
+              }`}
+            >
+              {loading && transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={7} className="px-5 py-14 text-center text-slate-400">
                     <div className="flex items-center justify-center gap-2">
-                      <RefreshCw size={16} className="animate-spin text-sky-600 dark:text-sky-400" />
+                      <Loader2 size={18} className="animate-spin text-sky-600" />
                       <span>Loading transactions...</span>
                     </div>
                   </td>
                 </tr>
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-slate-400 dark:text-slate-500">
-                    No transactions found matching your criteria.
+                  <td colSpan={7} className="px-5 py-14 text-center text-slate-400">
+                    No transactions found matching criteria.
                   </td>
                 </tr>
               ) : (
@@ -492,51 +651,53 @@ export default function AdminTransactionsPage() {
                       key={tx.id}
                       className="hover:bg-slate-50/60 dark:hover:bg-white/[0.03] transition-colors"
                     >
-                      {/* User */}
+                      {/* Customer Info */}
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 flex items-center justify-center text-xs font-bold shrink-0">
-                            {user?.firstName?.[0] || "U"}
+                        {user ? (
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 flex items-center justify-center text-xs font-bold shrink-0">
+                              {user.firstName?.[0] || "U"}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-900 dark:text-white truncate max-w-[140px]">
+                                {user.firstName} {user.lastName}
+                              </p>
+                              <p className="text-[11.5px] text-slate-400 truncate max-w-[140px]">
+                                {user.email}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-slate-900 dark:text-white truncate">
-                              {user ? `${user.firstName} ${user.lastName}` : "Unknown User"}
-                            </p>
-                            <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                              {user?.email || "No email"}
-                            </p>
-                          </div>
-                        </div>
+                        ) : (
+                          <span className="text-slate-400">N/A</span>
+                        )}
                       </td>
 
                       {/* Type */}
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          {tx.type === "FUNDING" ? (
-                            <span className="p-1 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                              <ArrowDownLeft size={14} />
-                            </span>
-                          ) : tx.type === "PAYMENT" ? (
-                            <span className="p-1 rounded bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                              <ArrowUpRight size={14} />
-                            </span>
-                          ) : (
-                            <span className="p-1 rounded bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                              <RotateCcw size={14} />
-                            </span>
+                        <div className="flex items-center gap-1.5">
+                          {tx.type === "FUNDING" && (
+                            <ArrowDownLeft size={14} className="text-emerald-500 shrink-0" />
                           )}
-                          <span>{tx.type}</span>
+                          {tx.type === "PAYMENT" && (
+                            <ArrowUpRight size={14} className="text-sky-500 shrink-0" />
+                          )}
+                          {tx.type === "REFUND" && (
+                            <RotateCcw size={14} className="text-amber-500 shrink-0" />
+                          )}
+                          <span className="font-medium text-slate-800 dark:text-slate-200">
+                            {tx.type}
+                          </span>
                         </div>
                       </td>
 
                       {/* Amount */}
-                      <td className="px-5 py-4">
-                        <div className="font-bold text-slate-900 dark:text-white">
-                          {formatMoney(tx.amount || tx.amountRequested)}
+                      <td className="px-5 py-4 font-mono font-semibold">
+                        <div className="text-slate-900 dark:text-white">
+                          {formatMoney(tx.amountRequested)}
                         </div>
-                        {tx.amount && tx.amount !== tx.amountRequested && (
-                          <div className="text-[11px] text-slate-400 dark:text-slate-500">
-                            Req: {formatMoney(tx.amountRequested)}
+                        {tx.amount && Number(tx.amount) !== Number(tx.amountRequested) && (
+                          <div className="text-[11px] text-slate-400">
+                            Paid: {formatMoney(tx.amount)}
                           </div>
                         )}
                       </td>
@@ -615,46 +776,67 @@ export default function AdminTransactionsPage() {
         </div>
 
         {/* Pagination Footer */}
-        {!loading && pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3.5 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Showing page <span className="font-semibold text-slate-900 dark:text-white">{pagination.page}</span> of{" "}
-              <span className="font-semibold text-slate-900 dark:text-white">{pagination.totalPages}</span> (
-              {pagination.total} total)
+              Showing page <span className="font-bold text-slate-900 dark:text-white">{pagination.page}</span> of{" "}
+              <span className="font-bold text-slate-900 dark:text-white">{pagination.totalPages}</span> (
+              {pagination.total} total transactions)
             </p>
 
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 disabled={!pagination.hasPreviousPage}
-                onClick={() =>
-                  fetchTransactions(
-                    page - 1,
-                    statusFilter,
-                    typeFilter,
-                    appliedSearch
-                  )
-                }
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                onClick={() => handlePageChange(page - 1)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 <ChevronLeft size={14} />
-                Previous
+                <span>Previous</span>
               </button>
+
+              {/* Numbered page buttons */}
+              <div className="flex items-center gap-1 px-1">
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                  .filter((p) => {
+                    return (
+                      p === 1 ||
+                      p === pagination.totalPages ||
+                      Math.abs(p - pagination.page) <= 1
+                    );
+                  })
+                  .map((pageNum, idx, arr) => {
+                    const prev = arr[idx - 1];
+                    const hasGap = prev && pageNum - prev > 1;
+
+                    return (
+                      <div key={pageNum} className="flex items-center">
+                        {hasGap && (
+                          <span className="px-1 text-slate-400 text-xs select-none">...</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`h-7 min-w-[28px] px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            pageNum === page
+                              ? "bg-sky-600 text-white font-bold shadow-xs"
+                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
 
               <button
                 type="button"
                 disabled={!pagination.hasNextPage}
-                onClick={() =>
-                  fetchTransactions(
-                    page + 1,
-                    statusFilter,
-                    typeFilter,
-                    appliedSearch
-                  )
-                }
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                onClick={() => handlePageChange(page + 1)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                Next
+                <span>Next</span>
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -669,139 +851,162 @@ export default function AdminTransactionsPage() {
           onClick={() => setSelectedTx(null)}
         >
           <div
-            className="w-full max-w-xl rounded-2xl bg-white dark:bg-[#0b101b] p-6 shadow-2xl border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/5">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Transaction Details
-                </h2>
-                <p className="text-xs text-slate-400 dark:text-slate-500 font-mono mt-0.5">
-                  ID: {selectedTx.id}
-                </p>
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+              <div className="flex items-center gap-2">
+                <StatusPill
+                  label={selectedTx.status}
+                  tone={getToneForStatus(selectedTx.status)}
+                />
+                <span className="text-xs font-mono font-bold text-slate-500">
+                  {selectedTx.type}
+                </span>
               </div>
+
               <button
+                type="button"
                 onClick={() => setSelectedTx(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Amount Banner */}
-            <div className="my-5 p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 flex items-center justify-between">
-              <div>
-                <span className="text-xs uppercase font-semibold text-slate-500 dark:text-slate-400">
-                  Settled Amount
-                </span>
-                <p className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">
-                  {formatMoney(selectedTx.amount || selectedTx.amountRequested)}
-                </p>
+            {/* Modal Body Info */}
+            <div className="space-y-4 text-xs">
+              {/* Amount Info */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 flex items-center justify-between">
+                <div>
+                  <span className="text-slate-400 block text-[11px] uppercase font-bold">
+                    Amount Requested
+                  </span>
+                  <span className="text-xl font-bold font-mono text-slate-900 dark:text-white">
+                    {formatMoney(selectedTx.amountRequested)}
+                  </span>
+                </div>
+
                 {selectedTx.amount && (
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    Amount Requested: {formatMoney(selectedTx.amountRequested)}
-                  </p>
+                  <div className="text-right">
+                    <span className="text-slate-400 block text-[11px] uppercase font-bold">
+                      Settled Amount
+                    </span>
+                    <span className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                      {formatMoney(selectedTx.amount)}
+                    </span>
+                  </div>
                 )}
               </div>
-              <div className="text-right">
-                <StatusPill
-                  label={selectedTx.status}
-                  tone={getToneForStatus(selectedTx.status)}
-                />
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2 uppercase">
-                  {selectedTx.type}
-                </p>
-              </div>
-            </div>
 
-            {/* User Details */}
-            <div className="space-y-4 text-sm">
-              <div className="p-4 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5 flex items-center gap-1.5">
-                  <UserIcon size={14} />
-                  User Information
-                </h4>
-                <div className="grid grid-cols-2 gap-2.5 text-xs">
+              {/* Customer details */}
+              <div className="space-y-2 p-3.5 rounded-xl border border-slate-200/60 dark:border-white/10 bg-white dark:bg-[#0b101b]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Customer Information
+                </span>
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   <div>
-                    <span className="text-slate-400 dark:text-slate-500">Name:</span>{" "}
+                    <span className="text-slate-400 block text-[11px]">Name</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
                       {selectedTx.wallet?.user?.firstName}{" "}
                       {selectedTx.wallet?.user?.lastName}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 dark:text-slate-500">Email:</span>{" "}
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                    <span className="text-slate-400 block text-[11px]">Username</span>
+                    <span className="font-mono text-sky-600 dark:text-sky-400">
+                      @{selectedTx.wallet?.user?.userName || "N/A"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">Email</span>
+                    <span className="font-mono text-slate-700 dark:text-slate-300 truncate block">
                       {selectedTx.wallet?.user?.email}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 dark:text-slate-500">Phone:</span>{" "}
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {selectedTx.wallet?.user?.phoneNumber || "N/A"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 dark:text-slate-500">Username:</span>{" "}
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      @{selectedTx.wallet?.user?.userName || "N/A"}
+                    <span className="text-slate-400 block text-[11px]">Wallet Balance</span>
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      {formatMoney(selectedTx.wallet?.balance)}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Gateway References */}
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-slate-500 dark:text-slate-400">Provider</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 capitalize">
-                    {selectedTx.provider || "paymonetra"}
-                  </span>
-                </div>
-
-                <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-slate-500 dark:text-slate-400">Merchant Reference</span>
-                  <span className="font-mono font-medium text-slate-900 dark:text-white">
-                    {selectedTx.merchantReference}
-                  </span>
+              {/* References */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
+                  <span className="text-slate-400">Merchant Reference</span>
+                  <div className="flex items-center gap-1.5 font-mono">
+                    <span className="text-slate-800 dark:text-slate-200">
+                      {selectedTx.merchantReference}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopy(
+                          selectedTx.merchantReference,
+                          "modal-merchant-ref"
+                        )
+                      }
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                    >
+                      <Copy size={12} />
+                    </button>
+                  </div>
                 </div>
 
                 {selectedTx.paymonetraReference && (
-                  <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
-                    <span className="text-slate-500 dark:text-slate-400">Paymonetra Reference</span>
-                    <span className="font-mono font-medium text-slate-900 dark:text-white">
-                      {selectedTx.paymonetraReference}
-                    </span>
+                  <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
+                    <span className="text-slate-400">Paymonetra Reference</span>
+                    <div className="flex items-center gap-1.5 font-mono">
+                      <span className="text-slate-800 dark:text-slate-200">
+                        {selectedTx.paymonetraReference}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCopy(
+                            selectedTx.paymonetraReference!,
+                            "modal-paymonetra-ref"
+                          )
+                        }
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                      >
+                        <Copy size={12} />
+                      </button>
+                    </div>
                   </div>
                 )}
 
                 {selectedTx.collectionReference && (
-                  <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
-                    <span className="text-slate-500 dark:text-slate-400">Collection Reference</span>
-                    <span className="font-mono font-medium text-slate-900 dark:text-white">
-                      {selectedTx.collectionReference}
-                    </span>
+                  <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
+                    <span className="text-slate-400">Collection Reference</span>
+                    <div className="flex items-center gap-1.5 font-mono">
+                      <span className="text-slate-800 dark:text-slate-200">
+                        {selectedTx.collectionReference}
+                      </span>
+                    </div>
                   </div>
                 )}
 
-                <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-slate-500 dark:text-slate-400">Created At</span>
-                  <span className="text-slate-700 dark:text-slate-300">
-                    {formatDate(selectedTx.createdAt)}
+                <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
+                  <span className="text-slate-400">Provider Gateway</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {selectedTx.provider || "PAYMONETRA"}
                   </span>
                 </div>
 
-                <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-slate-500 dark:text-slate-400">Last Updated</span>
-                  <span className="text-slate-700 dark:text-slate-300">
-                    {formatDate(selectedTx.updatedAt)}
+                <div className="flex items-center justify-between py-1.5">
+                  <span className="text-slate-400">Created At</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-mono">
+                    {formatDate(selectedTx.createdAt)}
                   </span>
                 </div>
               </div>
 
-              {/* Raw Gateway Metadata (if available) */}
+              {/* Raw Gateway Metadata */}
               {selectedTx.metadata && (
                 <div className="mt-3">
                   <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
@@ -853,5 +1058,22 @@ export default function AdminTransactionsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminTransactionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-slate-400 text-sm">
+            <Loader2 size={20} className="animate-spin text-sky-600" />
+            <span>Loading transactions dashboard...</span>
+          </div>
+        </div>
+      }
+    >
+      <AdminTransactionsContent />
+    </Suspense>
   );
 }

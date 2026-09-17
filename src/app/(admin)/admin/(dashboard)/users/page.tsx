@@ -79,10 +79,12 @@ function formatMoney(value: string | number | null | undefined) {
 function formatDate(iso: string) {
   try {
     const d = new Date(iso);
-    return d.toLocaleDateString("en-US", {
+    return d.toLocaleString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch {
     return iso;
@@ -182,7 +184,7 @@ function UsersContent() {
       const params = new URLSearchParams();
       if (clean) params.set("search", clean);
       const qs = params.toString();
-      router.replace(`${pathname}${qs ? `?${qs}` : ""}`);
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
 
       fetchUsers(1, clean);
     }, 350);
@@ -202,7 +204,7 @@ function UsersContent() {
     const params = new URLSearchParams();
     if (clean) params.set("search", clean);
     const qs = params.toString();
-    router.push(`${pathname}${qs ? `?${qs}` : ""}`);
+    router.push(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
 
     fetchUsers(1, clean);
   };
@@ -216,7 +218,7 @@ function UsersContent() {
     setDebouncedSearch("");
     setPage(1);
 
-    router.replace(pathname);
+    router.replace(pathname, { scroll: false });
     fetchUsers(1, "");
   };
 
@@ -232,7 +234,7 @@ function UsersContent() {
     if (debouncedSearch) params.set("search", debouncedSearch);
 
     const qs = params.toString();
-    router.push(`${pathname}${qs ? `?${qs}` : ""}`);
+    router.push(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
 
     fetchUsers(newPage, debouncedSearch);
   };
@@ -363,8 +365,12 @@ function UsersContent() {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs">
-              {loading ? (
+            <tbody
+              className={`divide-y divide-slate-100 dark:divide-white/5 text-xs transition-opacity duration-150 ${
+                loading ? "opacity-50 pointer-events-none" : "opacity-100"
+              }`}
+            >
+              {loading && users.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
@@ -453,7 +459,7 @@ function UsersContent() {
       </section>
 
       {/* Pagination Footer */}
-      {!loading && pagination && pagination.totalPages > 1 && (
+      {pagination && pagination.totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-2 py-2">
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Showing Page <span className="font-bold text-slate-900 dark:text-white">{pagination.page}</span> of{" "}

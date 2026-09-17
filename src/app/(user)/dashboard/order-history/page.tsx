@@ -12,6 +12,13 @@ import {
   ShieldCheck,
   Loader2,
   Calendar,
+  Mail,
+  User as UserIcon,
+  FileText,
+  Globe,
+  Users,
+  Check,
+  Key,
 } from "lucide-react";
 import { PlatformIcon } from "@/lib/platform-icons";
 import { toast } from "@/components/ui/toast";
@@ -27,6 +34,7 @@ interface PurchasedAccount {
   followers?: number | null;
   notes?: string | null;
   loginInstructions?: string | null;
+  status?: string | null;
 }
 
 interface OrderItem {
@@ -55,6 +63,7 @@ export default function OrderHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     try {
@@ -86,22 +95,50 @@ export default function OrderHistoryPage() {
     setExpandedOrders((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const copyText = (text: string, label: string) => {
+  const copyWithFeedback = (text: string, label: string, keyId?: string) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
+    if (keyId) {
+      setCopiedKey(keyId);
+      setTimeout(() => setCopiedKey(null), 2000);
+    }
     toast.success(`${label} copied to clipboard`);
   };
 
+  // Helper to format clean account credentials WITHOUT any order IDs or database UUIDs
+  const formatAccountForClipboard = (acc: PurchasedAccount) => {
+    const lines: string[] = [];
+    if (acc.username) lines.push(`Username: ${acc.username}`);
+    if (acc.email) lines.push(`Email: ${acc.email}`);
+    if (acc.loginInstructions) lines.push(`Credentials / Login: ${acc.loginInstructions}`);
+    if (acc.url) lines.push(`Profile Link: ${acc.url}`);
+    if (acc.country) lines.push(`Country: ${acc.country}`);
+    if (acc.followers) lines.push(`Followers: ${acc.followers.toLocaleString()}`);
+    if (acc.notes) lines.push(`Notes & Instructions: ${acc.notes}`);
+
+    if (lines.length === 0) {
+      return acc.loginInstructions || acc.username || "";
+    }
+    return lines.join("\n");
+  };
+
+  // Copy all accounts in an order without order ID
   const copyAllOrderCredentials = (order: OrderItem) => {
-    const lines = order.accounts.map((acc) => {
-      const parts = [
-        acc.username || acc.id,
-        acc.loginInstructions || "",
-        acc.notes || "",
-      ].filter(Boolean);
-      return parts.join(" | ");
-    });
-    navigator.clipboard.writeText(lines.join("\n"));
-    toast.success(`Copied credentials for ${order.accounts.length} account(s)`);
+    if (!order.accounts || order.accounts.length === 0) {
+      toast.error("No delivered accounts in this order");
+      return;
+    }
+
+    const text = order.accounts
+      .map((acc, idx) => {
+        const header = order.accounts.length > 1 ? `--- Account #${idx + 1} ---` : "";
+        const details = formatAccountForClipboard(acc);
+        return header ? `${header}\n${details}` : details;
+      })
+      .join("\n\n");
+
+    navigator.clipboard.writeText(text);
+    toast.success(`Copied details for ${order.accounts.length} account(s)`);
   };
 
   const filteredOrders = orders.filter((o) => {
@@ -112,7 +149,9 @@ export default function OrderHistoryPage() {
     const accMatch = o.accounts.some(
       (a) =>
         a.username?.toLowerCase().includes(q) ||
-        a.name?.toLowerCase().includes(q)
+        a.email?.toLowerCase().includes(q) ||
+        a.name?.toLowerCase().includes(q) ||
+        a.notes?.toLowerCase().includes(q)
     );
     return typeMatch || idMatch || accMatch;
   });
@@ -127,7 +166,7 @@ export default function OrderHistoryPage() {
             Order History
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-normal">
-            Access credentials, login details, and receipts for all purchased accounts.
+            Access credentials, login details, usernames, emails, notes, and receipts for all purchased accounts.
           </p>
         </div>
 
@@ -138,7 +177,7 @@ export default function OrderHistoryPage() {
           />
           <input
             type="text"
-            placeholder="Search orders or accounts..."
+            placeholder="Search by username, email, notes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-sky-500/20 shadow-2xs font-normal"
@@ -158,7 +197,7 @@ export default function OrderHistoryPage() {
             No Orders Found
           </h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 font-normal">
-            You have not purchased any social accounts yet. Browse the catalog to get started.
+            {search ? `No orders matched "${search}"` : "You have not purchased any social accounts yet. Browse the catalog to get started."}
           </p>
           <Link
             href="/dashboard/products"
@@ -199,8 +238,6 @@ export default function OrderHistoryPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 font-normal">
-                        <span className="font-mono">ID: {order.id.slice(0, 8)}...</span>
-                        <span>•</span>
                         <span className="flex items-center gap-1">
                           <Calendar size={12} />
                           {new Date(order.createdAt).toLocaleDateString("en-NG", {
@@ -210,6 +247,10 @@ export default function OrderHistoryPage() {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
+                        </span>
+                        <span>•</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                          Delivered
                         </span>
                       </div>
                     </div>
@@ -225,7 +266,11 @@ export default function OrderHistoryPage() {
                       </span>
                     </div>
 
-                    <button className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+                    <button
+                      type="button"
+                      aria-label={isExpanded ? "Collapse order details" : "Expand order details"}
+                      className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
                       {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
                   </div>
@@ -246,58 +291,154 @@ export default function OrderHistoryPage() {
                       </button>
                     </div>
 
-                    <div className="space-y-3 mt-2">
-                      {order.accounts.map((acc, idx) => (
-                        <div
-                          key={acc.id || idx}
-                          className="bg-white dark:bg-[#0b101b] border border-slate-200/80 dark:border-white/10 rounded-xl p-4 text-xs space-y-2 shadow-2xs"
-                        >
-                          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-normal text-slate-400 text-xs">
-                                #{idx + 1}
-                              </span>
-                              <span className="font-mono font-medium text-sky-600 dark:text-sky-400">
-                                {acc.username || acc.name || acc.id}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() =>
-                                copyText(
-                                  `${acc.username || acc.id} | ${acc.loginInstructions || ""} | ${acc.notes || ""}`,
-                                  "Account details"
-                                )
-                              }
-                              className="p-1 rounded-md text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
-                              title="Copy row"
-                            >
-                              <Copy size={13} />
-                            </button>
-                          </div>
+                    <div className="space-y-3.5 mt-1">
+                      {order.accounts.map((acc, idx) => {
+                        const accKey = `${order.id}-${acc.id || idx}`;
 
-                          {acc.loginInstructions && (
-                            <div className="pt-1">
-                              <span className="text-slate-400 text-[11px] uppercase font-medium block mb-1">
-                                Login Format / Credentials:
-                              </span>
-                              <div className="p-2.5 bg-slate-50 dark:bg-white/5 rounded-xl font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all border border-slate-100 dark:border-white/5">
-                                {acc.loginInstructions}
+                        return (
+                          <div
+                            key={acc.id || idx}
+                            className="bg-white dark:bg-[#0b101b] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4.5 text-xs space-y-3 shadow-2xs"
+                          >
+                            {/* Top Bar with Account Index, Username, Email, & Master Copy */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-white/5">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 font-bold text-[11px]">
+                                  #{idx + 1}
+                                </span>
+
+                                {/* Username */}
+                                {acc.username && (
+                                  <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-500/10 border border-sky-200/60 dark:border-sky-500/20 text-sky-700 dark:text-sky-300 font-mono font-semibold text-xs">
+                                    <UserIcon size={12} />
+                                    <span>@{acc.username}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyWithFeedback(acc.username, "Username", `user-${accKey}`)}
+                                      className="p-0.5 hover:text-sky-900 dark:hover:text-white transition-colors cursor-pointer ml-1"
+                                      title="Copy username only"
+                                    >
+                                      {copiedKey === `user-${accKey}` ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Email */}
+                                {acc.email && (
+                                  <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-500/10 border border-purple-200/60 dark:border-purple-500/20 text-purple-700 dark:text-purple-300 font-mono text-xs">
+                                    <Mail size={12} />
+                                    <span>{acc.email}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyWithFeedback(acc.email!, "Email", `email-${accKey}`)}
+                                      className="p-0.5 hover:text-purple-900 dark:hover:text-white transition-colors cursor-pointer ml-1"
+                                      title="Copy email only"
+                                    >
+                                      {copiedKey === `email-${accKey}` ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Country / Region */}
+                                {acc.country && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 text-[11px] font-medium">
+                                    <Globe size={11} />
+                                    {acc.country}
+                                  </span>
+                                )}
+
+                                {/* Followers */}
+                                {typeof acc.followers === "number" && acc.followers > 0 && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 text-[11px] font-medium">
+                                    <Users size={11} />
+                                    {acc.followers.toLocaleString()} followers
+                                  </span>
+                                )}
+
+                                {/* Profile URL Link */}
+                                {acc.url && (
+                                  <a
+                                    href={acc.url.startsWith("http") ? acc.url : `https://${acc.url}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-sky-600 dark:text-sky-400 hover:underline text-[11px] font-medium"
+                                  >
+                                    <ExternalLink size={11} />
+                                    <span>Profile Link</span>
+                                  </a>
+                                )}
                               </div>
-                            </div>
-                          )}
 
-                          {acc.notes && (
-                            <div className="pt-1">
-                              <span className="text-slate-400 text-[11px] uppercase font-medium block mb-0.5">
-                                Notes & Instructions:
-                              </span>
-                              <p className="text-slate-600 dark:text-slate-300 text-xs font-normal leading-relaxed">
-                                {acc.notes}
-                              </p>
+                              {/* Copy Entire Account Details */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  copyWithFeedback(
+                                    formatAccountForClipboard(acc),
+                                    "Account credentials",
+                                    `all-${accKey}`
+                                  )
+                                }
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                                title="Copy all details for this account"
+                              >
+                                {copiedKey === `all-${accKey}` ? (
+                                  <Check size={12} className="text-emerald-500" />
+                                ) : (
+                                  <Copy size={12} />
+                                )}
+                                <span>{copiedKey === `all-${accKey}` ? "Copied" : "Copy Account Details"}</span>
+                              </button>
                             </div>
-                          )}
-                        </div>
-                      ))}
+
+                            {/* Login Instructions / Credentials Box */}
+                            {acc.loginInstructions && (
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Key size={12} className="text-amber-500" />
+                                    Login Format / Credentials:
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      copyWithFeedback(
+                                        acc.loginInstructions!,
+                                        "Login credentials",
+                                        `creds-${accKey}`
+                                      )
+                                    }
+                                    className="text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                                  >
+                                    {copiedKey === `creds-${accKey}` ? (
+                                      <Check size={11} className="text-emerald-500" />
+                                    ) : (
+                                      <Copy size={11} />
+                                    )}
+                                    <span>{copiedKey === `creds-${accKey}` ? "Copied" : "Copy Credentials"}</span>
+                                  </button>
+                                </div>
+                                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl font-mono text-xs text-slate-900 dark:text-slate-100 break-all select-all border border-slate-200/60 dark:border-white/5">
+                                  {acc.loginInstructions}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Notes & Special Instructions */}
+                            {acc.notes && (
+                              <div className="space-y-1 pt-1">
+                                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                  <FileText size={12} className="text-slate-400" />
+                                  Notes & Instructions:
+                                </span>
+                                <div className="p-3 bg-amber-50/50 dark:bg-amber-500/5 rounded-xl text-xs text-slate-700 dark:text-slate-300 leading-relaxed border border-amber-200/40 dark:border-amber-500/10">
+                                  {acc.notes}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -309,3 +450,4 @@ export default function OrderHistoryPage() {
     </div>
   );
 }
+

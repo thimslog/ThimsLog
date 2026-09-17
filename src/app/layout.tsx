@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui/toast";
+import { PwaRegister } from "@/components/pwa/PwaRegister";
 
 const body = Inter({ subsets: ["latin"], variable: "--font-body" });
 const display = Space_Grotesk({
@@ -9,22 +11,41 @@ const display = Space_Grotesk({
 });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#0284c7" },
+    { media: "(prefers-color-scheme: dark)", color: "#060a14" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
-  title: "Thimslog Limited",
-  description: "Website to manage accounts, VPN and number inventory",
+  title: "Thimslog - Social Accounts & Inventory Platform",
+  description: "Secure digital assets, verified social inventory, and instant account delivery platform.",
+  applicationName: "Thimslog",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Thimslog",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       { url: "/favicon.png", type: "image/png" },
       { url: "/favicon.ico" },
     ],
     shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    apple: [
+      { url: "/favicon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
-
-
-
-import { ToastProvider } from "@/components/ui/toast";
 
 export default function RootLayout({
   children,
@@ -38,6 +59,11 @@ export default function RootLayout({
       className={`${body.variable} ${display.variable} ${mono.variable}`}
     >
       <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Thimslog" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -56,8 +82,12 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body bg-slate-50 text-slate-900 dark:bg-[#060a14] dark:text-slate-200 antialiased transition-colors duration-200">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {children}
+          <PwaRegister />
+        </ToastProvider>
       </body>
     </html>
   );
 }
+

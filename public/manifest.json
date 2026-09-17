@@ -1,0 +1,56 @@
+{
+  "name": "Thimslog - Social Accounts & Inventory Platform",
+  "short_name": "Thimslog",
+  "description": "Secure digital assets, verified social inventory, and instant account delivery platform.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#060a14",
+  "theme_color": "#0284c7",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["business", "shopping", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/thimslog.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "User Dashboard",
+      "url": "/dashboard",
+      "description": "Access your wallet, orders, and products"
+    },
+    {
+      "name": "Browse Products",
+      "url": "/dashboard/products",
+      "description": "Explore available social accounts inventory"
+    },
+    {
+      "name": "Order History",
+      "url": "/dashboard/order-history",
+      "description": "Access your purchased account credentials"
+    },
+    {
+      "name": "Help Center & Support",
+      "url": "/dashboard/help-center",
+      "description": "Open a support ticket or chat with support"
+    }
+  ]
+}

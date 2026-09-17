@@ -42,6 +42,10 @@ interface PurchasedAccount {
   id: string;
   name?: string | null;
   username: string;
+  email?: string | null;
+  url?: string | null;
+  country?: string | null;
+  followers?: number | null;
   loginInstructions?: string | null;
   notes?: string | null;
 }
@@ -323,6 +327,16 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ user }) => {
               const firstAcc = ord.accounts?.[0];
               const title = ord.accountType?.name || "Purchased Account";
 
+              const formatAccountForCopy = (acc: PurchasedAccount) => {
+                const parts: string[] = [];
+                if (acc.username) parts.push(`Username: ${acc.username}`);
+                if (acc.email) parts.push(`Email: ${acc.email}`);
+                if (acc.loginInstructions) parts.push(`Credentials: ${acc.loginInstructions}`);
+                if (acc.notes) parts.push(`Notes: ${acc.notes}`);
+                if (parts.length === 0) return acc.loginInstructions || acc.username || "";
+                return parts.join("\n");
+              };
+
               return (
                 <div
                   key={ord.id}
@@ -343,19 +357,29 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ user }) => {
                   </div>
 
                   {firstAcc && (
-                    <div className="p-2.5 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 space-y-1 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[11px] font-medium text-sky-600 dark:text-sky-400 truncate max-w-[140px]">
-                          {firstAcc.username || firstAcc.id}
-                        </span>
+                    <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 space-y-2 text-xs">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-mono text-[11px] font-bold text-sky-600 dark:text-sky-400 truncate max-w-[130px]">
+                            @{firstAcc.username || firstAcc.name || "Account"}
+                          </span>
+                          {firstAcc.email && (
+                            <span className="text-[10px] text-slate-400 truncate max-w-[100px] font-mono">
+                              ({firstAcc.email})
+                            </span>
+                          )}
+                        </div>
+
                         <button
+                          type="button"
                           onClick={() =>
                             handleCopy(
-                              `${firstAcc.username || firstAcc.id} | ${firstAcc.loginInstructions || ""}`,
+                              formatAccountForCopy(firstAcc),
                               ord.id
                             )
                           }
-                          className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-white/10 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-white/5 shadow-2xs transition-colors cursor-pointer shrink-0"
+                          title="Copy account credentials"
                         >
                           {copiedKey === ord.id ? (
                             <Check size={11} className="text-emerald-500" />
@@ -367,8 +391,16 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ user }) => {
                       </div>
 
                       {firstAcc.loginInstructions && (
-                        <p className="font-mono text-[10px] text-slate-500 dark:text-slate-400 truncate select-all">
-                          {firstAcc.loginInstructions}
+                        <div className="bg-white/80 dark:bg-black/20 p-2 rounded-lg border border-slate-200/40 dark:border-white/5">
+                          <p className="font-mono text-[10px] text-slate-700 dark:text-slate-300 break-all select-all line-clamp-2">
+                            {firstAcc.loginInstructions}
+                          </p>
+                        </div>
+                      )}
+
+                      {firstAcc.notes && (
+                        <p className="text-[10px] text-amber-700 dark:text-amber-300/90 line-clamp-1 italic">
+                          Note: {firstAcc.notes}
                         </p>
                       )}
                     </div>
@@ -382,7 +414,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ user }) => {
                       href="/dashboard/order-history"
                       className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
                     >
-                      View Credentials <ExternalLink size={11} />
+                      View Details <ExternalLink size={11} />
                     </Link>
                   </div>
                 </div>
