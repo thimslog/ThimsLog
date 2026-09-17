@@ -40,6 +40,10 @@ export type WalletMinAggregateOutputType = {
   balance: runtime.Decimal | null
   currency: string | null
   paymonetraCustomer: string | null
+  bankName: string | null
+  accountNumber: string | null
+  accountName: string | null
+  virtualAccountReference: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -50,6 +54,10 @@ export type WalletMaxAggregateOutputType = {
   balance: runtime.Decimal | null
   currency: string | null
   paymonetraCustomer: string | null
+  bankName: string | null
+  accountNumber: string | null
+  accountName: string | null
+  virtualAccountReference: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -60,6 +68,10 @@ export type WalletCountAggregateOutputType = {
   balance: number
   currency: number
   paymonetraCustomer: number
+  bankName: number
+  accountNumber: number
+  accountName: number
+  virtualAccountReference: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -80,6 +92,10 @@ export type WalletMinAggregateInputType = {
   balance?: true
   currency?: true
   paymonetraCustomer?: true
+  bankName?: true
+  accountNumber?: true
+  accountName?: true
+  virtualAccountReference?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -90,6 +106,10 @@ export type WalletMaxAggregateInputType = {
   balance?: true
   currency?: true
   paymonetraCustomer?: true
+  bankName?: true
+  accountNumber?: true
+  accountName?: true
+  virtualAccountReference?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -100,6 +120,10 @@ export type WalletCountAggregateInputType = {
   balance?: true
   currency?: true
   paymonetraCustomer?: true
+  bankName?: true
+  accountNumber?: true
+  accountName?: true
+  virtualAccountReference?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -197,6 +221,10 @@ export type WalletGroupByOutputType = {
   balance: runtime.Decimal
   currency: string
   paymonetraCustomer: string | null
+  bankName: string | null
+  accountNumber: string | null
+  accountName: string | null
+  virtualAccountReference: string | null
   createdAt: Date
   updatedAt: Date
   _count: WalletCountAggregateOutputType | null
@@ -230,6 +258,10 @@ export type WalletWhereInput = {
   balance?: Prisma.DecimalFilter<"Wallet"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFilter<"Wallet"> | string
   paymonetraCustomer?: Prisma.StringNullableFilter<"Wallet"> | string | null
+  bankName?: Prisma.StringNullableFilter<"Wallet"> | string | null
+  accountNumber?: Prisma.StringNullableFilter<"Wallet"> | string | null
+  accountName?: Prisma.StringNullableFilter<"Wallet"> | string | null
+  virtualAccountReference?: Prisma.StringNullableFilter<"Wallet"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Wallet"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Wallet"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -242,6 +274,10 @@ export type WalletOrderByWithRelationInput = {
   balance?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   paymonetraCustomer?: Prisma.SortOrderInput | Prisma.SortOrder
+  bankName?: Prisma.SortOrderInput | Prisma.SortOrder
+  accountNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  accountName?: Prisma.SortOrderInput | Prisma.SortOrder
+  virtualAccountReference?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -257,6 +293,10 @@ export type WalletWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.WalletWhereInput | Prisma.WalletWhereInput[]
   balance?: Prisma.DecimalFilter<"Wallet"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFilter<"Wallet"> | string
+  bankName?: Prisma.StringNullableFilter<"Wallet"> | string | null
+  accountNumber?: Prisma.StringNullableFilter<"Wallet"> | string | null
+  accountName?: Prisma.StringNullableFilter<"Wallet"> | string | null
+  virtualAccountReference?: Prisma.StringNullableFilter<"Wallet"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Wallet"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Wallet"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -269,6 +309,10 @@ export type WalletOrderByWithAggregationInput = {
   balance?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   paymonetraCustomer?: Prisma.SortOrderInput | Prisma.SortOrder
+  bankName?: Prisma.SortOrderInput | Prisma.SortOrder
+  accountNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  accountName?: Prisma.SortOrderInput | Prisma.SortOrder
+  virtualAccountReference?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.WalletCountOrderByAggregateInput
@@ -287,6 +331,10 @@ export type WalletScalarWhereWithAggregatesInput = {
   balance?: Prisma.DecimalWithAggregatesFilter<"Wallet"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringWithAggregatesFilter<"Wallet"> | string
   paymonetraCustomer?: Prisma.StringNullableWithAggregatesFilter<"Wallet"> | string | null
+  bankName?: Prisma.StringNullableWithAggregatesFilter<"Wallet"> | string | null
+  accountNumber?: Prisma.StringNullableWithAggregatesFilter<"Wallet"> | string | null
+  accountName?: Prisma.StringNullableWithAggregatesFilter<"Wallet"> | string | null
+  virtualAccountReference?: Prisma.StringNullableWithAggregatesFilter<"Wallet"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Wallet"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Wallet"> | Date | string
 }
@@ -296,6 +344,10 @@ export type WalletCreateInput = {
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   paymonetraCustomer?: string | null
+  bankName?: string | null
+  accountNumber?: string | null
+  accountName?: string | null
+  virtualAccountReference?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutWalletInput
@@ -308,6 +360,10 @@ export type WalletUncheckedCreateInput = {
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   paymonetraCustomer?: string | null
+  bankName?: string | null
+  accountNumber?: string | null
+  accountName?: string | null
+  virtualAccountReference?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWalletInput
@@ -318,6 +374,10 @@ export type WalletUpdateInput = {
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   paymonetraCustomer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bankName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  virtualAccountReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutWalletNestedInput
@@ -330,6 +390,10 @@ export type WalletUncheckedUpdateInput = {
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   paymonetraCustomer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bankName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  virtualAccountReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWalletNestedInput
@@ -341,6 +405,10 @@ export type WalletCreateManyInput = {
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   paymonetraCustomer?: string | null
+  bankName?: string | null
+  accountNumber?: string | null
+  accountName?: string | null
+  virtualAccountReference?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -350,6 +418,10 @@ export type WalletUpdateManyMutationInput = {
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   paymonetraCustomer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bankName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  virtualAccountReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -360,6 +432,10 @@ export type WalletUncheckedUpdateManyInput = {
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   paymonetraCustomer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bankName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  virtualAccountReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -380,6 +456,10 @@ export type WalletCountOrderByAggregateInput = {
   balance?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   paymonetraCustomer?: Prisma.SortOrder
+  bankName?: Prisma.SortOrder
+  accountNumber?: Prisma.SortOrder
+  accountName?: Prisma.SortOrder
+  virtualAccountReference?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -394,6 +474,10 @@ export type WalletMaxOrderByAggregateInput = {
   balance?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   paymonetraCustomer?: Prisma.SortOrder
+  bankName?: Prisma.SortOrder
+  accountNumber?: Prisma.SortOrder
+  accountName?: Prisma.SortOrder
+  virtualAccountReference?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -404,6 +488,10 @@ export type WalletMinOrderByAggregateInput = {
   balance?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   paymonetraCustomer?: Prisma.SortOrder
+  bankName?: Prisma.SortOrder
+  accountNumber?: Prisma.SortOrder
+  accountName?: Prisma.SortOrder
+  virtualAccountReference?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -463,6 +551,10 @@ export type WalletCreateWithoutTransactionsInput = {
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   paymonetraCustomer?: string | null
+  bankName?: string | null
+  accountNumber?: string | null
+  accountName?: string | null
+  virtualAccountReference?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutWalletInput
@@ -474,6 +566,10 @@ export type WalletUncheckedCreateWithoutTransactionsInput = {
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   paymonetraCustomer?: string | null
+  bankName?: string | null
+  accountNumber?: string | null
+  accountName?: string | null
+  virtualAccountReference?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -499,6 +595,10 @@ export type WalletUpdateWithoutTransactionsInput = {
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   paymonetraCustomer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bankName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  virtualAccountReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutWalletNestedInput
@@ -510,6 +610,10 @@ export type WalletUncheckedUpdateWithoutTransactionsInput = {
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   paymonetraCustomer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bankName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  virtualAccountReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -519,6 +623,10 @@ export type WalletCreateWithoutUserInput = {
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   paymonetraCustomer?: string | null
+  bankName?: string | null
+  accountNumber?: string | null
+  accountName?: string | null
+  virtualAccountReference?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   transactions?: Prisma.TransactionCreateNestedManyWithoutWalletInput
@@ -529,6 +637,10 @@ export type WalletUncheckedCreateWithoutUserInput = {
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   paymonetraCustomer?: string | null
+  bankName?: string | null
+  accountNumber?: string | null
+  accountName?: string | null
+  virtualAccountReference?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutWalletInput
@@ -555,6 +667,10 @@ export type WalletUpdateWithoutUserInput = {
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   paymonetraCustomer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bankName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  virtualAccountReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactions?: Prisma.TransactionUpdateManyWithoutWalletNestedInput
@@ -565,6 +681,10 @@ export type WalletUncheckedUpdateWithoutUserInput = {
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   paymonetraCustomer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bankName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  virtualAccountReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutWalletNestedInput
@@ -607,6 +727,10 @@ export type WalletSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   balance?: boolean
   currency?: boolean
   paymonetraCustomer?: boolean
+  bankName?: boolean
+  accountNumber?: boolean
+  accountName?: boolean
+  virtualAccountReference?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -620,6 +744,10 @@ export type WalletSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   balance?: boolean
   currency?: boolean
   paymonetraCustomer?: boolean
+  bankName?: boolean
+  accountNumber?: boolean
+  accountName?: boolean
+  virtualAccountReference?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -631,6 +759,10 @@ export type WalletSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   balance?: boolean
   currency?: boolean
   paymonetraCustomer?: boolean
+  bankName?: boolean
+  accountNumber?: boolean
+  accountName?: boolean
+  virtualAccountReference?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -642,11 +774,15 @@ export type WalletSelectScalar = {
   balance?: boolean
   currency?: boolean
   paymonetraCustomer?: boolean
+  bankName?: boolean
+  accountNumber?: boolean
+  accountName?: boolean
+  virtualAccountReference?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type WalletOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "balance" | "currency" | "paymonetraCustomer" | "createdAt" | "updatedAt", ExtArgs["result"]["wallet"]>
+export type WalletOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "balance" | "currency" | "paymonetraCustomer" | "bankName" | "accountNumber" | "accountName" | "virtualAccountReference" | "createdAt" | "updatedAt", ExtArgs["result"]["wallet"]>
 export type WalletInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   transactions?: boolean | Prisma.Wallet$transactionsArgs<ExtArgs>
@@ -671,6 +807,10 @@ export type $WalletPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     balance: runtime.Decimal
     currency: string
     paymonetraCustomer: string | null
+    bankName: string | null
+    accountNumber: string | null
+    accountName: string | null
+    virtualAccountReference: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["wallet"]>
@@ -1103,6 +1243,10 @@ export interface WalletFieldRefs {
   readonly balance: Prisma.FieldRef<"Wallet", 'Decimal'>
   readonly currency: Prisma.FieldRef<"Wallet", 'String'>
   readonly paymonetraCustomer: Prisma.FieldRef<"Wallet", 'String'>
+  readonly bankName: Prisma.FieldRef<"Wallet", 'String'>
+  readonly accountNumber: Prisma.FieldRef<"Wallet", 'String'>
+  readonly accountName: Prisma.FieldRef<"Wallet", 'String'>
+  readonly virtualAccountReference: Prisma.FieldRef<"Wallet", 'String'>
   readonly createdAt: Prisma.FieldRef<"Wallet", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Wallet", 'DateTime'>
 }

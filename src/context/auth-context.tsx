@@ -17,7 +17,15 @@ export type AuthUser = {
   phoneNumber: string;
   userName: string;
   createdAt: Date | string;
-  wallet?: { balance: any };
+  wallet?: {
+    id?: string;
+    balance: any;
+    currency?: string;
+    bankName?: string | null;
+    accountNumber?: string | null;
+    accountName?: string | null;
+    virtualAccountReference?: string | null;
+  };
 };
 
 type AuthContextValue = {

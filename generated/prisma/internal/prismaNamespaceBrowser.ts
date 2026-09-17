@@ -206,6 +206,10 @@ export const WalletScalarFieldEnum = {
   balance: 'balance',
   currency: 'currency',
   paymonetraCustomer: 'paymonetraCustomer',
+  bankName: 'bankName',
+  accountNumber: 'accountNumber',
+  accountName: 'accountName',
+  virtualAccountReference: 'virtualAccountReference',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

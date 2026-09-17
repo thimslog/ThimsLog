@@ -37,17 +37,22 @@ export async function POST(request: NextRequest) {
 
   try {
     await prisma.$transaction(async (tx) => {
-      const [txn] = await tx.$queryRaw<
-        { id: string; walletId: string; status: string }[]
-      >`
-        SELECT * FROM "Transaction"
-        WHERE "paymonetraReference" = ${checkout_reference}
-        FOR UPDATE
-      `;
+      const txn = await tx.transaction.findFirst({
+        where: {
+          OR: [
+            { paymonetraReference: checkout_reference },
+            { merchantReference: checkout_reference },
+            { merchantReference: collectionReference },
+            { paymonetraReference: collectionReference },
+          ],
+        },
+      });
 
       if (!txn)
         throw new Error(`No matching transaction for ${checkout_reference}`);
       if (txn.status === "SUCCESS") return; // already processed — safe no-op on retry
+
+      const creditAmount = txn.amountRequested || amount;
 
       await tx.transaction.update({
         where: { id: txn.id },
@@ -56,7 +61,7 @@ export async function POST(request: NextRequest) {
 
       await tx.wallet.update({
         where: { id: txn.walletId },
-        data: { balance: { increment: amount } },
+        data: { balance: { increment: creditAmount } },
       });
     });
 

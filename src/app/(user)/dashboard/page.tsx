@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import DashboardContent from "@/components/DashboardContent";
 import { useAuth } from "@/context/auth-context";
 
@@ -8,5 +9,9 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
-  return <DashboardContent user={user} />;
+  return (
+    <Suspense fallback={null}>
+      <DashboardContent user={user} />
+    </Suspense>
+  );
 }

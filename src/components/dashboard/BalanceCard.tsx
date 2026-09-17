@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, Plus, ArrowRight, X } from "lucide-react";
+import { Eye, EyeOff, Plus, ArrowRight, X, Loader2 } from "lucide-react";
 
 interface BalanceCardProps {
   name: string;
@@ -21,14 +21,30 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
   const [amountInput, setAmountInput] = useState("");
   const [error, setError] = useState("");
 
+  // Handle browser back navigation or window refocus from payment checkout
+  useEffect(() => {
+    const handleReset = () => {
+      setIsFunding(false);
+    };
+
+    window.addEventListener("pageshow", handleReset);
+    window.addEventListener("focus", handleReset);
+
+    return () => {
+      window.removeEventListener("pageshow", handleReset);
+      window.removeEventListener("focus", handleReset);
+    };
+  }, []);
+
   const openModal = () => {
     setAmountInput("");
     setError("");
+    setIsFunding(false);
     setShowModal(true);
   };
 
   const closeModal = () => {
-    if (isFunding) return;
+    setIsFunding(false);
     setShowModal(false);
   };
 
@@ -48,13 +64,21 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
         body: JSON.stringify({ amount }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message ?? "Could not start funding");
+        throw new Error(data.message ?? "Could not start funding");
       }
 
-      const { checkoutUrl } = await res.json();
-      window.location.href = checkoutUrl;
+      if (!data.checkoutUrl) {
+        throw new Error("Could not retrieve checkout URL");
+      }
+
+      // Close modal and reset state before navigating to gateway
+      setShowModal(false);
+      setIsFunding(false);
+
+      window.location.href = data.checkoutUrl;
     } catch (err) {
       setError((err as Error).message);
       setIsFunding(false);
@@ -144,14 +168,48 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
               placeholder="0.00"
               className="w-full rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 px-4 py-3 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 dark:focus:border-sky-400 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all shadow-2xs"
             />
+            {Number(amountInput) > 0 && (() => {
+              const amt = Number(amountInput);
+              const gross = amt < 2500 ? Math.ceil((amt / 0.99) * 100) / 100 : (amt + 100) / 0.99 * 0.01 + 100 >= 2000 ? amt + 2000 : Math.ceil(((amt + 100) / 0.99) * 100) / 100;
+              const fee = Math.round((gross - amt) * 100) / 100;
+              return (
+                <div className="mt-2.5 rounded-xl bg-slate-100/80 dark:bg-white/5 p-2.5 text-xs space-y-1 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-white/5">
+                  <div className="flex justify-between">
+                    <span>Deposit:</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      ₦{amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Fee (1% + ₦100):</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      + ₦{fee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-slate-200 dark:border-white/10 font-bold text-slate-900 dark:text-white">
+                    <span>Total charge:</span>
+                    <span className="text-sky-600 dark:text-sky-400">
+                      ₦{gross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
             {error && <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400">{error}</p>}
 
             <button
               onClick={handleAddFunds}
               disabled={isFunding}
-              className="mt-6 w-full bg-sky-600 hover:bg-sky-700 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300 text-white text-sm font-semibold py-3 rounded-xl shadow-sm hover:shadow-glow transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="mt-6 w-full flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300 text-white text-sm font-semibold py-3 rounded-xl shadow-sm hover:shadow-glow transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isFunding ? "Starting..." : "Continue"}
+              {isFunding ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Redirecting to payment...</span>
+                </>
+              ) : (
+                "Continue"
+              )}
             </button>
           </div>
         </div>
