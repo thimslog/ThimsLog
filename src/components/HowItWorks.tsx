@@ -31,17 +31,17 @@ const steps = [
 export function HowItWorks() {
   return (
     <section id="process" className="relative py-20 sm:py-28 overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-175 h-100 bg-sky-500/10 blur-[150px] rounded-full" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-175 h-100 bg-sky-500/10 blur-[150px] rounded-full pointer-events-none" />
 
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
         <Reveal className="text-center max-w-2xl mx-auto">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">
             The process
           </span>
-          <h2 className="mt-4 font-display text-3xl sm:text-5xl font-bold tracking-tight text-white">
+          <h2 className="mt-4 font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             Four steps. Zero guesswork.
           </h2>
-          <p className="mt-5 text-slate-400">
+          <p className="mt-5 text-slate-600 dark:text-slate-400 text-base sm:text-lg">
             From discovery to delivery, the entire flow is designed to protect you at every turn.
           </p>
         </Reveal>
@@ -51,20 +51,20 @@ export function HowItWorks() {
             <Reveal key={s.step} delay={i * 120}>
               <div className="group relative h-full">
                 {i < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-12 left-[60%] w-full h-px bg-gradient-to-r from-sky-400/40 to-transparent" />
+                  <div className="hidden lg:block absolute top-12 left-[60%] w-full h-px bg-gradient-to-r from-sky-400/50 to-transparent" />
                 )}
 
-                <div className="relative p-7 rounded-2xl glass hover:bg-white/[0.07] transition-all duration-300 hover:-translate-y-1.5 h-full">
+                <div className="relative p-7 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/90 dark:border-white/10 hover:border-sky-300 dark:hover:border-white/20 shadow-xs hover:shadow-lg transition-all duration-300 hover:-translate-y-1.5 h-full">
                   <div className="flex items-center justify-between">
-                    <div className="grid place-items-center w-12 h-12 rounded-xl bg-sky-400 text-ink-950 shadow-glow group-hover:scale-110 transition-transform duration-300">
+                    <div className="grid place-items-center w-12 h-12 rounded-xl bg-sky-600 text-white dark:bg-sky-400 dark:text-slate-950 shadow-glow group-hover:scale-110 transition-transform duration-300">
                       <s.icon className="w-6 h-6" strokeWidth={2.2} />
                     </div>
-                    <span className="font-display text-5xl font-bold text-white/5 group-hover:text-white/10 transition-colors">
+                    <span className="font-display text-5xl font-extrabold text-slate-200 dark:text-white/5 group-hover:text-sky-200 dark:group-hover:text-white/10 transition-colors">
                       {s.step}
                     </span>
                   </div>
-                  <h3 className="mt-5 font-display text-lg font-bold text-white">{s.title}</h3>
-                  <p className="mt-2.5 text-sm text-slate-400 leading-relaxed">{s.body}</p>
+                  <h3 className="mt-5 font-display text-lg font-bold text-slate-900 dark:text-white">{s.title}</h3>
+                  <p className="mt-2.5 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{s.body}</p>
                 </div>
               </div>
             </Reveal>

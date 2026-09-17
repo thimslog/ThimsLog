@@ -43,7 +43,17 @@ export type Admin = Prisma.AdminModel
  */
 export type AdminAuditLog = Prisma.AdminAuditLogModel
 /**
+ * Model Transaction
+ * 
+ */
+export type Transaction = Prisma.TransactionModel
+/**
  * Model User
  * 
  */
 export type User = Prisma.UserModel
+/**
+ * Model Wallet
+ * 
+ */
+export type Wallet = Prisma.WalletModel

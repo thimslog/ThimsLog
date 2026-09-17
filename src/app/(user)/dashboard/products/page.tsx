@@ -1,91 +1,151 @@
-import { FiZap } from "react-icons/fi";
-import { FaInstagram, FaFacebook } from "react-icons/fa";
+"use client";
 
-const flashSaleProducts = [
-  {
-    id: 174,
-    title: "FOREIGN IG ACCOUNTS",
-    stock: "723 Available",
-    price: "₦800.00",
-    icon: FaInstagram,
-    iconColor: "text-pink-500",
-    bgColor: "bg-pink-500/10",
-  },
-  {
-    id: 175,
-    title: "RANDOM COUNTRY FB ( WITH PAGE )",
-    stock: "530 Available",
-    price: "₦2,000.00",
-    icon: FaFacebook,
-    iconColor: "text-blue-600",
-    bgColor: "bg-blue-500/10",
-  },
-];
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Headphones } from "lucide-react";
+import { getPlatformConfig, PlatformIcon } from "@/lib/platform-icons";
 
-export default function MarketplaceScreen() {
+interface AccountTypeDTO {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  available: number;
+}
+interface CategoryDTO {
+  id: string;
+  name: string;
+  description: string | null;
+  accountTypes: AccountTypeDTO[];
+}
+
+const formatNaira = (n: number) =>
+  `₦${n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+
+
+function AvailabilityTag({ available }: { available: number }) {
+  return available > 0 ? (
+    <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-md">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+      {available} Available
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2.5 py-1 rounded-md">
+      <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+      Out of Stock
+    </span>
+  );
+}
+
+function AccountTypeCard({
+  accountType,
+  onBuy,
+}: {
+  accountType: AccountTypeDTO;
+  onBuy: (id: string) => void;
+}) {
+  const soldOut = accountType.available <= 0;
   return (
-      <main>
-          {/* Title */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-black text-slate-900">Marketplace</h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Browse all our digital products in one place.
-        </p>
+    <div
+      className={`relative overflow-hidden rounded-2xl border p-5 flex flex-col transition-colors ${
+        soldOut
+          ? "bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/5"
+          : "bg-white dark:bg-white/[0.04] border-slate-200 dark:border-white/10 shadow-xs hover:shadow-md"
+      }`}
+    >
+      {soldOut && (
+        <div className="absolute -right-10 top-4 w-36 rotate-45 bg-rose-500 text-white text-[10px] font-bold tracking-wider text-center py-1 shadow-sm">
+          SOLD OUT
+        </div>
+      )}
+      <PlatformIcon name={accountType.name} />
+      <h3
+        className={`mt-4 text-sm font-bold leading-snug ${
+          soldOut ? "text-slate-400 dark:text-slate-600" : "text-slate-900 dark:text-white"
+        }`}
+      >
+        {accountType.name}
+      </h3>
+      <div className="mt-3">
+        <AvailabilityTag available={accountType.available} />
       </div>
-
-      {/* Category Header */}
-      <div className="mb-4 flex items-center gap-2">
-        <span className="rounded-md bg-amber-500/10 p-1.5 text-amber-600 font-bold text-xs flex items-center gap-1">
-          <FiZap className="fill-amber-500" /> A
+      <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+        <span
+          className={`font-bold ${
+            soldOut ? "text-slate-300 dark:text-slate-600 line-through" : "text-sky-600 dark:text-sky-400"
+          }`}
+        >
+          {formatNaira(accountType.price)}
         </span>
-        <h3 className="text-sm font-extrabold text-slate-900 tracking-wide flex items-center gap-1.5">
-          FLASH SALE 🔥
-        </h3>
-      </div>
-      <p className="text-[11px] font-semibold text-slate-400 mb-4 -mt-2">
-        2 products available
-      </p>
-
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {flashSaleProducts.map((product) => (
-          <div
-            key={product.id}
-            className="flex flex-col justify-between rounded-3xl border border-purple-100 bg-white p-5 shadow-[0_4px_20px_-4px_rgba(116,62,232,0.06)] transition hover:shadow-md"
+        {soldOut ? (
+          <button
+            disabled
+            className="bg-slate-100 dark:bg-white/5 text-slate-400 text-xs font-semibold px-5 py-2 rounded-xl cursor-not-allowed"
           >
+            Sold Out
+          </button>
+        ) : (
+          <button
+            onClick={() => onBuy(accountType.id)}
+            className="bg-sky-600 hover:bg-sky-700 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300 text-white text-xs font-semibold px-6 py-2 rounded-xl transition-all shadow-sm hover:shadow-glow cursor-pointer"
+          >
+            Buy
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function ProductCatalog() {
+  const router = useRouter();
+  const [categories, setCategories] = useState<CategoryDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/inventory/user/categories")
+      .then((r) => r.json())
+      .then((j) => setCategories(j.data ?? []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading)
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center text-slate-400">
+        Loading...
+      </div>
+    );
+
+  return (
+    <div className="max-w-6xl mx-auto py-2">
+      {categories.map((category) => (
+        <section key={category.id} className="mb-10">
+          <div className="flex items-center gap-3 pb-4 mb-5 border-b border-slate-200 dark:border-white/10">
+            <PlatformIcon name={category.name} />
             <div>
-              {/* Product Badge */}
-              <div
-                className={`flex h-12 w-12 items-center justify-center rounded-2xl ${product.bgColor} ${product.iconColor}`}
-              >
-                <product.icon className="h-6 w-6" />
-              </div>
-
-              <h4 className="mt-4 text-xs font-extrabold uppercase text-slate-900 tracking-wide">
-                {product.title}
-              </h4>
-
-              {/* In-Stock Pill */}
-              <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-1 w-fit">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span className="text-[11px] font-medium text-slate-500">
-                  {product.stock}
-                </span>
-              </div>
-            </div>
-
-            {/* Price & Action */}
-            <div className="mt-6 flex items-center justify-between pt-2">
-              <span className="text-base font-extrabold text-purple-700">
-                {product.price}
-              </span>
-              <button className="rounded-xl bg-[#743ee8] px-5 py-2 text-xs font-bold text-white shadow-sm shadow-purple-500/30 transition hover:bg-[#622fd4] active:scale-95">
-                Buy
-              </button>
+              <h2 className="text-base font-extrabold tracking-wide text-slate-900 dark:text-white">
+                {category.name}
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {category.accountTypes.length} account types available
+              </p>
             </div>
           </div>
-        ))}
-      </div>
-      </main>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {category.accountTypes.map((t) => (
+              <AccountTypeCard
+                key={t.id}
+                accountType={t}
+                onBuy={(id) => router.push(`/catalog/${id}`)}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+      <button className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-white/10 flex items-center justify-center text-sky-600 dark:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+        <Headphones size={20} />
+      </button>
+    </div>
   );
 }

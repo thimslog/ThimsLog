@@ -9,10 +9,12 @@ export async function POST(req: Request) {
       name,
       username,
       email,
+      url,
       country,
       followers,
-      status,
+      status = "AVAILABLE",
       notes,
+      loginInstructions,
     } = await req.json();
 
     if (!accountTypeId) {
@@ -38,13 +40,15 @@ export async function POST(req: Request) {
     const account = await prisma.inventoryAccount.create({
       data: {
         accountTypeId,
-        name,
-        username,
-        email,
-        country,
-        followers,
-        status,
-        notes,
+        name: name ? String(name).trim() : null,
+        username: username ? String(username).trim() : null,
+        email: email ? String(email).trim() : null,
+        url: url ? String(url).trim() : null,
+        country: country ? String(country).trim() : null,
+        followers: followers !== null && followers !== undefined && followers !== "" ? Number(followers) : null,
+        status: status || "AVAILABLE",
+        notes: notes ? String(notes).trim() : null,
+        loginInstructions: loginInstructions ? String(loginInstructions).trim() : null,
       },
     });
 

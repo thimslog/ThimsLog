@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// 1. UPDATE INVENTORY ACCOUNT (PUT)
+// 1. UPDATE INVENTORY ACCOUNT (PUT & PATCH)
 export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -11,16 +11,19 @@ export async function PUT(
     const { id } = await context.params;
 
     // Parse the payload from the request body
+    const body = await req.json();
     const {
       accountTypeId,
       name,
       username,
       email,
+      url,
       country,
       followers,
       status,
       notes,
-    } = await req.json();
+      loginInstructions,
+    } = body;
 
     const account = await prisma.inventoryAccount.findUnique({
       where: { id },
@@ -37,13 +40,19 @@ export async function PUT(
       where: { id },
       data: {
         ...(accountTypeId !== undefined && { accountTypeId }),
-        ...(name !== undefined && { name }),
-        ...(username !== undefined && { username }),
-        ...(email !== undefined && { email }),
-        ...(country !== undefined && { country }),
-        ...(followers !== undefined && { followers }),
+        ...(name !== undefined && { name: name ? String(name).trim() : null }),
+        ...(username !== undefined && { username: username ? String(username).trim() : null }),
+        ...(email !== undefined && { email: email ? String(email).trim() : null }),
+        ...(url !== undefined && { url: url ? String(url).trim() : null }),
+        ...(country !== undefined && { country: country ? String(country).trim() : null }),
+        ...(followers !== undefined && {
+          followers: followers !== null && followers !== undefined && followers !== "" ? Number(followers) : null,
+        }),
         ...(status !== undefined && { status }),
-        ...(notes !== undefined && { notes }),
+        ...(notes !== undefined && { notes: notes ? String(notes).trim() : null }),
+        ...(loginInstructions !== undefined && {
+          loginInstructions: loginInstructions ? String(loginInstructions).trim() : null,
+        }),
       },
     });
 
@@ -60,6 +69,13 @@ export async function PUT(
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  return PUT(req, context);
 }
 
 // 2. DELETE INVENTORY ACCOUNT (DELETE)

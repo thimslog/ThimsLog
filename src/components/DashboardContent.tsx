@@ -12,6 +12,7 @@ interface DashboardContentUser {
   phoneNumber: string;
   userName: string;
   createdAt: Date | string;
+  wallet: { balance: any };
 }
 
 interface DashboardContentProps {
@@ -28,7 +29,10 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ user }) => {
 
       <QuickActionsBar />
 
-      <BalanceCard name={user.firstName} balance={0} />
+      <BalanceCard
+        name={user.firstName}
+        balance={Number(user?.wallet?.balance)}
+      />
 
       {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             <CommunicationToolsCard />

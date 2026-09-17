@@ -16,6 +16,7 @@ model InventoryAccount {
   followers Int?
 
   notes String?
+  loginInstructions String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -27,6 +27,7 @@ export async function getCurrentUser() {
         phoneNumber: true,
         userName: true,
         createdAt: true,
+        wallet: { select: { balance: true } },
       },
     });
 

@@ -18,37 +18,46 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  maxWidthClass?: string;
 }
 
 function Modal({
   title,
   onClose,
   children,
+  maxWidthClass = "max-w-md",
 }: ModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-900">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className={`bg-white rounded-2xl shadow-2xl w-full ${maxWidthClass} max-h-[90vh] flex flex-col my-auto`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+          <h3 className="font-semibold text-slate-900 text-base">
             {title}
           </h3>
 
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
-        <div className="p-5">
+        <div className="p-6 overflow-y-auto flex-1 overscroll-contain">
           {children}
         </div>
       </div>
     </div>
   );
 }
+
 
 
 /* =========================

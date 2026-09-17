@@ -22,3 +22,18 @@ enum InventoryAccountStatus {
   SUSPENDED
   DISABLED
 }
+
+enum TransactionType {
+  FUNDING   // adding money to wallet
+  PAYMENT   // spending wallet balance on a product
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  UNDERPAID
+  OVERPAID
+  EXPIRED
+}

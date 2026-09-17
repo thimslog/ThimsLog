@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { StatCard } from "@/components/admin/stat-card";
 import { StatusPill } from "@/components/admin/status-pill";
-import { dashboardStats, inventorySnapshot } from "@/lib/mock-data";
 import { useAdminPage } from "@/context/admin-page-context";
 
 const statusMap = {
@@ -34,9 +33,9 @@ export default function DashboardPage() {
 
       <main className="p-6 space-y-6">
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {dashboardStats.map((stat) => (
+          {/* {dashboardStats.map((stat) => (
             <StatCard key={stat.label} stat={stat} />
-          ))}
+          ))} */}
         </section>
 
         <section className="rounded-card border border-base-border bg-base-surface">
@@ -63,7 +62,7 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {inventorySnapshot.map((item) => {
+                {/* {inventorySnapshot.map((item) => {
                   const status = statusMap[item.status];
                   return (
                     <tr key={item.id} className="border-t border-base-border">
@@ -71,7 +70,7 @@ export default function DashboardPage() {
                         {item.label}
                       </td>
                       <td className="px-5 py-3 text-[13px] text-ink-muted">
-                        {/* {categoryLabel[item.category]} */}
+                        {categoryLabel[item.category]}
                       </td>
                       <td className="px-5 py-3 text-[13px] font-mono text-ink-muted">
                         ${item.price.toFixed(2)}
@@ -84,7 +83,7 @@ export default function DashboardPage() {
                       </td>
                     </tr>
                   );
-                })}
+                })} */}
               </tbody>
             </table>
           </div>

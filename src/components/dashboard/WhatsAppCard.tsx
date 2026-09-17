@@ -1,6 +1,6 @@
 export default function WhatsAppCard() {
   return (
-    <div className="relative flex max-w-xs flex-col items-center overflow-hidden rounded-4xl border border-[#7ae39f]/50 bg-[#e7f9ee] px-6 py-8 text-center shadow-[0_10px_25px_-5px_rgba(37,211,102,0.15)]">
+    <div className="relative flex max-w-xs flex-col items-center overflow-hidden rounded-3xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-950/20 px-6 py-7 text-center shadow-xs transition-colors">
       {/* Background Watermark Icon */}
       <svg
         className="pointer-events-none absolute -right-6 -top-4 h-48 w-48 text-[#25D366]/10"
@@ -11,9 +11,9 @@ export default function WhatsAppCard() {
       </svg>
 
       {/* Top Floating Circular Icon */}
-      <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-md shadow-[#25D366]/30">
+      <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-md shadow-[#25D366]/30">
         <svg
-          className="h-7 w-7"
+          className="h-6 w-6"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -27,11 +27,11 @@ export default function WhatsAppCard() {
       </div>
 
       {/* Text Content */}
-      <div className="relative z-10 mt-5 space-y-1">
-        <h3 className="text-xl font-extrabold tracking-tight text-[#083b27]">
-          ThimLogs News
+      <div className="relative z-10 mt-4 space-y-1">
+        <h3 className="text-base font-bold tracking-tight text-emerald-950 dark:text-emerald-300">
+          ThimsLog News
         </h3>
-        <p className="text-sm font-medium text-[#196b4a]">
+        <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
           Get exclusive updates &amp; drops
         </p>
       </div>
@@ -39,7 +39,7 @@ export default function WhatsAppCard() {
       {/* Action Button */}
       <button
         type="button"
-        className="relative z-10 mt-6 w-full rounded-2xl bg-[#25D366] py-2 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(37,211,102,0.4)] transition duration-200 hover:bg-[#20ba59] active:scale-[0.98] cursor-pointer"
+        className="relative z-10 mt-5 w-full rounded-xl bg-[#25D366] py-2 text-xs font-bold text-white shadow-[0_4px_14px_rgba(37,211,102,0.3)] transition duration-200 hover:bg-[#20ba59] active:scale-[0.98] cursor-pointer"
       >
         Join WhatsApp
       </button>

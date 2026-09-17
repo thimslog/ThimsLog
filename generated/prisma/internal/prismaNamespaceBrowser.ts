@@ -56,7 +56,9 @@ export const ModelName = {
   InventoryCategory: 'InventoryCategory',
   Admin: 'Admin',
   AdminAuditLog: 'AdminAuditLog',
-  User: 'User'
+  Transaction: 'Transaction',
+  User: 'User',
+  Wallet: 'Wallet'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -99,6 +101,7 @@ export const InventoryAccountScalarFieldEnum = {
   country: 'country',
   followers: 'followers',
   notes: 'notes',
+  loginInstructions: 'loginInstructions',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -163,6 +166,25 @@ export const AdminAuditLogScalarFieldEnum = {
 export type AdminAuditLogScalarFieldEnum = (typeof AdminAuditLogScalarFieldEnum)[keyof typeof AdminAuditLogScalarFieldEnum]
 
 
+export const TransactionScalarFieldEnum = {
+  id: 'id',
+  walletId: 'walletId',
+  type: 'type',
+  status: 'status',
+  amountRequested: 'amountRequested',
+  amount: 'amount',
+  merchantReference: 'merchantReference',
+  provider: 'provider',
+  paymonetraReference: 'paymonetraReference',
+  collectionReference: 'collectionReference',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TransactionScalarFieldEnum = (typeof TransactionScalarFieldEnum)[keyof typeof TransactionScalarFieldEnum]
+
+
 export const UserScalarFieldEnum = {
   id: 'id',
   firstName: 'firstName',
@@ -176,6 +198,19 @@ export const UserScalarFieldEnum = {
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const WalletScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  balance: 'balance',
+  currency: 'currency',
+  paymonetraCustomer: 'paymonetraCustomer',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WalletScalarFieldEnum = (typeof WalletScalarFieldEnum)[keyof typeof WalletScalarFieldEnum]
 
 
 export const SortOrder = {

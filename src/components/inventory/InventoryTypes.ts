@@ -8,14 +8,15 @@ export type InventoryAccountStatus =
 export interface InventoryAccount {
   id: string;
   accountTypeId: string;
-  name: string | null;
+  name?: string | null;
   username: string | null;
   email: string | null;
   url: string | null;
   status: InventoryAccountStatus;
   country: string | null;
   followers: number | null;
-  notes: string | null;
+  notes: string | null; // Instructions before buying
+  loginInstructions?: string | null; // Instructions on how to login
   createdAt?: string;
   updatedAt?: string;
 }
@@ -28,9 +29,11 @@ export interface CreateInventoryAccountInput {
   url?: string | null;
   country?: string | null;
   followers?: number | null;
-  status?: InventoryAccount["status"];
+  status?: InventoryAccountStatus;
   notes?: string | null;
+  loginInstructions?: string | null;
 }
+
 
 export type UpdateInventoryAccountInput = Partial<CreateInventoryAccountInput>;
 

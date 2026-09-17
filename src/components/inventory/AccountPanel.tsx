@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Loader2, Pencil, Trash2, UserSquare2 } from "lucide-react";
+import { Loader2, Pencil, Trash2, UserSquare2, FileText, KeyRound } from "lucide-react";
 
 import { AccountAPI } from "./InventoryAPI";
 
@@ -32,7 +32,13 @@ interface AccountPanelProps {
   accountTypeId: string | null;
 }
 
-const ACCOUNT_STATUSES: InventoryAccountStatus[] = ["AVAILABLE", "SOLD"];
+const ACCOUNT_STATUSES: InventoryAccountStatus[] = [
+  "AVAILABLE",
+  "ASSIGNED",
+  "SOLD",
+  "SUSPENDED",
+  "DISABLED",
+];
 
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
@@ -48,7 +54,6 @@ function AccountFormModal({
   onClose,
   onSaved,
 }: AccountFormModalProps) {
-  const [name, setName] = useState(initial?.name ?? "");
   const [username, setUsername] = useState(initial?.username ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [url, setUrl] = useState(initial?.url ?? "");
@@ -63,6 +68,9 @@ function AccountFormModal({
   );
 
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [loginInstructions, setLoginInstructions] = useState(
+    initial?.loginInstructions ?? "",
+  );
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,18 +83,17 @@ function AccountFormModal({
 
     try {
       const parsedFollowers =
-        followers === "" ? null : Number.parseInt(followers, 10);
+        followers.trim() === "" ? null : Number.parseInt(followers.trim(), 10);
 
       if (
-        followers !== "" &&
+        followers.trim() !== "" &&
         (Number.isNaN(parsedFollowers) || parsedFollowers! < 0)
       ) {
-        throw new Error("Followers must be a valid number");
+        throw new Error("Followers must be a valid non-negative number");
       }
 
       const payload = {
         accountTypeId,
-        name: name.trim() || null,
         username: username.trim() || null,
         email: email.trim() || null,
         url: url.trim() || null,
@@ -94,6 +101,7 @@ function AccountFormModal({
         followers: parsedFollowers,
         status,
         notes: notes.trim() || null,
+        loginInstructions: loginInstructions.trim() || null,
       };
 
       const saved = initial
@@ -113,67 +121,71 @@ function AccountFormModal({
   }
 
   return (
-    <Modal title={initial ? "Edit account" : "New account"} onClose={onClose}>
-      <form onSubmit={handleSubmit}>
+    <Modal
+      title={initial ? "Edit Account" : "New Account"}
+      onClose={onClose}
+      maxWidthClass="max-w-lg"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+
         <ErrorText error={error} />
 
-        <Field label="Name">
-          <input
-            className={inputClass}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </Field>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Username (Optional)">
+            <input
+              className={inputClass}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="e.g. handle_123"
+            />
+          </Field>
 
-        <Field label="Username">
-          <input
-            className={inputClass}
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </Field>
+          <Field label="Email (Optional)">
+            <input
+              type="email"
+              className={inputClass}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="account@email.com"
+            />
+          </Field>
+        </div>
 
-        <Field label="Email">
-          <input
-            type="email"
-            className={inputClass}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </Field>
-
-        <Field label="Profile URL">
+        <Field label="Profile URL (Optional)">
           <input
             type="url"
             className={inputClass}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://..."
+            placeholder="https://instagram.com/..."
           />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Country">
+          <Field label="Country (Optional)">
             <input
               className={inputClass}
               value={country}
               onChange={(e) => setCountry(e.target.value)}
+              placeholder="e.g. USA, UK, NG"
             />
           </Field>
 
-          <Field label="Followers">
+          <Field label="Followers (Optional)">
             <input
               type="number"
               min="0"
               className={inputClass}
               value={followers}
               onChange={(e) => setFollowers(e.target.value)}
+              placeholder="e.g. 5000"
             />
           </Field>
         </div>
 
         <Field label="Status">
           <select
+            required
             className={inputClass}
             value={status}
             onChange={(e) =>
@@ -188,12 +200,23 @@ function AccountFormModal({
           </select>
         </Field>
 
-        <Field label="Notes">
+        <Field label="Instructions Before Buying (Notes)">
           <textarea
             className={inputClass}
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+            placeholder="Instructions or requirements before purchasing (e.g. Must have active 2FA app, warranty terms)..."
+          />
+        </Field>
+
+        <Field label="Login Instructions">
+          <textarea
+            className={inputClass}
+            rows={2}
+            value={loginInstructions}
+            onChange={(e) => setLoginInstructions(e.target.value)}
+            placeholder="Detailed instructions on how buyer should log in after purchase (e.g. Login via session cookie, password format, backup codes)..."
           />
         </Field>
 
@@ -210,9 +233,6 @@ function statusBadgeClass(status: InventoryAccountStatus): string {
 
     case "SOLD":
       return "bg-slate-100 text-slate-500";
-
-    // case "RESERVED":
-    //   return "bg-amber-50 text-amber-700";
 
     case "ASSIGNED":
       return "bg-blue-50 text-blue-700";
@@ -256,10 +276,8 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
     setError(null);
 
     try {
-      const response = (await AccountAPI.list(accountTypeId)) as any; // Type assertion to any to access the json() method
-
+      const response = (await AccountAPI.list(accountTypeId)) as any;
       const data = await response?.data;
-
       setAccounts(data ?? []);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -274,18 +292,6 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
 
   function handleSaved(saved: InventoryAccount) {
     setFormTarget(undefined);
-
-    // setAccounts((prev) => {
-    //   const exists = prev.some((account) => account.id === saved.id);
-
-    //   if (exists) {
-    //     return prev.map((account) =>
-    //       account.id === saved.id ? saved : account,
-    //     );
-    //   }
-
-    //   return [...prev, saved];
-    // });
     load();
   }
 
@@ -326,11 +332,11 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
       {!accountTypeId ? (
         <EmptyState
           icon={UserSquare2}
-          text="Select an account type to see its accounts overflow-hidden max-h-[calc(60vh-16rem)] overflow-y-auto"
+          text="Select an account type to see its accounts"
         />
       ) : loading ? (
         <div className="py-8 flex justify-center">
-          <Loader2 size={18} className="animate-spin text-purple-500" />
+          <Loader2 size={18} className="animate-spin text-sky-600" />
         </div>
       ) : accounts.length === 0 ? (
         <EmptyState icon={UserSquare2} text="No accounts in this type yet" />
@@ -339,10 +345,11 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
-                <th className="py-2 pr-3 font-medium">Name / username</th>
+                <th className="py-2 pr-3 font-medium">Account / Username</th>
                 <th className="py-2 pr-3 font-medium">Email</th>
                 <th className="py-2 pr-3 font-medium">Country</th>
                 <th className="py-2 pr-3 font-medium">Followers</th>
+                <th className="py-2 pr-3 font-medium">Instructions</th>
                 <th className="py-2 pr-3 font-medium">Status</th>
                 <th className="py-2 pr-3 font-medium text-right">Actions</th>
               </tr>
@@ -352,17 +359,21 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
               {accounts.map((account) => (
                 <tr
                   key={account.id}
-                  className="border-b border-slate-50 last:border-0"
+                  className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50"
                 >
                   <td className="py-2.5 pr-3">
                     <p className="font-medium text-slate-800">
-                      {account.name || account.username || "—"}
+                      {account.username || account.name || account.id.slice(0, 8)}
                     </p>
-
-                    {account.username && account.name && (
-                      <p className="text-xs text-slate-400">
-                        @{account.username}
-                      </p>
+                    {account.url && (
+                      <a
+                        href={account.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-sky-600 hover:underline truncate max-w-[150px] block"
+                      >
+                        {account.url}
+                      </a>
                     )}
                   </td>
 
@@ -375,7 +386,33 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
                   </td>
 
                   <td className="py-2.5 pr-3 text-slate-500">
-                    {account.followers ?? "—"}
+                    {account.followers !== null && account.followers !== undefined
+                      ? Number(account.followers).toLocaleString()
+                      : "—"}
+                  </td>
+
+                  <td className="py-2.5 pr-3 text-slate-500">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      {account.notes && (
+                        <span
+                          title={`Pre-buy note: ${account.notes}`}
+                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[11px] font-medium"
+                        >
+                          <FileText size={11} /> Note
+                        </span>
+                      )}
+                      {account.loginInstructions && (
+                        <span
+                          title={`Login instruction: ${account.loginInstructions}`}
+                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 text-[11px] font-medium"
+                        >
+                          <KeyRound size={11} /> Login Info
+                        </span>
+                      )}
+                      {!account.notes && !account.loginInstructions && (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </div>
                   </td>
 
                   <td className="py-2.5 pr-3">
@@ -392,7 +429,7 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
                     <button
                       type="button"
                       onClick={() => setFormTarget(account)}
-                      className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded"
+                      className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded cursor-pointer"
                       aria-label="Edit account"
                     >
                       <Pencil size={14} />
@@ -401,7 +438,7 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
                     <button
                       type="button"
                       onClick={() => setDeleteTarget(account)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
                       aria-label="Delete account"
                     >
                       <Trash2 size={14} />
@@ -427,7 +464,10 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
         <ConfirmDeleteModal
           title="Delete account"
           itemLabel={
-            deleteTarget.name || deleteTarget.username || "this account"
+            deleteTarget.username ||
+            deleteTarget.email ||
+            deleteTarget.name ||
+            "this account"
           }
           onCancel={() => setDeleteTarget(null)}
           onConfirm={handleDelete}

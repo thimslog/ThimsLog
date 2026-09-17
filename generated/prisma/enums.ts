@@ -44,3 +44,24 @@ export const InventoryAccountStatus = {
 } as const
 
 export type InventoryAccountStatus = (typeof InventoryAccountStatus)[keyof typeof InventoryAccountStatus]
+
+
+export const TransactionType = {
+  FUNDING: 'FUNDING',
+  PAYMENT: 'PAYMENT',
+  REFUND: 'REFUND'
+} as const
+
+export type TransactionType = (typeof TransactionType)[keyof typeof TransactionType]
+
+
+export const TransactionStatus = {
+  PENDING: 'PENDING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  UNDERPAID: 'UNDERPAID',
+  OVERPAID: 'OVERPAID',
+  EXPIRED: 'EXPIRED'
+} as const
+
+export type TransactionStatus = (typeof TransactionStatus)[keyof typeof TransactionStatus]

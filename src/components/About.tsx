@@ -24,13 +24,13 @@ export function About() {
     <section id="why" className="relative py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <Reveal className="max-w-2xl">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">
             Why ThimsLog
           </span>
-          <h2 className="mt-4 font-display text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
+          <h2 className="mt-4 font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
             Built for people who got burned elsewhere.
           </h2>
-          <p className="mt-5 text-slate-400 leading-relaxed">
+          <p className="mt-5 text-slate-600 dark:text-slate-400 leading-relaxed text-base sm:text-lg">
             Most marketplaces leave you to trust a stranger and hope. ThimsLog removes the
             hope — every transaction is structured so neither side can lose.
           </p>
@@ -39,14 +39,13 @@ export function About() {
         <div className="mt-14 grid gap-5 md:grid-cols-3">
           {pillars.map((p, i) => (
             <Reveal key={p.title} delay={i * 120}>
-              <div className="group relative h-full p-7 rounded-2xl glass hover:bg-white/[0.07] transition-all duration-300 hover:-translate-y-1">
-                <div className="absolute inset-0 rounded-2xl bg-linear-to-br from-sky-500/0 to-sky-500/0 group-hover:from-sky-500/5 group-hover:to-transparent transition-all duration-500" />
+              <div className="group relative h-full p-7 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/90 dark:border-white/10 hover:border-sky-300 dark:hover:border-white/20 shadow-xs hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                 <div className="relative">
-                  <div className="grid place-items-center w-12 h-12 rounded-xl bg-sky-500/10 ring-1 ring-sky-400/20 group-hover:bg-sky-400 group-hover:ring-sky-300 transition-all duration-300">
-                    <p.icon className="w-6 h-6 text-sky-400 group-hover:text-ink-950 transition-colors" strokeWidth={2} />
+                  <div className="grid place-items-center w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-500/10 ring-1 ring-sky-200/80 dark:ring-sky-400/20 group-hover:bg-sky-600 group-hover:ring-sky-600 dark:group-hover:bg-sky-400 dark:group-hover:ring-sky-300 transition-all duration-300">
+                    <p.icon className="w-6 h-6 text-sky-600 group-hover:text-white dark:text-sky-400 dark:group-hover:text-slate-950 transition-colors" strokeWidth={2} />
                   </div>
-                  <h3 className="mt-5 font-display text-xl font-bold text-white">{p.title}</h3>
-                  <p className="mt-2.5 text-sm text-slate-400 leading-relaxed">{p.body}</p>
+                  <h3 className="mt-5 font-display text-xl font-bold text-slate-900 dark:text-white">{p.title}</h3>
+                  <p className="mt-2.5 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{p.body}</p>
                 </div>
               </div>
             </Reveal>

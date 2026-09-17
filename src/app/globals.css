@@ -2,29 +2,25 @@
 
 @import "tailwindcss";
 
+@variant dark (&:is(.dark, .dark *));
+
 :root {
-  /* --background: #ffffff;
-  --foreground: #171717; */
+  color-scheme: light;
   --font-display: "Poppins", "Inter", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* --background: #0a0a0a;
-    --foreground: #ededed; */
-  }
+.dark {
+  color-scheme: dark;
 }
-
-/* html,
-body {
-  background-color: #0b0f14;
-  color: #e8edf2;
-} */
 
 * {
   scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.dark * {
   scrollbar-color: #232c37 transparent;
 }
 
@@ -33,12 +29,15 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #232c37;
+  background-color: #cbd5e1;
   border-radius: 8px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #232c37;
 }
 
 :focus-visible {
-  outline: 2px solid #4f7cff;
+  outline: 2px solid #0284c7;
   outline-offset: 2px;
 }
 
@@ -46,32 +45,48 @@ body {
   html {
     scroll-behavior: smooth;
   }
-  /* body {
-    @apply text-[#060a14] bg-slate-200 font-sans antialiased;
-  } */
   body {
-    @apply bg-[#060a14] text-slate-200 font-sans antialiased;
+    @apply bg-slate-50 text-slate-900 font-sans antialiased transition-colors duration-200;
+  }
+  .dark body,
+  html.dark body {
+    @apply bg-[#060a14] text-slate-200;
   }
   ::selection {
+    @apply bg-sky-500/20 text-sky-900;
+  }
+  .dark ::selection {
     @apply bg-sky-500/30 text-white;
   }
 }
 
 @layer utilities {
   .text-gradient {
-    @apply bg-gradient-to-r from-sky-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 dark:from-sky-300 dark:via-cyan-300 dark:to-blue-400 bg-clip-text text-transparent;
   }
   .glass {
-    @apply bg-white/4 backdrop-blur-xl border border-white/10;
+    @apply bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-xs;
   }
   .glass-strong {
-    @apply bg-white/[0.07] backdrop-blur-2xl border border-white/10;
+    @apply bg-white/95 dark:bg-white/[0.07] backdrop-blur-2xl border border-slate-200 dark:border-white/10 shadow-lg dark:shadow-2xl;
   }
   .grid-bg {
+    background-image:
+      linear-gradient(rgba(2, 132, 199, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(2, 132, 199, 0.05) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+  .dark .grid-bg {
     background-image:
       linear-gradient(rgba(56, 189, 248, 0.06) 1px, transparent 1px),
       linear-gradient(90deg, rgba(56, 189, 248, 0.06) 1px, transparent 1px);
     background-size: 56px 56px;
+  }
+  .shadow-glow {
+    box-shadow: 0 0 25px -4px rgba(2, 132, 199, 0.35);
+  }
+  .dark .shadow-glow {
+    box-shadow: 0 0 30px -4px rgba(56, 189, 248, 0.35);
   }
   .reveal {
     opacity: 0;

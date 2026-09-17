@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-type AuthUser = {
+export type AuthUser = {
   id: string;
   firstName: string;
   lastName: string;
@@ -17,62 +17,74 @@ type AuthUser = {
   phoneNumber: string;
   userName: string;
   createdAt: Date | string;
+  wallet?: { balance: any };
 };
 
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<AuthUser | null>;
+  setUser: (user: AuthUser | null) => void;
 };
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   loading: true,
   signOut: async () => {},
-  refreshUser: async () => {},
+  refreshUser: async () => null,
+  setUser: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshUser = useCallback(async () => {
-  try {
-    const response = await fetch("/api/user/getCurrentUser", {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-    });
+  const refreshUser = useCallback(async (): Promise<AuthUser | null> => {
+    try {
+      const response = await fetch("/api/user/getCurrentUser", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        setUser(null);
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.user) {
+        setUser(data.user);
+        return data.user;
+      } else {
+        setUser(null);
+        return null;
+      }
+    } catch (error) {
+      console.error("Failed to fetch current user:", error);
       setUser(null);
-      return;
+      return null;
     }
-
-    const data = await response.json();
-
-    if (data.success) {
-      setUser(data.user);
-    } else {
-      setUser(null);
-    }
-  } catch (error) {
-    console.error("Failed to fetch current user:", error);
-    setUser(null);
-  }
-}, []);
+  }, []);
 
   useEffect(() => {
+    let isMounted = true;
     const initializeAuth = async () => {
       try {
         await refreshUser();
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
+    return () => {
+      isMounted = false;
+    };
   }, [refreshUser]);
 
   const signOut = async () => {
@@ -95,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signOut,
         refreshUser,
+        setUser,
       }}
     >
       {children}

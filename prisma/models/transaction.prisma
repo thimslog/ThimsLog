@@ -1,0 +1,23 @@
+model Transaction {
+  id         String            @id @default(uuid())
+
+  walletId   String
+  wallet     Wallet            @relation(fields: [walletId], references: [id])
+
+  type       TransactionType
+  status     TransactionStatus @default(PENDING)
+  amountRequested     Decimal           @db.Decimal(14, 2) // what we asked for
+  amount              Decimal?          @db.Decimal(14, 2) // what actually landed (from the webhook)
+  merchantReference  String            @unique // Paymontera's tx reference — THIS is your dedupe key
+  provider   String            @default("paymontera")
+
+   paymonetraReference String?           @unique // THEIR session id, returned as `reference` in the response
+  collectionReference String?           @unique // data.reference from the webhook — the true dedupe key
+
+  metadata   Json?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([walletId])
+  @@index([status])
+}

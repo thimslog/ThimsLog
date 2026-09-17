@@ -11,6 +11,7 @@ import {
   Settings,
   Terminal,
   X,
+  Receipt,
 } from "lucide-react";
 
 interface NavItem {
@@ -61,6 +62,16 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    title: "Finance",
+    items: [
+      {
+        href: "/admin/transactions",
+        label: "Transactions",
+        icon: Receipt,
+      },
+    ],
+  },
+  {
     title: "People",
     items: [
       {
@@ -86,6 +97,7 @@ const navGroups: NavGroup[] = [
     ],
   },
 ];
+
 
 export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
   const pathname = usePathname();
