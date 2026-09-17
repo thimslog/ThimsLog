@@ -27,18 +27,22 @@ export async function GET() {
   let runningBalance = new Prisma.Decimal(0);
   const withBalances = transactions.map((tx) => {
     const balanceBefore = runningBalance;
+    const effectiveAmount = tx.amount ?? tx.amountRequested;
 
-    // Only a completed funding actually moved the balance.
-    // Extend this once you add debit transaction types.
-    if (tx.status === "SUCCESS" && tx.amount) {
-      runningBalance = runningBalance.add(tx.amount);
+    // Credit for FUNDING and REFUND, Debit for PAYMENT
+    if (tx.status === "SUCCESS" && effectiveAmount) {
+      if (tx.type === "PAYMENT") {
+        runningBalance = runningBalance.sub(effectiveAmount);
+      } else {
+        runningBalance = runningBalance.add(effectiveAmount);
+      }
     }
 
     return {
       id: tx.id,
       type: tx.type,
       status: tx.status,
-      amount: (tx.amount ?? tx.amountRequested).toString(),
+      amount: effectiveAmount.toString(),
       merchantReference: tx.merchantReference,
       serviceId: tx.paymonetraReference ?? tx.collectionReference ?? null,
       provider: tx.provider,

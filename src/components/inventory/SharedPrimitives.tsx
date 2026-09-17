@@ -29,22 +29,22 @@ function Modal({
 }: ModalProps) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className={`bg-white rounded-2xl shadow-2xl w-full ${maxWidthClass} max-h-[90vh] flex flex-col my-auto`}
+        className={`bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full ${maxWidthClass} max-h-[90vh] flex flex-col my-auto`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <h3 className="font-semibold text-slate-900 text-base">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 shrink-0">
+          <h3 className="font-bold text-slate-900 dark:text-white text-base">
             {title}
           </h3>
 
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -57,8 +57,6 @@ function Modal({
     </div>
   );
 }
-
-
 
 /* =========================
    Field
@@ -75,7 +73,7 @@ function Field({
 }: FieldProps) {
   return (
     <div className="mb-4">
-      <label className="block text-xs font-medium text-slate-500 mb-1">
+      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
         {label}
       </label>
 
@@ -84,14 +82,12 @@ function Field({
   );
 }
 
-
 /* =========================
    Input class
 ========================= */
 
 export const inputClass =
-  "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500";
-
+  "w-full border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2 text-sm bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600 transition-colors";
 
 /* =========================
    Form Actions
@@ -109,11 +105,11 @@ function FormActions({
   submitLabel = "Save",
 }: FormActionsProps) {
   return (
-    <div className="flex justify-end gap-2 mt-5">
+    <div className="flex justify-end gap-2.5 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
       <button
         type="button"
         onClick={onCancel}
-        className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg"
+        className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
       >
         Cancel
       </button>
@@ -121,7 +117,7 @@ function FormActions({
       <button
         type="submit"
         disabled={submitting}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-60"
+        className="flex items-center gap-2 px-5 py-2 text-xs font-semibold bg-sky-600 hover:bg-sky-700 text-white rounded-xl shadow-xs disabled:opacity-60 transition-colors cursor-pointer"
       >
         {submitting && (
           <Loader2
@@ -135,7 +131,6 @@ function FormActions({
     </div>
   );
 }
-
 
 /* =========================
    Error Text
@@ -151,12 +146,11 @@ function ErrorText({
   if (!error) return null;
 
   return (
-    <p className="text-xs text-red-500 mb-3">
+    <div className="p-3 mb-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 font-medium">
       {error}
-    </p>
+    </div>
   );
 }
-
 
 /* =========================
    Confirm Delete Modal
@@ -182,19 +176,19 @@ function ConfirmDeleteModal({
       title={title}
       onClose={onCancel}
     >
-      <p className="text-sm text-slate-600 mb-5">
+      <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
         Delete{" "}
-        <span className="font-medium text-slate-900">
+        <span className="font-semibold text-slate-900 dark:text-white">
           {itemLabel}
         </span>
-        ? This can't be undone, and related records may be removed too.
+        ? This action cannot be undone, and related records may be removed too.
       </p>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2.5">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg"
+          className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
         >
           Cancel
         </button>
@@ -203,7 +197,7 @@ function ConfirmDeleteModal({
           type="button"
           onClick={onConfirm}
           disabled={submitting}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-60"
+          className="flex items-center gap-2 px-5 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs disabled:opacity-60 transition-colors cursor-pointer"
         >
           {submitting && (
             <Loader2
@@ -219,7 +213,6 @@ function ConfirmDeleteModal({
   );
 }
 
-
 /* =========================
    Empty State
 ========================= */
@@ -234,10 +227,10 @@ function EmptyState({
   text,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-10 text-slate-400">
+    <div className="flex flex-col items-center justify-center text-center py-10 text-slate-400 dark:text-slate-500">
       <Icon
         size={28}
-        className="mb-2"
+        className="mb-2 opacity-60"
       />
 
       <p className="text-sm">
@@ -246,7 +239,6 @@ function EmptyState({
     </div>
   );
 }
-
 
 /* =========================
    List Row
@@ -272,21 +264,21 @@ function ListRow({
   return (
     <div
       onClick={onClick}
-      className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg ${
+      className={`flex items-center justify-between gap-2 px-3.5 py-3 rounded-xl ${
         onClick ? "cursor-pointer" : ""
-      } border transition-colors ${
+      } border transition-all ${
         active
-          ? "bg-purple-50 border-purple-200"
-          : "border-transparent hover:bg-slate-50"
+          ? "bg-sky-50 dark:bg-sky-500/10 border-sky-200 dark:border-sky-500/30 text-sky-900 dark:text-sky-100 shadow-xs"
+          : "border-transparent hover:bg-slate-50 dark:hover:bg-white/[0.03] text-slate-800 dark:text-slate-200"
       }`}
     >
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-slate-800 truncate">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold truncate">
           {title}
         </p>
 
         {subtitle && (
-          <p className="text-xs text-slate-400 truncate">
+          <p className="text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5">
             {subtitle}
           </p>
         )}
@@ -299,7 +291,8 @@ function ListRow({
             e.stopPropagation();
             onEdit();
           }}
-          className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded"
+          className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10 rounded-lg transition-colors cursor-pointer"
+          aria-label="Edit item"
         >
           <Pencil size={14} />
         </button>
@@ -310,7 +303,8 @@ function ListRow({
             e.stopPropagation();
             onDelete();
           }}
-          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
+          className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+          aria-label="Delete item"
         >
           <Trash2 size={14} />
         </button>
@@ -318,14 +312,13 @@ function ListRow({
         {onClick && (
           <ChevronRight
             size={14}
-            className="text-slate-300"
+            className={`transition-transform ${active ? "text-sky-600 dark:text-sky-400 translate-x-0.5" : "text-slate-300 dark:text-slate-600"}`}
           />
         )}
       </div>
     </div>
   );
 }
-
 
 /* =========================
    Panel Header
@@ -347,13 +340,12 @@ function PanelHeader({
   addLabel = "Add",
 }: PanelHeaderProps) {
   return (
-    <div className="flex items-center justify-between mb-3">
-      <h2 className="text-sm font-semibold text-slate-700">
+    <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-white/5">
+      <h2 className="text-sm font-bold text-slate-900 dark:text-white">
         {title}
 
         {typeof count === "number" && (
-          <span className="text-slate-400 font-normal">
-            {" "}
+          <span className="text-slate-400 dark:text-slate-500 font-normal ml-1.5 text-xs">
             ({count})
           </span>
         )}
@@ -363,10 +355,9 @@ function PanelHeader({
         type="button"
         onClick={onAdd}
         disabled={addDisabled}
-        className="flex items-center gap-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 px-2.5 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center gap-1.5 text-xs font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 hover:bg-sky-100 dark:hover:bg-sky-500/20 border border-sky-200/60 dark:border-sky-500/20 px-3 py-1.5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
       >
-        <Plus size={13} />
-
+        <Plus size={14} />
         {addLabel}
       </button>
     </div>

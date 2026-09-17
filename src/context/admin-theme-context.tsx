@@ -10,26 +10,25 @@ import {
 
 type Theme = "light" | "dark";
 
-interface ThemeContextType {
+interface AdminThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextType>({
+const AdminThemeContext = createContext<AdminThemeContextType>({
   theme: "light",
   toggleTheme: () => {},
   setTheme: () => {},
 });
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function AdminThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Check saved user theme preference or default strictly to light
-    const saved = (localStorage.getItem("thimslog_user_theme") ||
-      localStorage.getItem("thimslog_theme")) as Theme | null;
+    // Read admin-specific theme storage
+    const saved = localStorage.getItem("thimslog_admin_theme") as Theme | null;
     const initialTheme: Theme = saved === "dark" || saved === "light" ? saved : "light";
 
     setThemeState(initialTheme);
@@ -45,7 +44,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem("thimslog_user_theme", newTheme);
+    localStorage.setItem("thimslog_admin_theme", newTheme);
     if (newTheme === "dark") {
       document.documentElement.classList.add("dark");
       document.documentElement.setAttribute("data-theme", "dark");
@@ -61,12 +60,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
-      {children}
-    </ThemeContext.Provider>
+    <AdminThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+      <div className={theme === "dark" ? "dark" : ""}>{children}</div>
+    </AdminThemeContext.Provider>
   );
 }
 
-export function useTheme() {
-  return useContext(ThemeContext);
+export function useAdminTheme() {
+  return useContext(AdminThemeContext);
 }

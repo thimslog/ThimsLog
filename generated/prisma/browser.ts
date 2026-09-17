@@ -43,6 +43,11 @@ export type Admin = Prisma.AdminModel
  */
 export type AdminAuditLog = Prisma.AdminAuditLogModel
 /**
+ * Model Order
+ * 
+ */
+export type Order = Prisma.OrderModel
+/**
  * Model Transaction
  * 
  */

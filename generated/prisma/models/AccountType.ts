@@ -234,6 +234,7 @@ export type AccountTypeWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"AccountType"> | Date | string
   category?: Prisma.XOR<Prisma.InventoryCategoryScalarRelationFilter, Prisma.InventoryCategoryWhereInput>
   accounts?: Prisma.InventoryAccountListRelationFilter
+  orders?: Prisma.OrderListRelationFilter
 }
 
 export type AccountTypeOrderByWithRelationInput = {
@@ -246,6 +247,7 @@ export type AccountTypeOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   category?: Prisma.InventoryCategoryOrderByWithRelationInput
   accounts?: Prisma.InventoryAccountOrderByRelationAggregateInput
+  orders?: Prisma.OrderOrderByRelationAggregateInput
 }
 
 export type AccountTypeWhereUniqueInput = Prisma.AtLeast<{
@@ -262,6 +264,7 @@ export type AccountTypeWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"AccountType"> | Date | string
   category?: Prisma.XOR<Prisma.InventoryCategoryScalarRelationFilter, Prisma.InventoryCategoryWhereInput>
   accounts?: Prisma.InventoryAccountListRelationFilter
+  orders?: Prisma.OrderListRelationFilter
 }, "id" | "categoryId_name">
 
 export type AccountTypeOrderByWithAggregationInput = {
@@ -301,6 +304,7 @@ export type AccountTypeCreateInput = {
   updatedAt?: Date | string
   category: Prisma.InventoryCategoryCreateNestedOneWithoutAccountTypesInput
   accounts?: Prisma.InventoryAccountCreateNestedManyWithoutAccountTypeInput
+  orders?: Prisma.OrderCreateNestedManyWithoutAccountTypeInput
 }
 
 export type AccountTypeUncheckedCreateInput = {
@@ -312,6 +316,7 @@ export type AccountTypeUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.InventoryAccountUncheckedCreateNestedManyWithoutAccountTypeInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutAccountTypeInput
 }
 
 export type AccountTypeUpdateInput = {
@@ -323,6 +328,7 @@ export type AccountTypeUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.InventoryCategoryUpdateOneRequiredWithoutAccountTypesNestedInput
   accounts?: Prisma.InventoryAccountUpdateManyWithoutAccountTypeNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutAccountTypeNestedInput
 }
 
 export type AccountTypeUncheckedUpdateInput = {
@@ -334,6 +340,7 @@ export type AccountTypeUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.InventoryAccountUncheckedUpdateManyWithoutAccountTypeNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutAccountTypeNestedInput
 }
 
 export type AccountTypeCreateManyInput = {
@@ -423,6 +430,11 @@ export type AccountTypeOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type AccountTypeNullableScalarRelationFilter = {
+  is?: Prisma.AccountTypeWhereInput | null
+  isNot?: Prisma.AccountTypeWhereInput | null
+}
+
 export type StringFieldUpdateOperationsInput = {
   set?: string
 }
@@ -499,6 +511,22 @@ export type AccountTypeUncheckedUpdateManyWithoutCategoryNestedInput = {
   deleteMany?: Prisma.AccountTypeScalarWhereInput | Prisma.AccountTypeScalarWhereInput[]
 }
 
+export type AccountTypeCreateNestedOneWithoutOrdersInput = {
+  create?: Prisma.XOR<Prisma.AccountTypeCreateWithoutOrdersInput, Prisma.AccountTypeUncheckedCreateWithoutOrdersInput>
+  connectOrCreate?: Prisma.AccountTypeCreateOrConnectWithoutOrdersInput
+  connect?: Prisma.AccountTypeWhereUniqueInput
+}
+
+export type AccountTypeUpdateOneWithoutOrdersNestedInput = {
+  create?: Prisma.XOR<Prisma.AccountTypeCreateWithoutOrdersInput, Prisma.AccountTypeUncheckedCreateWithoutOrdersInput>
+  connectOrCreate?: Prisma.AccountTypeCreateOrConnectWithoutOrdersInput
+  upsert?: Prisma.AccountTypeUpsertWithoutOrdersInput
+  disconnect?: Prisma.AccountTypeWhereInput | boolean
+  delete?: Prisma.AccountTypeWhereInput | boolean
+  connect?: Prisma.AccountTypeWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AccountTypeUpdateToOneWithWhereWithoutOrdersInput, Prisma.AccountTypeUpdateWithoutOrdersInput>, Prisma.AccountTypeUncheckedUpdateWithoutOrdersInput>
+}
+
 export type AccountTypeCreateWithoutAccountsInput = {
   id?: string
   name: string
@@ -507,6 +535,7 @@ export type AccountTypeCreateWithoutAccountsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   category: Prisma.InventoryCategoryCreateNestedOneWithoutAccountTypesInput
+  orders?: Prisma.OrderCreateNestedManyWithoutAccountTypeInput
 }
 
 export type AccountTypeUncheckedCreateWithoutAccountsInput = {
@@ -517,6 +546,7 @@ export type AccountTypeUncheckedCreateWithoutAccountsInput = {
   price?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutAccountTypeInput
 }
 
 export type AccountTypeCreateOrConnectWithoutAccountsInput = {
@@ -543,6 +573,7 @@ export type AccountTypeUpdateWithoutAccountsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.InventoryCategoryUpdateOneRequiredWithoutAccountTypesNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutAccountTypeNestedInput
 }
 
 export type AccountTypeUncheckedUpdateWithoutAccountsInput = {
@@ -553,6 +584,7 @@ export type AccountTypeUncheckedUpdateWithoutAccountsInput = {
   price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutAccountTypeNestedInput
 }
 
 export type AccountTypeCreateWithoutCategoryInput = {
@@ -563,6 +595,7 @@ export type AccountTypeCreateWithoutCategoryInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.InventoryAccountCreateNestedManyWithoutAccountTypeInput
+  orders?: Prisma.OrderCreateNestedManyWithoutAccountTypeInput
 }
 
 export type AccountTypeUncheckedCreateWithoutCategoryInput = {
@@ -573,6 +606,7 @@ export type AccountTypeUncheckedCreateWithoutCategoryInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.InventoryAccountUncheckedCreateNestedManyWithoutAccountTypeInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutAccountTypeInput
 }
 
 export type AccountTypeCreateOrConnectWithoutCategoryInput = {
@@ -614,6 +648,66 @@ export type AccountTypeScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"AccountType"> | Date | string
 }
 
+export type AccountTypeCreateWithoutOrdersInput = {
+  id?: string
+  name: string
+  description?: string | null
+  price?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  category: Prisma.InventoryCategoryCreateNestedOneWithoutAccountTypesInput
+  accounts?: Prisma.InventoryAccountCreateNestedManyWithoutAccountTypeInput
+}
+
+export type AccountTypeUncheckedCreateWithoutOrdersInput = {
+  id?: string
+  name: string
+  description?: string | null
+  categoryId: string
+  price?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  accounts?: Prisma.InventoryAccountUncheckedCreateNestedManyWithoutAccountTypeInput
+}
+
+export type AccountTypeCreateOrConnectWithoutOrdersInput = {
+  where: Prisma.AccountTypeWhereUniqueInput
+  create: Prisma.XOR<Prisma.AccountTypeCreateWithoutOrdersInput, Prisma.AccountTypeUncheckedCreateWithoutOrdersInput>
+}
+
+export type AccountTypeUpsertWithoutOrdersInput = {
+  update: Prisma.XOR<Prisma.AccountTypeUpdateWithoutOrdersInput, Prisma.AccountTypeUncheckedUpdateWithoutOrdersInput>
+  create: Prisma.XOR<Prisma.AccountTypeCreateWithoutOrdersInput, Prisma.AccountTypeUncheckedCreateWithoutOrdersInput>
+  where?: Prisma.AccountTypeWhereInput
+}
+
+export type AccountTypeUpdateToOneWithWhereWithoutOrdersInput = {
+  where?: Prisma.AccountTypeWhereInput
+  data: Prisma.XOR<Prisma.AccountTypeUpdateWithoutOrdersInput, Prisma.AccountTypeUncheckedUpdateWithoutOrdersInput>
+}
+
+export type AccountTypeUpdateWithoutOrdersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  category?: Prisma.InventoryCategoryUpdateOneRequiredWithoutAccountTypesNestedInput
+  accounts?: Prisma.InventoryAccountUpdateManyWithoutAccountTypeNestedInput
+}
+
+export type AccountTypeUncheckedUpdateWithoutOrdersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  price?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  accounts?: Prisma.InventoryAccountUncheckedUpdateManyWithoutAccountTypeNestedInput
+}
+
 export type AccountTypeCreateManyCategoryInput = {
   id?: string
   name: string
@@ -631,6 +725,7 @@ export type AccountTypeUpdateWithoutCategoryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.InventoryAccountUpdateManyWithoutAccountTypeNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutAccountTypeNestedInput
 }
 
 export type AccountTypeUncheckedUpdateWithoutCategoryInput = {
@@ -641,6 +736,7 @@ export type AccountTypeUncheckedUpdateWithoutCategoryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.InventoryAccountUncheckedUpdateManyWithoutAccountTypeNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutAccountTypeNestedInput
 }
 
 export type AccountTypeUncheckedUpdateManyWithoutCategoryInput = {
@@ -659,10 +755,12 @@ export type AccountTypeUncheckedUpdateManyWithoutCategoryInput = {
 
 export type AccountTypeCountOutputType = {
   accounts: number
+  orders: number
 }
 
 export type AccountTypeCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   accounts?: boolean | AccountTypeCountOutputTypeCountAccountsArgs
+  orders?: boolean | AccountTypeCountOutputTypeCountOrdersArgs
 }
 
 /**
@@ -682,6 +780,13 @@ export type AccountTypeCountOutputTypeCountAccountsArgs<ExtArgs extends runtime.
   where?: Prisma.InventoryAccountWhereInput
 }
 
+/**
+ * AccountTypeCountOutputType without action
+ */
+export type AccountTypeCountOutputTypeCountOrdersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OrderWhereInput
+}
+
 
 export type AccountTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -693,6 +798,7 @@ export type AccountTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   updatedAt?: boolean
   category?: boolean | Prisma.InventoryCategoryDefaultArgs<ExtArgs>
   accounts?: boolean | Prisma.AccountType$accountsArgs<ExtArgs>
+  orders?: boolean | Prisma.AccountType$ordersArgs<ExtArgs>
   _count?: boolean | Prisma.AccountTypeCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["accountType"]>
 
@@ -732,6 +838,7 @@ export type AccountTypeOmit<ExtArgs extends runtime.Types.Extensions.InternalArg
 export type AccountTypeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.InventoryCategoryDefaultArgs<ExtArgs>
   accounts?: boolean | Prisma.AccountType$accountsArgs<ExtArgs>
+  orders?: boolean | Prisma.AccountType$ordersArgs<ExtArgs>
   _count?: boolean | Prisma.AccountTypeCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AccountTypeIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -746,6 +853,7 @@ export type $AccountTypePayload<ExtArgs extends runtime.Types.Extensions.Interna
   objects: {
     category: Prisma.$InventoryCategoryPayload<ExtArgs>
     accounts: Prisma.$InventoryAccountPayload<ExtArgs>[]
+    orders: Prisma.$OrderPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1151,6 +1259,7 @@ export interface Prisma__AccountTypeClient<T, Null = never, ExtArgs extends runt
   readonly [Symbol.toStringTag]: "PrismaPromise"
   category<T extends Prisma.InventoryCategoryDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.InventoryCategoryDefaultArgs<ExtArgs>>): Prisma.Prisma__InventoryCategoryClient<runtime.Types.Result.GetResult<Prisma.$InventoryCategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   accounts<T extends Prisma.AccountType$accountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountType$accountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InventoryAccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  orders<T extends Prisma.AccountType$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountType$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1609,6 +1718,30 @@ export type AccountType$accountsArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.InventoryAccountScalarFieldEnum | Prisma.InventoryAccountScalarFieldEnum[]
+}
+
+/**
+ * AccountType.orders
+ */
+export type AccountType$ordersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Order
+   */
+  select?: Prisma.OrderSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Order
+   */
+  omit?: Prisma.OrderOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OrderInclude<ExtArgs> | null
+  where?: Prisma.OrderWhereInput
+  orderBy?: Prisma.OrderOrderByWithRelationInput | Prisma.OrderOrderByWithRelationInput[]
+  cursor?: Prisma.OrderWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OrderScalarFieldEnum | Prisma.OrderScalarFieldEnum[]
 }
 
 /**

@@ -56,6 +56,7 @@ export const ModelName = {
   InventoryCategory: 'InventoryCategory',
   Admin: 'Admin',
   AdminAuditLog: 'AdminAuditLog',
+  Order: 'Order',
   Transaction: 'Transaction',
   User: 'User',
   Wallet: 'Wallet'
@@ -102,6 +103,7 @@ export const InventoryAccountScalarFieldEnum = {
   followers: 'followers',
   notes: 'notes',
   loginInstructions: 'loginInstructions',
+  orderId: 'orderId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -164,6 +166,22 @@ export const AdminAuditLogScalarFieldEnum = {
 } as const
 
 export type AdminAuditLogScalarFieldEnum = (typeof AdminAuditLogScalarFieldEnum)[keyof typeof AdminAuditLogScalarFieldEnum]
+
+
+export const OrderScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountTypeId: 'accountTypeId',
+  quantity: 'quantity',
+  unitPrice: 'unitPrice',
+  totalAmount: 'totalAmount',
+  status: 'status',
+  transactionId: 'transactionId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
 
 
 export const TransactionScalarFieldEnum = {

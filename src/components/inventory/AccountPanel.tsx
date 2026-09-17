@@ -229,22 +229,22 @@ function AccountFormModal({
 function statusBadgeClass(status: InventoryAccountStatus): string {
   switch (status) {
     case "AVAILABLE":
-      return "bg-green-50 text-green-700";
+      return "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20";
 
     case "SOLD":
-      return "bg-slate-100 text-slate-500";
+      return "bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400 border border-slate-200/60 dark:border-white/10";
 
     case "ASSIGNED":
-      return "bg-blue-50 text-blue-700";
+      return "bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 border border-sky-200/60 dark:border-sky-500/20";
 
     case "SUSPENDED":
-      return "bg-orange-50 text-orange-700";
+      return "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/20";
 
     case "DISABLED":
-      return "bg-red-50 text-red-700";
+      return "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200/60 dark:border-rose-500/20";
 
     default:
-      return "bg-slate-100 text-slate-500";
+      return "bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400 border border-slate-200/60 dark:border-white/10";
   }
 }
 
@@ -319,7 +319,7 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
   }
 
   return (
-    <div className="bg-white border border-slate-100 rounded-2xl p-4">
+    <div className="bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-xs">
       <PanelHeader
         title="Accounts"
         count={accountTypeId ? accounts.length : undefined}
@@ -336,7 +336,7 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
         />
       ) : loading ? (
         <div className="py-8 flex justify-center">
-          <Loader2 size={18} className="animate-spin text-sky-600" />
+          <Loader2 size={20} className="animate-spin text-sky-600 dark:text-sky-400" />
         </div>
       ) : accounts.length === 0 ? (
         <EmptyState icon={UserSquare2} text="No accounts in this type yet" />
@@ -344,25 +344,25 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
-                <th className="py-2 pr-3 font-medium">Account / Username</th>
-                <th className="py-2 pr-3 font-medium">Email</th>
-                <th className="py-2 pr-3 font-medium">Country</th>
-                <th className="py-2 pr-3 font-medium">Followers</th>
-                <th className="py-2 pr-3 font-medium">Instructions</th>
-                <th className="py-2 pr-3 font-medium">Status</th>
-                <th className="py-2 pr-3 font-medium text-right">Actions</th>
+              <tr className="text-left text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/10 font-semibold">
+                <th className="py-3 pr-3">Account / Username</th>
+                <th className="py-3 pr-3">Email</th>
+                <th className="py-3 pr-3">Country</th>
+                <th className="py-3 pr-3">Followers</th>
+                <th className="py-3 pr-3">Instructions</th>
+                <th className="py-3 pr-3">Status</th>
+                <th className="py-3 pr-3 text-right">Actions</th>
               </tr>
             </thead>
 
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
               {accounts.map((account) => (
                 <tr
                   key={account.id}
-                  className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50"
+                  className="hover:bg-slate-50/60 dark:hover:bg-white/[0.03] transition-colors"
                 >
-                  <td className="py-2.5 pr-3">
-                    <p className="font-medium text-slate-800">
+                  <td className="py-3 pr-3">
+                    <p className="font-semibold text-slate-900 dark:text-white">
                       {account.username || account.name || account.id.slice(0, 8)}
                     </p>
                     {account.url && (
@@ -370,33 +370,33 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
                         href={account.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-sky-600 hover:underline truncate max-w-[150px] block"
+                        className="text-xs text-sky-600 dark:text-sky-400 hover:underline truncate max-w-[150px] block mt-0.5"
                       >
                         {account.url}
                       </a>
                     )}
                   </td>
 
-                  <td className="py-2.5 pr-3 text-slate-500">
+                  <td className="py-3 pr-3 text-slate-600 dark:text-slate-300 font-mono text-xs">
                     {account.email || "—"}
                   </td>
 
-                  <td className="py-2.5 pr-3 text-slate-500">
+                  <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">
                     {account.country || "—"}
                   </td>
 
-                  <td className="py-2.5 pr-3 text-slate-500">
+                  <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">
                     {account.followers !== null && account.followers !== undefined
                       ? Number(account.followers).toLocaleString()
                       : "—"}
                   </td>
 
-                  <td className="py-2.5 pr-3 text-slate-500">
+                  <td className="py-3 pr-3">
                     <div className="flex items-center gap-1.5 text-xs">
                       {account.notes && (
                         <span
                           title={`Pre-buy note: ${account.notes}`}
-                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[11px] font-medium"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/20 text-[11px] font-semibold"
                         >
                           <FileText size={11} /> Note
                         </span>
@@ -404,20 +404,20 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
                       {account.loginInstructions && (
                         <span
                           title={`Login instruction: ${account.loginInstructions}`}
-                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 text-[11px] font-medium"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-200/60 dark:border-sky-500/20 text-[11px] font-semibold"
                         >
                           <KeyRound size={11} /> Login Info
                         </span>
                       )}
                       {!account.notes && !account.loginInstructions && (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-slate-400 dark:text-slate-500">—</span>
                       )}
                     </div>
                   </td>
 
-                  <td className="py-2.5 pr-3">
+                  <td className="py-3 pr-3">
                     <span
-                      className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadgeClass(
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusBadgeClass(
                         account.status,
                       )}`}
                     >
@@ -425,24 +425,26 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
                     </span>
                   </td>
 
-                  <td className="py-2.5 pr-1 text-right">
-                    <button
-                      type="button"
-                      onClick={() => setFormTarget(account)}
-                      className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded cursor-pointer"
-                      aria-label="Edit account"
-                    >
-                      <Pencil size={14} />
-                    </button>
+                  <td className="py-3 pr-1 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setFormTarget(account)}
+                        className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10 rounded-lg transition-colors cursor-pointer"
+                        aria-label="Edit account"
+                      >
+                        <Pencil size={14} />
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setDeleteTarget(account)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
-                      aria-label="Delete account"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(account)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                        aria-label="Delete account"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

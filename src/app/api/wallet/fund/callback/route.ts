@@ -56,11 +56,14 @@ export async function GET(request: NextRequest) {
 
     if (remoteStatus) {
       const statusRaw =
-        remoteStatus.status ||
-        remoteStatus.data?.status ||
-        remoteStatus.payment_status ||
+        remoteStatus?.data?.status ||
+        remoteStatus?.data?.payment_status ||
+        remoteStatus?.payment_status ||
+        (typeof remoteStatus?.status === "string" && remoteStatus?.status !== "success"
+          ? remoteStatus?.status
+          : "") ||
         "";
-      const status = String(statusRaw).toUpperCase();
+      const status = String(statusRaw).toUpperCase().trim();
 
       if (status === "SUCCESS" || status === "PAID") {
         const settledAmount = remoteStatus.amount || remoteStatus.data?.amount

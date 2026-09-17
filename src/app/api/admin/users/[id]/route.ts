@@ -52,13 +52,26 @@ export async function GET(
       );
     }
 
-    let transactions: any[] = [];
-    if (user.wallet?.id) {
-      transactions = await prisma.transaction.findMany({
-        where: { walletId: user.wallet.id },
+    const [transactions, orders] = await Promise.all([
+      user.wallet?.id
+        ? prisma.transaction.findMany({
+            where: { walletId: user.wallet.id },
+            orderBy: { createdAt: "desc" },
+          })
+        : [],
+      prisma.order.findMany({
+        where: { userId: id },
+        include: {
+          accountType: {
+            include: {
+              category: true,
+            },
+          },
+          accounts: true,
+        },
         orderBy: { createdAt: "desc" },
-      });
-    }
+      }),
+    ]);
 
     // Compute stats
     let totalFunded = 0;
@@ -82,6 +95,34 @@ export async function GET(
         failedCount++;
       }
     });
+
+    const formattedOrders = orders.map((o) => ({
+      id: o.id,
+      quantity: o.quantity,
+      unitPrice: Number(o.unitPrice),
+      totalAmount: Number(o.totalAmount),
+      status: o.status,
+      createdAt: o.createdAt,
+      accountType: o.accountType
+        ? {
+            id: o.accountType.id,
+            name: o.accountType.name,
+            category: o.accountType.category?.name,
+          }
+        : null,
+      accounts: o.accounts.map((a) => ({
+        id: a.id,
+        name: a.name,
+        username: a.username,
+        email: a.email,
+        url: a.url,
+        country: a.country,
+        followers: a.followers,
+        status: a.status,
+        notes: a.notes,
+        loginInstructions: a.loginInstructions,
+      })),
+    }));
 
     return NextResponse.json({
       success: true,
@@ -111,8 +152,10 @@ export async function GET(
             }
           : null,
         transactions,
+        orders: formattedOrders,
         stats: {
           totalTransactions: transactions.length,
+          totalOrders: orders.length,
           totalFunded,
           totalSpent,
           successCount,

@@ -64,11 +64,14 @@ export async function POST(
     // Query Paymonetra
     const remoteResponse = await getPayment(referenceToQuery);
 
-    // Paymonetra status normalization
+    // Paymonetra status normalization (prioritizing transaction data object over API wrapper)
     const remoteStatusRaw =
-      remoteResponse.status ||
-      remoteResponse.data?.status ||
-      remoteResponse.payment_status ||
+      remoteResponse?.data?.status ||
+      remoteResponse?.data?.payment_status ||
+      remoteResponse?.payment_status ||
+      (typeof remoteResponse?.status === "string" && remoteResponse?.status !== "success"
+        ? remoteResponse?.status
+        : "") ||
       "";
     const status = String(remoteStatusRaw).toUpperCase().trim();
 
@@ -92,12 +95,12 @@ export async function POST(
       isSuccess
         ? "SUCCESS"
         : isExpired
-        ? "EXPIRED"
-        : isUnderpaid
-        ? "UNDERPAID"
-        : isOverpaid
-        ? "OVERPAID"
-        : "FAILED";
+          ? "EXPIRED"
+          : isUnderpaid
+            ? "UNDERPAID"
+            : isOverpaid
+              ? "OVERPAID"
+              : "FAILED";
 
     const settledAmount = remoteResponse.amount || remoteResponse.data?.amount
       ? new Prisma.Decimal(remoteResponse.amount || remoteResponse.data?.amount)

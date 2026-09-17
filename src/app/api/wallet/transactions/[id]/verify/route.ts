@@ -72,9 +72,12 @@ export async function POST(
     }
 
     const rawStatus =
-      remoteStatus?.status ||
       remoteStatus?.data?.status ||
+      remoteStatus?.data?.payment_status ||
       remoteStatus?.payment_status ||
+      (typeof remoteStatus?.status === "string" && remoteStatus?.status !== "success"
+        ? remoteStatus?.status
+        : "") ||
       "";
     const status = String(rawStatus).toUpperCase().trim();
 

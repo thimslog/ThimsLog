@@ -1,0 +1,25 @@
+model Order {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  accountTypeId String?
+  accountType   AccountType? @relation(fields: [accountTypeId], references: [id], onDelete: SetNull)
+
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(14, 2)
+  totalAmount Decimal @db.Decimal(14, 2)
+
+  status String @default("COMPLETED")
+
+  accounts InventoryAccount[]
+
+  transactionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([accountTypeId])
+}

@@ -11,6 +11,7 @@ model User {
     password    String
 
     wallet      Wallet?
+    orders      Order[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

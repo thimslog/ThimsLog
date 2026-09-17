@@ -3,16 +3,31 @@ import { DashboardStat } from "@/lib/types";
 
 export function StatCard({ stat }: { stat: DashboardStat }) {
   const trendColor =
-    stat.trend === "up" ? "text-good" : stat.trend === "down" ? "text-bad" : "text-ink-faint";
-  const TrendIcon = stat.trend === "up" ? ArrowUpRight : stat.trend === "down" ? ArrowDownRight : Minus;
+    stat.trend === "up"
+      ? "text-emerald-600 dark:text-emerald-400"
+      : stat.trend === "down"
+      ? "text-rose-600 dark:text-rose-400"
+      : "text-slate-400 dark:text-slate-500";
+  const TrendIcon =
+    stat.trend === "up"
+      ? ArrowUpRight
+      : stat.trend === "down"
+      ? ArrowDownRight
+      : Minus;
 
   return (
-    <div className="rounded-card border border-base-border bg-base-surface p-4">
-      <p className="text-[12.5px] text-ink-faint">{stat.label}</p>
-      <div className="mt-2 flex items-end justify-between">
-        <span className="font-display text-[24px] text-ink leading-none">{stat.value}</span>
-        <span className={`flex items-center gap-0.5 text-[12px] font-mono ${trendColor}`}>
-          <TrendIcon size={13} />
+    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] p-5 shadow-xs">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        {stat.label}
+      </p>
+      <div className="mt-3 flex items-end justify-between">
+        <span className="text-2xl font-bold text-slate-900 dark:text-white leading-none">
+          {stat.value}
+        </span>
+        <span
+          className={`flex items-center gap-0.5 text-xs font-mono font-medium ${trendColor}`}
+        >
+          <TrendIcon size={14} />
           {stat.delta}
         </span>
       </div>

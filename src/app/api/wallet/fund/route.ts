@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
     const payment = await createPayment({
       amount: grossAmount,
       reference: merchantReference,
-      customerReference: wallet.paymonetraCustomer || `wallet_${userId}`,
       customerName,
       description: `Wallet top-up (₦${netDepositAmount.toLocaleString()})`,
     });

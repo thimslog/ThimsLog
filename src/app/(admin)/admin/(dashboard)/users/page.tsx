@@ -127,54 +127,40 @@ export default function UsersPage() {
 
   return (
     <>
-      {/* <Topbar
-        title="Users"
-        subtitle={
-          pagination
-            ? `${pagination.total} registered customers`
-            : "Registered customers"
-        }
-      /> */}
-
       <main className="space-y-4 p-6">
         {error && (
-          <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">
+          <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-500/10 dark:border-rose-500/20 px-4 py-3 text-[13px] text-rose-600 dark:text-rose-400">
             <span>{error}</span>
 
             <button
               onClick={() => fetchUsers(page)}
-              className="font-medium underline"
+              className="font-medium underline cursor-pointer hover:opacity-80"
             >
               Retry
             </button>
           </div>
         )}
 
-        <section className="overflow-hidden rounded-card">
-          <div className="overflow-x-auto rounded-lg border border-[#e5e7eb] bg-white">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] shadow-xs">
+          <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="border-b border-[#e5e7eb] bg-[#f9fafb]">
-                <tr className="text-[11.5px] uppercase tracking-wider text-ink-faint">
-                  <th className="px-5 py-3 font-medium">Name</th>
-
-                  <th className="px-5 py-3 font-medium">Email</th>
-
-                  <th className="px-5 py-3 font-medium">Status</th>
-
-                  <th className="px-5 py-3 font-medium">Joined</th>
-
-                  <th className="px-5 py-3 font-medium">Last active</th>
-
-                  <th className="px-5 py-3 font-medium" />
+              <thead className="border-b border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.02]">
+                <tr className="text-[11.5px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="px-5 py-3.5 font-semibold">Name</th>
+                  <th className="px-5 py-3.5 font-semibold">Email</th>
+                  <th className="px-5 py-3.5 font-semibold">Username</th>
+                  <th className="px-5 py-3.5 font-semibold">Joined</th>
+                  <th className="px-5 py-3.5 font-semibold">Last active</th>
+                  <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
 
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                 {loading ? (
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-5 py-10 text-center text-[13px] text-sky-900"
+                      className="px-5 py-12 text-center text-[13px] text-sky-700 dark:text-sky-400"
                     >
                       Loading users...
                     </td>
@@ -183,7 +169,7 @@ export default function UsersPage() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-5 py-10 text-center text-[13px] text-ink-muted"
+                      className="px-5 py-12 text-center text-[13px] text-slate-400 dark:text-slate-500"
                     >
                       No users found.
                     </td>
@@ -192,37 +178,37 @@ export default function UsersPage() {
                   users.map((user) => (
                     <tr
                       key={user.id}
-                      className="border-b border-[#e5e7eb] last:border-b-0 hover:bg-slate-50/70 transition-colors"
+                      className="hover:bg-slate-50/60 dark:hover:bg-white/[0.03] transition-colors"
                     >
-                      <td className="px-5 py-3 text-[13.5px] font-semibold text-slate-900">
+                      <td className="px-5 py-3.5 text-[13.5px] font-semibold text-slate-900 dark:text-white">
                         <Link
                           href={`/admin/users/${user.id}`}
-                          className="hover:text-sky-600 transition-colors"
+                          className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
                         >
                           {user.name}
                         </Link>
                       </td>
 
-                      <td className="px-5 py-3 font-mono text-[13px] text-slate-600">
+                      <td className="px-5 py-3.5 font-mono text-[13px] text-slate-600 dark:text-slate-300">
                         {user.email}
                       </td>
 
-                      <td className="px-5 py-3 font-mono text-[13px] text-sky-700">
+                      <td className="px-5 py-3.5 font-mono text-[13px] text-sky-700 dark:text-sky-400">
                         @{user.username}
                       </td>
 
-                      <td className="px-5 py-3 text-[13px] text-slate-500">
+                      <td className="px-5 py-3.5 text-[13px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {new Date(user.joinedAt).toLocaleDateString()}
                       </td>
 
-                      <td className="px-5 py-3 text-[13px] text-slate-500">
+                      <td className="px-5 py-3.5 text-[13px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {new Date(user.lastActive).toLocaleDateString()}
                       </td>
 
-                      <td className="px-5 py-3 text-right">
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
                         <Link
                           href={`/admin/users/${user.id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-500/20 text-xs font-semibold transition-colors"
                         >
                           <span>View Details</span>
                         </Link>
@@ -236,9 +222,9 @@ export default function UsersPage() {
         </section>
 
         {!loading && pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <p className="text-[12.5px] text-ink-muted">
-              Page {pagination.page} of {pagination.totalPages}
+          <div className="flex items-center justify-between px-2 py-1">
+            <p className="text-[12.5px] text-slate-500 dark:text-slate-400">
+              Page {pagination.page} of {pagination.totalPages} ({pagination.total} users)
             </p>
 
             <div className="flex items-center gap-2">
@@ -246,7 +232,7 @@ export default function UsersPage() {
                 type="button"
                 disabled={!pagination.hasPreviousPage}
                 onClick={() => fetchUsers(page - 1)}
-                className="rounded-md border border-base-border px-3 py-1.5 text-[12.5px] text-ink-muted transition-colors hover:bg-base-elevated disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Previous
               </button>
@@ -255,7 +241,7 @@ export default function UsersPage() {
                 type="button"
                 disabled={!pagination.hasNextPage}
                 onClick={() => fetchUsers(page + 1)}
-                className="rounded-md border border-base-border px-3 py-1.5 text-[12.5px] text-ink-muted transition-colors hover:bg-base-elevated disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Next
               </button>

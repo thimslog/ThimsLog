@@ -55,36 +55,46 @@ export async function GET(request: NextRequest) {
     }
 
 
-    const [transactions, total, stats] = await Promise.all([
-      prisma.transaction.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-        include: {
-          wallet: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  email: true,
-                  phoneNumber: true,
-                  userName: true,
-                },
+    const transactions = await prisma.transaction.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        wallet: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phoneNumber: true,
+                userName: true,
               },
             },
           },
         },
-      }),
-      prisma.transaction.count({ where }),
-      prisma.transaction.groupBy({
+      },
+    });
+
+    const total = await prisma.transaction.count({ where });
+
+    let stats: Array<{
+      status: string;
+      _count: { _all: number };
+      _sum: { amount: any; amountRequested: any };
+    }> = [];
+
+    try {
+      stats = (await prisma.transaction.groupBy({
         by: ["status"],
         _count: { _all: true },
         _sum: { amount: true, amountRequested: true },
-      }),
-    ]);
+      })) as any;
+    } catch (aggErr) {
+      console.warn("Could not aggregate metrics summary:", aggErr);
+    }
 
     // Aggregate summary statistics
     let successCount = 0;
@@ -93,8 +103,8 @@ export async function GET(request: NextRequest) {
     let totalSuccessVolume = 0;
 
     stats.forEach((item) => {
-      const count = item._count._all;
-      const sum = Number(item._sum.amount || item._sum.amountRequested || 0);
+      const count = item._count?._all || 0;
+      const sum = Number(item._sum?.amount || item._sum?.amountRequested || 0);
 
       if (item.status === "SUCCESS") {
         successCount += count;
@@ -106,7 +116,10 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const totalCountAll = stats.reduce((acc, curr) => acc + curr._count._all, 0);
+    const totalCountAll = stats.reduce(
+      (acc, curr) => acc + (curr._count?._all || 0),
+      0
+    );
     const totalPages = Math.ceil(total / limit);
 
     return NextResponse.json({

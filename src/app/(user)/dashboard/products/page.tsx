@@ -137,7 +137,7 @@ export default function ProductCatalog() {
               <AccountTypeCard
                 key={t.id}
                 accountType={t}
-                onBuy={(id) => router.push(`/catalog/${id}`)}
+                onBuy={(id) => router.push(`/dashboard/products/${id}`)}
               />
             ))}
           </div>

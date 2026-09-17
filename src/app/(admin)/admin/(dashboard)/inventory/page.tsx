@@ -14,11 +14,15 @@ const Inventory = () => {
   >(null);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <h1 className="text-xl font-bold text-slate-900 mb-1">Inventory</h1>
-      <p className="text-sm text-slate-500 mb-6">
-        Categories, account types, and accounts — manage the full chain.
-      </p>
+    <div className="space-y-6 p-6">
+      <div>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+          Inventory
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Categories, account types, and individual accounts — manage the full chain.
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 gap-5 items-start">
         <CategoryPanel
@@ -37,3 +41,4 @@ const Inventory = () => {
 };
 
 export default Inventory;
+

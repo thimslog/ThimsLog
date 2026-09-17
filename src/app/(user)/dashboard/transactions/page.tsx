@@ -208,8 +208,17 @@ export default function TransactionHistoryPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">
-                      {formatMoney(tx.amount)}
+                    <td className="px-6 py-4 font-semibold">
+                      <span
+                        className={
+                          tx.type === "PAYMENT"
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-emerald-600 dark:text-emerald-400"
+                        }
+                      >
+                        {tx.type === "PAYMENT" ? "-" : "+"}
+                        {formatMoney(tx.amount)}
+                      </span>
                     </td>
                     <td
                       className={`px-6 py-4 font-semibold ${statusStyles[tx.status] ?? "text-slate-500 dark:text-slate-400"}`}
@@ -221,7 +230,13 @@ export default function TransactionHistoryPage() {
                         {formatMoney(tx.balanceBefore)}
                       </span>
                       <span className="mx-1">→</span>
-                      <span className="text-sky-600 dark:text-sky-400 font-semibold">
+                      <span
+                        className={
+                          tx.type === "PAYMENT"
+                            ? "text-slate-900 dark:text-white font-semibold"
+                            : "text-sky-600 dark:text-sky-400 font-semibold"
+                        }
+                      >
                         {formatMoney(tx.balanceAfter)}
                       </span>
                     </td>

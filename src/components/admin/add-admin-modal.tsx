@@ -86,112 +86,120 @@ export function AddAdminModal({ open, onClose, onCreate }: AddAdminModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
       <div
-        className="absolute inset-0 bg-white/60 backdrop-blur-sm"
+        className="absolute inset-0"
         onClick={handleClose}
         aria-hidden="true"
       />
-      <div className="relative w-full max-w-md rounded-lg shadow-sm bg-white p-5 mx-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-medium text-[16px] text-sky-900">Add admin</h2>
+      <div className="relative w-full max-w-md rounded-2xl shadow-2xl bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 p-6 z-10 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-white/5">
+          <h2 className="font-bold text-base text-slate-900 dark:text-white">
+            Add Administrator
+          </h2>
           <button
             onClick={handleClose}
-            className="text-ink-faint hover:text-ink transition-colors"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
             aria-label="Close"
           >
             <X size={18} />
           </button>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 font-medium">
+            {error}
+          </div>
+        )}
+
         <form className="space-y-4">
-          <div>
-            <label className="block text-[12.5px] text-ink-muted mb-1.5">
-              First name
-            </label>
-            <input
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="e.g. Chinedu"
-              className="w-full rounded-card border border-base-border bg-base-elevated px-3 py-2 text-[13.5px] text-ink placeholder:text-ink-faint outline-none focus:border-brand"
-              required
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                First name
+              </label>
+              <input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="e.g. Chinedu"
+                className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600 transition-colors"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                Last name
+              </label>
+              <input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="e.g. Okafor"
+                className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600 transition-colors"
+                required
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-[12.5px] text-ink-muted mb-1.5">
-              Last name
-            </label>
-            <input
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="e.g. Okafor"
-              className="w-full rounded-card border border-base-border bg-base-elevated px-3 py-2 text-[13.5px] text-ink placeholder:text-ink-faint outline-none focus:border-brand"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-[12.5px] text-ink-muted mb-1.5">
-              Email
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+              Email Address
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@platform.com"
-              className="w-full rounded-card border border-base-border bg-base-elevated px-3 py-2 text-[13.5px] text-ink placeholder:text-ink-faint outline-none focus:border-brand"
+              className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600 transition-colors"
               required
             />
           </div>
 
-          {/* Phone Number */}
           <div>
-            <label className="mb-1.5 block text-[12.5px] text-ink-muted">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
               Phone number
             </label>
-
             <input
               type="tel"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               placeholder="e.g. 08012345678"
               disabled={loading}
-              className="w-full rounded-card border border-base-border bg-base-elevated px-3 py-2 text-[13.5px] text-ink outline-none placeholder:text-ink-faint focus:border-brand disabled:opacity-60"
+              className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3.5 py-2 text-sm text-slate-900 dark:text-white outline-none placeholder:text-slate-400 focus:border-sky-600 focus:ring-1 focus:ring-sky-600 disabled:opacity-60 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-[12.5px] text-ink-muted mb-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
               Role
             </label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full rounded-card border border-base-border bg-base-elevated px-3 py-2 text-[13.5px] text-ink outline-none focus:border-brand"
+              className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0b101b] px-3.5 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600 transition-colors cursor-pointer"
             >
-              <option value="super_admin">Super admin</option>
-              <option value="admin">Admin</option>
-              <option value="support">Support</option>
+              <option value="SUPER_ADMIN">Super admin</option>
+              <option value="ADMIN">Admin</option>
+              <option value="SUPPORT">Support</option>
             </select>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-white/5">
             <button
               type="button"
               onClick={handleClose}
               disabled={loading}
-              className="px-5 py-2 text-[13px] text-sky-900 border border-sky-900 rounded-md transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              onClick={(e)=>handleSubmit(e)}
-              className="rounded-md bg-sky-900 px-8 py-2 text-[13px] font-medium text-white hover:bg-brand/90 transition-colors"
+              onClick={(e) => handleSubmit(e)}
+              className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs px-6 py-2 shadow-xs transition-colors cursor-pointer disabled:opacity-60"
             >
-              {loading ? "Adding Admin..." : "Add admin"}
+              {loading ? "Adding..." : "Add Admin"}
             </button>
           </div>
         </form>

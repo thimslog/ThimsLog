@@ -10,20 +10,25 @@ import { AdminPageProvider, useAdminPage } from "@/context/admin-page-context";
 import { Sidebar } from "@/components/admin/sidebar";
 import { Topbar } from "@/components/admin/topbar";
 
+import { AdminThemeProvider, useAdminTheme } from "@/context/admin-theme-context";
+
 export default function AdminShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <AdminPageProvider>
-      <AuthenticatedAdminShell>{children}</AuthenticatedAdminShell>
-    </AdminPageProvider>
+    <AdminThemeProvider>
+      <AdminPageProvider>
+        <AuthenticatedAdminShell>{children}</AuthenticatedAdminShell>
+      </AdminPageProvider>
+    </AdminThemeProvider>
   );
 }
 
 function AuthenticatedAdminShell({ children }: { children: React.ReactNode }) {
   const { admin, loading } = useAuth();
+  const { theme } = useAdminTheme();
   const router = useRouter();
 
   const { pageTitle } = useAdminPage();
@@ -38,28 +43,34 @@ function AuthenticatedAdminShell({ children }: { children: React.ReactNode }) {
 
   if (loading || !admin) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-sky-900 animate-spin" />
+      <div className="min-h-screen bg-slate-50 dark:bg-[#060a14] flex items-center justify-center transition-colors">
+        <Loader2 className="w-6 h-6 text-sky-600 dark:text-sky-400 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white text-sky-900">
+    <div
+      className={`min-h-screen ${
+        theme === "dark"
+          ? "dark bg-[#060a14] text-slate-200"
+          : "bg-slate-50 text-slate-900"
+      } font-sans transition-colors duration-200`}
+    >
       <Sidebar
         admin={admin}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="min-h-screen md:pl-64">
+      <div className="min-h-screen md:pl-64 flex flex-col">
         <Topbar
           title={pageTitle.title}
           subtitle={pageTitle.subtitle}
           onMenuClick={() => setSidebarOpen(true)}
         />
 
-        <main className="pt-16">{children}</main>
+        <main className="flex-1 pt-16">{children}</main>
       </div>
     </div>
   );

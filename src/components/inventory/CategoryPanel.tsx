@@ -254,7 +254,7 @@ function CategoryPanel({ selectedId, onSelect }: CategoryPanelProps) {
   ========================= */
 
   return (
-    <div className="bg-white border border-slate-100 rounded-2xl p-4">
+    <div className="bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-xs">
       <PanelHeader
         title="Categories"
         count={categories.length}
@@ -265,12 +265,12 @@ function CategoryPanel({ selectedId, onSelect }: CategoryPanelProps) {
 
       {loading ? (
         <div className="py-8 flex justify-center">
-          <Loader2 size={18} className="animate-spin text-purple-500" />
+          <Loader2 size={20} className="animate-spin text-sky-600 dark:text-sky-400" />
         </div>
       ) : categories.length === 0 ? (
         <EmptyState icon={FolderOpen} text="No categories yet" />
       ) : (
-        <div className="space-y-1 overflow-hidden max-h-[calc(60vh-16rem)] overflow-y-auto">
+        <div className="space-y-1 max-h-[calc(60vh-16rem)] overflow-y-auto">
           {categories.map((category) => (
             <ListRow
               key={category.id}

@@ -9,6 +9,7 @@ model AccountType {
   price Decimal @default(0.0) @db.Decimal(10, 2)
 
   accounts InventoryAccount[]
+  orders   Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -18,10 +18,14 @@ model InventoryAccount {
   notes String?
   loginInstructions String?
 
+  orderId String?
+  order   Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([accountTypeId])
   @@index([status])
   @@index([country])
+  @@index([orderId])
 }
