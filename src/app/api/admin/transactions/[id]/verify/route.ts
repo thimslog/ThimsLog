@@ -70,9 +70,15 @@ export async function POST(
       remoteResponse.data?.status ||
       remoteResponse.payment_status ||
       "";
-    const status = String(remoteStatusRaw).toUpperCase();
+    const status = String(remoteStatusRaw).toUpperCase().trim();
 
-    if (status !== "SUCCESS" && status !== "PAID" && status !== "FAILED") {
+    const isSuccess = status === "SUCCESS" || status === "PAID" || status === "COMPLETED";
+    const isExpired = status === "EXPIRED";
+    const isFailed = status === "FAILED" || status === "CANCELLED" || status === "REJECTED";
+    const isUnderpaid = status === "UNDERPAID";
+    const isOverpaid = status === "OVERPAID";
+
+    if (!isSuccess && !isExpired && !isFailed && !isUnderpaid && !isOverpaid) {
       return NextResponse.json({
         success: true,
         updated: false,
@@ -82,12 +88,25 @@ export async function POST(
       });
     }
 
-    const finalStatus =
-      status === "SUCCESS" || status === "PAID" ? "SUCCESS" : "FAILED";
+    const finalStatus: "SUCCESS" | "EXPIRED" | "FAILED" | "UNDERPAID" | "OVERPAID" =
+      isSuccess
+        ? "SUCCESS"
+        : isExpired
+        ? "EXPIRED"
+        : isUnderpaid
+        ? "UNDERPAID"
+        : isOverpaid
+        ? "OVERPAID"
+        : "FAILED";
 
     const settledAmount = remoteResponse.amount || remoteResponse.data?.amount
       ? new Prisma.Decimal(remoteResponse.amount || remoteResponse.data?.amount)
       : transaction.amountRequested;
+
+    const creditAmount =
+      finalStatus === "UNDERPAID"
+        ? settledAmount
+        : transaction.amountRequested || settledAmount;
 
     const updatedTransaction = await prisma.$transaction(async (tx) => {
       const result = await tx.transaction.update({
@@ -106,11 +125,11 @@ export async function POST(
         },
       });
 
-      // If resolved as success and was funding, credit wallet
-      if (finalStatus === "SUCCESS" && transaction.type === "FUNDING") {
+      // If resolved as success/overpaid/underpaid and was funding, credit wallet
+      if ((finalStatus === "SUCCESS" || finalStatus === "OVERPAID" || finalStatus === "UNDERPAID") && transaction.type === "FUNDING") {
         await tx.wallet.update({
           where: { id: transaction.walletId },
-          data: { balance: { increment: settledAmount } },
+          data: { balance: { increment: creditAmount } },
         });
       }
 

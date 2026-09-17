@@ -42,9 +42,12 @@ function formatType(type: string) {
 }
 
 const statusStyles: Record<string, string> = {
-  SUCCESS: "text-emerald-600",
-  FAILED: "text-red-600",
-  PENDING: "text-amber-600",
+  SUCCESS: "text-emerald-600 dark:text-emerald-400",
+  FAILED: "text-red-600 dark:text-red-400",
+  PENDING: "text-amber-600 dark:text-amber-400",
+  EXPIRED: "text-slate-500 dark:text-slate-400",
+  UNDERPAID: "text-orange-600 dark:text-orange-400",
+  OVERPAID: "text-blue-600 dark:text-blue-400",
 };
 
 export default function TransactionHistoryPage() {

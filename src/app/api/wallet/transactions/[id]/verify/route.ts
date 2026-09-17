@@ -76,9 +76,15 @@ export async function POST(
       remoteStatus?.data?.status ||
       remoteStatus?.payment_status ||
       "";
-    const status = String(rawStatus).toUpperCase();
+    const status = String(rawStatus).toUpperCase().trim();
 
-    if (status !== "SUCCESS" && status !== "PAID" && status !== "FAILED") {
+    const isSuccess = status === "SUCCESS" || status === "PAID" || status === "COMPLETED";
+    const isExpired = status === "EXPIRED";
+    const isFailed = status === "FAILED" || status === "CANCELLED" || status === "REJECTED";
+    const isUnderpaid = status === "UNDERPAID";
+    const isOverpaid = status === "OVERPAID";
+
+    if (!isSuccess && !isExpired && !isFailed && !isUnderpaid && !isOverpaid) {
       // Still pending on Paymonetra's side — nothing to update yet.
       return NextResponse.json({
         success: true,
@@ -88,15 +94,26 @@ export async function POST(
       });
     }
 
-    const finalStatus =
-      status === "SUCCESS" || status === "PAID" ? "SUCCESS" : "FAILED";
+    const finalStatus: "SUCCESS" | "EXPIRED" | "FAILED" | "UNDERPAID" | "OVERPAID" =
+      isSuccess
+        ? "SUCCESS"
+        : isExpired
+        ? "EXPIRED"
+        : isUnderpaid
+        ? "UNDERPAID"
+        : isOverpaid
+        ? "OVERPAID"
+        : "FAILED";
 
     const settledAmount =
       remoteStatus.amount || remoteStatus.data?.amount
         ? new Prisma.Decimal(remoteStatus.amount || remoteStatus.data?.amount)
         : transaction.amountRequested;
 
-    const creditAmount = transaction.amountRequested || settledAmount;
+    const creditAmount =
+      finalStatus === "UNDERPAID"
+        ? settledAmount
+        : transaction.amountRequested || settledAmount;
 
     const updatedTransaction = await prisma.$transaction(async (tx) => {
       const result = await tx.transaction.update({
@@ -108,8 +125,11 @@ export async function POST(
         },
       });
 
-      // Only a confirmed success actually moves money.
-      if (finalStatus === "SUCCESS" && transaction.type === "FUNDING") {
+      // Only confirmed payments move money
+      if (
+        (finalStatus === "SUCCESS" || finalStatus === "OVERPAID" || finalStatus === "UNDERPAID") &&
+        transaction.type === "FUNDING"
+      ) {
         await tx.wallet.update({
           where: { id: wallet.id },
           data: { balance: { increment: creditAmount } },
@@ -119,13 +139,21 @@ export async function POST(
       return result;
     });
 
+    let returnMessage = "Payment status updated.";
+    if (finalStatus === "SUCCESS" || finalStatus === "OVERPAID") {
+      returnMessage = "Payment verified successfully! Your wallet has been credited.";
+    } else if (finalStatus === "UNDERPAID") {
+      returnMessage = `Partial payment received (${settledAmount}). Your wallet has been credited.`;
+    } else if (finalStatus === "EXPIRED") {
+      returnMessage = "Payment session expired on gateway.";
+    } else {
+      returnMessage = "Payment was marked as failed by gateway.";
+    }
+
     return NextResponse.json({
       success: true,
       updated: true,
-      message:
-        finalStatus === "SUCCESS"
-          ? "Payment verified successfully! Your wallet has been credited."
-          : "Payment was marked as failed by gateway.",
+      message: returnMessage,
       transaction: updatedTransaction,
     });
   } catch (error: any) {

@@ -5,207 +5,207 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 
 function getWebhookSecret(): string {
-  if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development") {
+        return (
+            process.env.PAYMONETRA_WEBHOOK_TEST_KEY ||
+            process.env.PAYMONETRA_WEBHOOK_SECRET ||
+            process.env.PAYMONETRA_WEBHOOK_LIVE_KEY ||
+            ""
+        );
+    }
     return (
-      process.env.PAYMONETRA_WEBHOOK_TEST_KEY ||
-      process.env.PAYMONETRA_WEBHOOK_SECRET ||
-      process.env.PAYMONETRA_WEBHOOK_LIVE_KEY ||
-      ""
+        process.env.PAYMONETRA_WEBHOOK_LIVE_KEY ||
+        process.env.PAYMONETRA_WEBHOOK_SECRET ||
+        process.env.PAYMONETRA_WEBHOOK_TEST_KEY ||
+        ""
     );
-  }
-  return (
-    process.env.PAYMONETRA_WEBHOOK_LIVE_KEY ||
-    process.env.PAYMONETRA_WEBHOOK_SECRET ||
-    process.env.PAYMONETRA_WEBHOOK_TEST_KEY ||
-    ""
-  );
 }
 
 export async function POST(request: NextRequest) {
-  const rawBody = await request.text(); // exact bytes, before any JSON parsing
-  const signature =
-    request.headers.get("x-paymonetra-signature") ||
-    request.headers.get("X-Paymonetra-Signature");
+    const rawBody = await request.text(); // exact bytes, before any JSON parsing
+    const signature =
+        request.headers.get("x-paymonetra-signature") ||
+        request.headers.get("X-Paymonetra-Signature");
 
-  const secret = getWebhookSecret();
-  if (!secret) {
-    console.error("Paymonetra webhook secret is not configured.");
-    return new NextResponse("Webhook secret missing", { status: 500 });
-  }
+    const secret = getWebhookSecret();
+    if (!secret) {
+        console.error("Paymonetra webhook secret is not configured.");
+        return new NextResponse("Webhook secret missing", { status: 500 });
+    }
 
-  const expected = crypto
-    .createHmac("sha512", secret)
-    .update(rawBody)
-    .digest("hex");
+    const expected = crypto
+        .createHmac("sha512", secret)
+        .update(rawBody)
+        .digest("hex");
 
-  if (
-    !signature ||
-    expected.length !== signature.length ||
-    !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
-  ) {
-    console.warn("Paymonetra webhook signature mismatch.");
-    return new NextResponse("Invalid signature", { status: 401 });
-  }
+    if (
+        !signature ||
+        expected.length !== signature.length ||
+        !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+    ) {
+        console.warn("Paymonetra webhook signature mismatch.");
+        return new NextResponse("Invalid signature", { status: 401 });
+    }
 
-  let event: any;
-  try {
-    event = JSON.parse(rawBody);
-  } catch (err) {
-    console.error("Failed to parse Paymonetra webhook JSON body:", err);
-    return new NextResponse("Bad JSON", { status: 400 });
-  }
+    let event: any;
+    try {
+        event = JSON.parse(rawBody);
+    } catch (err) {
+        console.error("Failed to parse Paymonetra webhook JSON body:", err);
+        return new NextResponse("Bad JSON", { status: 400 });
+    }
 
-  if (event.event !== "collection.success") {
-    // Acknowledge other event types with 200
-    return new NextResponse(null, { status: 200 });
-  }
+    if (event.event !== "collection.success") {
+        // Acknowledge other event types with 200
+        return new NextResponse(null, { status: 200 });
+    }
 
-  const {
-    reference: collectionReference,
-    checkout_reference,
-    customer_reference,
-    account_number,
-    amount,
-    fee,
-    net,
-  } = event.data || {};
+    const {
+        reference: collectionReference,
+        checkout_reference,
+        customer_reference,
+        account_number,
+        amount,
+        fee,
+        net,
+    } = event.data || {};
 
-  try {
-    await prisma.$transaction(async (tx) => {
-      // 1. Check if this collection event was already processed (Idempotency)
-      if (collectionReference) {
-        const alreadyDone = await tx.transaction.findFirst({
-          where: {
-            collectionReference,
-            status: "SUCCESS",
-          },
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. Check if this collection event was already processed (Idempotency)
+            if (collectionReference) {
+                const alreadyDone = await tx.transaction.findFirst({
+                    where: {
+                        collectionReference,
+                        status: "SUCCESS",
+                    },
+                });
+                if (alreadyDone) {
+                    console.log(`Webhook already processed for collection ${collectionReference}`);
+                    return;
+                }
+            }
+
+            // 2. Look for an existing transaction (e.g. initiated via Add Funds checkout)
+            const matchConditions: any[] = [];
+            if (checkout_reference) {
+                matchConditions.push(
+                    { paymonetraReference: checkout_reference },
+                    { merchantReference: checkout_reference }
+                );
+            }
+            if (collectionReference) {
+                matchConditions.push(
+                    { collectionReference },
+                    { paymonetraReference: collectionReference },
+                    { merchantReference: collectionReference }
+                );
+            }
+
+            const existingTxn =
+                matchConditions.length > 0
+                    ? await tx.transaction.findFirst({
+                        where: { OR: matchConditions },
+                    })
+                    : null;
+
+            if (existingTxn) {
+                if (existingTxn.status === "SUCCESS") return; // safe no-op
+
+                const creditAmount = existingTxn.amountRequested || amount;
+
+                await tx.transaction.update({
+                    where: { id: existingTxn.id },
+                    data: {
+                        status: "SUCCESS",
+                        amount,
+                        collectionReference: collectionReference || existingTxn.collectionReference,
+                        metadata: event.data,
+                    },
+                });
+
+                await tx.wallet.update({
+                    where: { id: existingTxn.walletId },
+                    data: { balance: { increment: creditAmount } },
+                });
+
+                console.log(
+                    `Credited ₦${creditAmount} to wallet ${existingTxn.walletId} from checkout transaction ${existingTxn.id}`
+                );
+            } else {
+                // 3. Direct bank transfer into Virtual Account (no prior checkout transaction)
+                const walletFilters: any[] = [];
+                if (customer_reference) {
+                    walletFilters.push({ paymonetraCustomer: customer_reference });
+                    walletFilters.push({ virtualAccountReference: customer_reference });
+                    if (customer_reference.startsWith("wallet_")) {
+                        const uid = customer_reference.replace("wallet_", "");
+                        walletFilters.push({ userId: uid });
+                    }
+                }
+                if (account_number) {
+                    walletFilters.push({ accountNumber: String(account_number) });
+                }
+
+                if (walletFilters.length === 0) {
+                    throw new Error("No customer_reference or account_number provided in webhook payload");
+                }
+
+                const wallet = await tx.wallet.findFirst({
+                    where: { OR: walletFilters },
+                });
+
+                if (!wallet) {
+                    throw new Error(
+                        `No wallet found matching customer: ${customer_reference}, account: ${account_number}`
+                    );
+                }
+
+                // Determine net deposit amount to credit user wallet
+                const depositGross = Number(amount) || 0;
+                const depositFee = Number(fee) || 0;
+                const depositNet = net !== undefined && net !== null ? Number(net) : depositGross - depositFee;
+                const finalCredit = depositNet > 0 ? depositNet : depositGross;
+
+                const txnRef = collectionReference || `va_${Date.now()}`;
+
+                // Create transaction record for the virtual account transfer
+                await tx.transaction.create({
+                    data: {
+                        walletId: wallet.id,
+                        type: "FUNDING",
+                        status: "SUCCESS",
+                        amountRequested: finalCredit,
+                        amount: depositGross,
+                        merchantReference: `va_${txnRef}`,
+                        paymonetraReference: txnRef,
+                        collectionReference: collectionReference || txnRef,
+                        provider: "paymontera",
+                        metadata: {
+                            ...event.data,
+                            channel: "virtual_account_transfer",
+                            grossAmount: depositGross,
+                            fee: depositFee,
+                            netAmount: depositNet,
+                        },
+                    },
+                });
+
+                // Increment wallet balance
+                await tx.wallet.update({
+                    where: { id: wallet.id },
+                    data: { balance: { increment: finalCredit } },
+                });
+
+                console.log(
+                    `Credited ₦${finalCredit} to wallet ${wallet.id} from direct virtual account transfer ${txnRef}`
+                );
+            }
         });
-        if (alreadyDone) {
-          console.log(`Webhook already processed for collection ${collectionReference}`);
-          return;
-        }
-      }
 
-      // 2. Look for an existing transaction (e.g. initiated via Add Funds checkout)
-      const matchConditions: any[] = [];
-      if (checkout_reference) {
-        matchConditions.push(
-          { paymonetraReference: checkout_reference },
-          { merchantReference: checkout_reference }
-        );
-      }
-      if (collectionReference) {
-        matchConditions.push(
-          { collectionReference },
-          { paymonetraReference: collectionReference },
-          { merchantReference: collectionReference }
-        );
-      }
-
-      const existingTxn =
-        matchConditions.length > 0
-          ? await tx.transaction.findFirst({
-              where: { OR: matchConditions },
-            })
-          : null;
-
-      if (existingTxn) {
-        if (existingTxn.status === "SUCCESS") return; // safe no-op
-
-        const creditAmount = existingTxn.amountRequested || amount;
-
-        await tx.transaction.update({
-          where: { id: existingTxn.id },
-          data: {
-            status: "SUCCESS",
-            amount,
-            collectionReference: collectionReference || existingTxn.collectionReference,
-            metadata: event.data,
-          },
-        });
-
-        await tx.wallet.update({
-          where: { id: existingTxn.walletId },
-          data: { balance: { increment: creditAmount } },
-        });
-
-        console.log(
-          `Credited ₦${creditAmount} to wallet ${existingTxn.walletId} from checkout transaction ${existingTxn.id}`
-        );
-      } else {
-        // 3. Direct bank transfer into Virtual Account (no prior checkout transaction)
-        const walletFilters: any[] = [];
-        if (customer_reference) {
-          walletFilters.push({ paymonetraCustomer: customer_reference });
-          walletFilters.push({ virtualAccountReference: customer_reference });
-          if (customer_reference.startsWith("wallet_")) {
-            const uid = customer_reference.replace("wallet_", "");
-            walletFilters.push({ userId: uid });
-          }
-        }
-        if (account_number) {
-          walletFilters.push({ accountNumber: String(account_number) });
-        }
-
-        if (walletFilters.length === 0) {
-          throw new Error("No customer_reference or account_number provided in webhook payload");
-        }
-
-        const wallet = await tx.wallet.findFirst({
-          where: { OR: walletFilters },
-        });
-
-        if (!wallet) {
-          throw new Error(
-            `No wallet found matching customer: ${customer_reference}, account: ${account_number}`
-          );
-        }
-
-        // Determine net deposit amount to credit user wallet
-        const depositGross = Number(amount) || 0;
-        const depositFee = Number(fee) || 0;
-        const depositNet = net !== undefined && net !== null ? Number(net) : depositGross - depositFee;
-        const finalCredit = depositNet > 0 ? depositNet : depositGross;
-
-        const txnRef = collectionReference || `va_${Date.now()}`;
-
-        // Create transaction record for the virtual account transfer
-        await tx.transaction.create({
-          data: {
-            walletId: wallet.id,
-            type: "FUNDING",
-            status: "SUCCESS",
-            amountRequested: finalCredit,
-            amount: depositGross,
-            merchantReference: `va_${txnRef}`,
-            paymonetraReference: txnRef,
-            collectionReference: collectionReference || txnRef,
-            provider: "paymontera",
-            metadata: {
-              ...event.data,
-              channel: "virtual_account_transfer",
-              grossAmount: depositGross,
-              fee: depositFee,
-              netAmount: depositNet,
-            },
-          },
-        });
-
-        // Increment wallet balance
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: { increment: finalCredit } },
-        });
-
-        console.log(
-          `Credited ₦${finalCredit} to wallet ${wallet.id} from direct virtual account transfer ${txnRef}`
-        );
-      }
-    });
-
-    return new NextResponse(null, { status: 200 });
-  } catch (err) {
-    console.error("Webhook processing error:", err);
-    return new NextResponse(null, { status: 500 }); // Paymonetra retries on non-2xx
-  }
+        return new NextResponse(null, { status: 200 });
+    } catch (err) {
+        console.error("Webhook processing error:", err);
+        return new NextResponse(null, { status: 500 }); // Paymonetra retries on non-2xx
+    }
 }
