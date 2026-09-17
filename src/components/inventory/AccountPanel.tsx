@@ -318,11 +318,13 @@ function AccountPanel({ accountTypeId }: AccountPanelProps) {
     }
   }
 
+  const availableCount = accounts.filter((a) => a.status === "AVAILABLE").length;
+
   return (
     <div className="bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-xs">
       <PanelHeader
         title="Accounts"
-        count={accountTypeId ? accounts.length : undefined}
+        count={accountTypeId ? `${availableCount} available / ${accounts.length} total` : undefined}
         onAdd={() => setFormTarget(null)}
         addDisabled={!accountTypeId}
       />

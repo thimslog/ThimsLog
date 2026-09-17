@@ -52,6 +52,14 @@ export async function GET() {
       include: {
         accountTypes: {
           include: {
+            accounts: {
+              where: {
+                status: "AVAILABLE",
+              },
+              select: {
+                id: true,
+              },
+            },
             _count: {
               select: {
                 accounts: true,
@@ -65,10 +73,29 @@ export async function GET() {
       },
     });
 
+    const transformedCategories = categories.map((category) => {
+      const accountTypesCount = category.accountTypes?.length ?? 0;
+      const availableAccountsCount = category.accountTypes?.reduce(
+        (acc, type) => acc + (type.accounts?.length ?? 0),
+        0
+      ) ?? 0;
+      const totalAccountsCount = category.accountTypes?.reduce(
+        (acc, type) => acc + (type._count?.accounts ?? 0),
+        0
+      ) ?? 0;
+
+      return {
+        ...category,
+        accountTypesCount,
+        availableAccountsCount,
+        totalAccountsCount,
+      };
+    });
+
     return NextResponse.json(
       {
         success: true,
-        data: categories,
+        data: transformedCategories,
       },
       { status: 200 },
     );

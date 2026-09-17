@@ -85,6 +85,14 @@ export async function GET(req: Request) {
         : undefined,
       include: {
         category: true,
+        accounts: {
+          where: {
+            status: "AVAILABLE",
+          },
+          select: {
+            id: true,
+          },
+        },
         _count: {
           select: {
             accounts: true,
@@ -96,9 +104,20 @@ export async function GET(req: Request) {
       },
     });
 
+    const transformedAccountTypes = accountTypes.map((type) => {
+      const availableAccountsCount = type.accounts?.length ?? 0;
+      const totalAccountsCount = type._count?.accounts ?? 0;
+
+      return {
+        ...type,
+        availableAccountsCount,
+        totalAccountsCount,
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      data: accountTypes,
+      data: transformedAccountTypes,
     });
   } catch (error) {
     console.error("Get account types error:", error);

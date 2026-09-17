@@ -247,6 +247,7 @@ function EmptyState({
 interface ListRowProps {
   title: string;
   subtitle?: string | null;
+  badge?: ReactNode;
   active?: boolean;
   onClick?: () => void;
   onEdit: () => void;
@@ -256,6 +257,7 @@ interface ListRowProps {
 function ListRow({
   title,
   subtitle,
+  badge,
   active = false,
   onClick,
   onEdit,
@@ -273,9 +275,12 @@ function ListRow({
       }`}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold truncate">
-          {title}
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-semibold truncate">
+            {title}
+          </p>
+          {badge}
+        </div>
 
         {subtitle && (
           <p className="text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5">
@@ -326,7 +331,7 @@ function ListRow({
 
 interface PanelHeaderProps {
   title: string;
-  count?: number;
+  count?: number | string;
   onAdd: () => void;
   addDisabled?: boolean;
   addLabel?: string;
@@ -341,11 +346,11 @@ function PanelHeader({
 }: PanelHeaderProps) {
   return (
     <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-white/5">
-      <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-        {title}
+      <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+        <span>{title}</span>
 
-        {typeof count === "number" && (
-          <span className="text-slate-400 dark:text-slate-500 font-normal ml-1.5 text-xs">
+        {count !== undefined && count !== null && (
+          <span className="text-slate-400 dark:text-slate-500 font-normal text-xs">
             ({count})
           </span>
         )}

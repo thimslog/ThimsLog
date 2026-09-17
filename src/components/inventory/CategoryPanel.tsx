@@ -29,6 +29,9 @@ interface Category {
   name: string;
   description: string | null;
   status: CategoryStatus;
+  accountTypesCount?: number;
+  availableAccountsCount?: number;
+  totalAccountsCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -271,17 +274,27 @@ function CategoryPanel({ selectedId, onSelect }: CategoryPanelProps) {
         <EmptyState icon={FolderOpen} text="No categories yet" />
       ) : (
         <div className="space-y-1 max-h-[calc(60vh-16rem)] overflow-y-auto">
-          {categories.map((category) => (
-            <ListRow
-              key={category.id}
-              title={category.name}
-              subtitle={category.status}
-              active={category.id === selectedId}
-              onClick={() => onSelect(category.id)}
-              onEdit={() => setFormTarget(category)}
-              onDelete={() => setDeleteTarget(category)}
-            />
-          ))}
+          {categories.map((category) => {
+            const typesCount = category.accountTypesCount ?? 0;
+            const availCount = category.availableAccountsCount ?? 0;
+
+            return (
+              <ListRow
+                key={category.id}
+                title={category.name}
+                badge={
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-500/20">
+                    {typesCount} {typesCount === 1 ? "type" : "types"}
+                  </span>
+                }
+                subtitle={`${availCount} available account${availCount === 1 ? "" : "s"} • Status: ${category.status}`}
+                active={category.id === selectedId}
+                onClick={() => onSelect(category.id)}
+                onEdit={() => setFormTarget(category)}
+                onDelete={() => setDeleteTarget(category)}
+              />
+            );
+          })}
         </div>
       )}
 

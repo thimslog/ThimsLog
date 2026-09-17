@@ -301,17 +301,33 @@ function AccountTypePanel({
         />
       ) : (
         <div className="space-y-1 max-h-[calc(60vh-16rem)] overflow-y-auto">
-          {types.map((type) => (
-            <ListRow
-              key={type.id}
-              title={type.name}
-              subtitle={`#${Number(type.price).toFixed(2)}`}
-              active={type.id === selectedId}
-              onClick={() => onSelect(type.id)}
-              onEdit={() => setFormTarget(type)}
-              onDelete={() => setDeleteTarget(type)}
-            />
-          ))}
+          {types.map((type) => {
+            const availCount = type.availableAccountsCount ?? 0;
+            const totalCount = type.totalAccountsCount ?? 0;
+
+            return (
+              <ListRow
+                key={type.id}
+                title={type.name}
+                badge={
+                  availCount > 0 ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20">
+                      {availCount} available
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200/60 dark:border-rose-500/20">
+                      0 available
+                    </span>
+                  )
+                }
+                subtitle={`₦${Number(type.price).toLocaleString("en-NG", { minimumFractionDigits: 2 })} • ${totalCount} total account${totalCount === 1 ? "" : "s"}`}
+                active={type.id === selectedId}
+                onClick={() => onSelect(type.id)}
+                onEdit={() => setFormTarget(type)}
+                onDelete={() => setDeleteTarget(type)}
+              />
+            );
+          })}
         </div>
       )}
 

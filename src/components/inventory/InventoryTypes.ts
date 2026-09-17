@@ -43,8 +43,24 @@ export interface AccountType {
   description: string | null;
   price: number;
   categoryId: string;
+  availableAccountsCount?: number;
+  totalAccountsCount?: number;
+  accounts?: any[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description: string | null;
+  status: "ACTIVE" | "INACTIVE";
+  accountTypesCount?: number;
+  availableAccountsCount?: number;
+  totalAccountsCount?: number;
+  accountTypes?: any[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateAccountTypeInput {
