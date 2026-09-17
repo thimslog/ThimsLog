@@ -285,6 +285,19 @@ Customers can send wallet balance to any registered Thimslog customer with zero 
   - Enforces 3-30 character alphanumeric and underscore format (`/^[a-zA-Z0-9_]{3,30}$/`).
   - Strict case-insensitive uniqueness validation on the database level.
 
+### 8.4 Bidirectional Portal Switching (User ↔ Admin)
+- **Automatic Admin Verification**:
+  - When a user logs in, `getCurrentUser()` inspects whether their email matches an active account in the `Admin` table.
+  - If a match is found, the user session is flagged with `isAdmin: true` and their administrative role (`adminRole`).
+- **Customer Portal Switcher (User -> Admin)**:
+  - **TopBar**: Displays a prominent "Admin Panel" button with `ShieldCheck` icon.
+  - **Sidebar**: Displays a "Switch to Admin Panel" action card at the bottom of the sidebar.
+  - Clicking this triggers `POST /api/user/switch-to-admin`, which securely signs an `admin_auth_token` cookie and navigates straight into `/admin/dashboard` without requiring a duplicate login.
+- **Admin Portal Switcher (Admin -> User)**:
+  - **TopBar**: Features a quick "Customer App" button linking to `/dashboard`.
+  - **Sidebar Footer**: Features a "Customer Portal" link with `ArrowLeftRight` icon above the profile & logout card.
+
+
 ---
 
 ## 9. Setup & Deployment Guidelines

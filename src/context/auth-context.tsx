@@ -17,6 +17,12 @@ export type AuthUser = {
   phoneNumber: string;
   userName: string;
   createdAt: Date | string;
+  isAdmin?: boolean;
+  adminRole?: string | null;
+  usernameChangedAt?: Date | string | null;
+  canChangeUsername?: boolean;
+  daysRemaining?: number;
+  nextAllowedDate?: string | null;
   wallet?: {
     id?: string;
     balance: any;

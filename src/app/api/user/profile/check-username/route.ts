@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/get-current-user";
+import { getUsernameCooldownInfo } from "@/lib/username-history-store";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,6 +11,23 @@ export async function GET(request: NextRequest) {
         { available: false, message: "Unauthorized" },
         { status: 401 }
       );
+    }
+
+    // Check 3-month cooldown
+    const cooldown = await getUsernameCooldownInfo(user.id);
+    if (!cooldown.canChangeUsername && cooldown.nextAllowedDate) {
+      const formattedDate = cooldown.nextAllowedDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      return NextResponse.json({
+        available: false,
+        cooldownLocked: true,
+        daysRemaining: cooldown.daysRemaining,
+        nextAllowedDate: cooldown.nextAllowedDate.toISOString(),
+        message: `Username locked: Next change available in ${cooldown.daysRemaining} days (${formattedDate})`,
+      });
     }
 
     const { searchParams } = new URL(request.url);

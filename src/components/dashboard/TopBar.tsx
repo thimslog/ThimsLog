@@ -1,10 +1,12 @@
 "use client";
 
-import { ChevronDown, Sun, Moon, Menu } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, Sun, Moon, Menu, ShieldCheck, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "@/context/theme-context";
 import NotificationBell from "./NotificationBell";
+import { toast } from "@/components/ui/toast";
 
 interface TopBarProps {
   user: {
@@ -14,6 +16,8 @@ interface TopBarProps {
     email: string;
     phoneNumber: string;
     userName: string;
+    isAdmin?: boolean;
+    adminRole?: string | null;
     createdAt: Date | string;
   };
   onOpenSidebar?: () => void;
@@ -21,6 +25,24 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ user, onOpenSidebar }) => {
   const { theme, toggleTheme } = useTheme();
+  const [switching, setSwitching] = useState(false);
+
+  const handleSwitchToAdmin = async () => {
+    setSwitching(true);
+    try {
+      const res = await fetch("/api/user/switch-to-admin", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        window.location.href = data.redirectUrl || "/admin/dashboard";
+      } else {
+        toast.error(data.message || "Failed to switch to admin portal");
+      }
+    } catch {
+      window.location.href = "/admin/dashboard";
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   return (
     <header className="flex items-center justify-between gap-3 px-4 sm:px-8 py-3.5 border-b border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-[#060a14]/70 backdrop-blur-md sticky top-0 z-30 transition-colors">
@@ -37,7 +59,25 @@ const TopBar: React.FC<TopBarProps> = ({ user, onOpenSidebar }) => {
         </button>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Switch to Admin Portal (only if user is also an Admin) */}
+        {user.isAdmin && (
+          <button
+            type="button"
+            onClick={handleSwitchToAdmin}
+            disabled={switching}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-60"
+            title="Switch to Admin Dashboard"
+          >
+            {switching ? (
+              <Loader2 size={13} className="animate-spin text-sky-400 dark:text-sky-600" />
+            ) : (
+              <ShieldCheck size={14} className="text-sky-400 dark:text-sky-600" />
+            )}
+            <span>Admin Panel</span>
+          </button>
+        )}
+
         {/* Theme Toggle */}
         <button
           type="button"
@@ -85,4 +125,3 @@ const TopBar: React.FC<TopBarProps> = ({ user, onOpenSidebar }) => {
 };
 
 export default TopBar;
-

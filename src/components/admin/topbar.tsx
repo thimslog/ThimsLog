@@ -1,6 +1,7 @@
 "use client";
 
-import { Search, Bell, Menu, Sun, Moon } from "lucide-react";
+import Link from "next/link";
+import { Search, Bell, Menu, Sun, Moon, ArrowLeftRight } from "lucide-react";
 import { useAdminTheme } from "@/context/admin-theme-context";
 
 interface TopbarProps {
@@ -40,8 +41,18 @@ export function Topbar({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3 py-1.5 w-64 shadow-2xs">
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Switch to Customer App */}
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs font-bold transition-all shadow-xs cursor-pointer"
+          title="Switch to Customer Dashboard"
+        >
+          <ArrowLeftRight size={13} className="text-sky-400 dark:text-sky-600" />
+          <span>Customer App</span>
+        </Link>
+
+        <div className="hidden sm:flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3 py-1.5 w-52 md:w-64 shadow-2xs">
           <Search size={14} className="text-slate-400" />
 
           <input

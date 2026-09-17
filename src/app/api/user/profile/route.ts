@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/get-current-user";
 import { prisma } from "@/lib/prisma";
 import { generateToken } from "@/lib/auth";
+import {
+  getUsernameCooldownInfo,
+  recordUsernameChange,
+} from "@/lib/username-history-store";
 
 export async function GET() {
   try {
@@ -14,37 +18,18 @@ export async function GET() {
       );
     }
 
-    // Check 3-month (90 days) cooldown
-    const usernameChangedAt = (user as any).usernameChangedAt
-      ? new Date((user as any).usernameChangedAt)
-      : null;
-
-    const threeMonthsMs = 90 * 24 * 60 * 60 * 1000;
-    const now = new Date();
-
-    let canChangeUsername = true;
-    let nextAllowedDate: Date | null = null;
-    let daysRemaining = 0;
-
-    if (usernameChangedAt) {
-      nextAllowedDate = new Date(usernameChangedAt.getTime() + threeMonthsMs);
-      if (now < nextAllowedDate) {
-        canChangeUsername = false;
-        daysRemaining = Math.ceil(
-          (nextAllowedDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-        );
-      }
-    }
+    // Check 3-month (90 days) cooldown via reliable store
+    const cooldown = await getUsernameCooldownInfo(user.id);
 
     return NextResponse.json(
       {
         success: true,
         user: {
           ...user,
-          usernameChangedAt,
-          canChangeUsername,
-          nextAllowedDate: nextAllowedDate?.toISOString() || null,
-          daysRemaining,
+          usernameChangedAt: cooldown.lastChangedAt,
+          canChangeUsername: cooldown.canChangeUsername,
+          nextAllowedDate: cooldown.nextAllowedDate?.toISOString() || null,
+          daysRemaining: cooldown.daysRemaining,
         },
       },
       { status: 200 }
@@ -98,9 +83,13 @@ export async function PUT(request: Request) {
 
     // Check if username is being changed
     let updatedUsername = currentUser.userName;
-    let newUsernameChangedAt: Date | undefined = undefined;
+    let usernameIsChanging = false;
 
-    if (userName && userName.trim() !== currentUser.userName) {
+    if (
+      userName &&
+      userName.trim().toLowerCase().replace(/^@/, "") !==
+        currentUser.userName.toLowerCase()
+    ) {
       const cleanUsername = userName.trim().toLowerCase().replace(/^@/, "");
 
       // Validation rule: 3-30 alphanumeric or underscore
@@ -115,34 +104,28 @@ export async function PUT(request: Request) {
         );
       }
 
-      // Check 3-month (90 days) cooldown
-      const lastChanged = (currentUser as any).usernameChangedAt
-        ? new Date((currentUser as any).usernameChangedAt)
-        : null;
+      // Check 3-month (90 days) cooldown via reliable store
+      const cooldown = await getUsernameCooldownInfo(currentUser.id);
 
-      if (lastChanged) {
-        const threeMonthsMs = 90 * 24 * 60 * 60 * 1000;
-        const nextAllowed = new Date(lastChanged.getTime() + threeMonthsMs);
-        if (new Date() < nextAllowed) {
-          const days = Math.ceil(
-            (nextAllowed.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-          );
-          const formattedDate = nextAllowed.toLocaleDateString("en-US", {
+      if (!cooldown.canChangeUsername && cooldown.nextAllowedDate) {
+        const formattedDate = cooldown.nextAllowedDate.toLocaleDateString(
+          "en-US",
+          {
             month: "short",
             day: "numeric",
             year: "numeric",
-          });
-          return NextResponse.json(
-            {
-              success: false,
-              message: `You can only edit your username once every 3 months. You can change it again in ${days} day(s) on ${formattedDate}.`,
-            },
-            { status: 400 }
-          );
-        }
+          }
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            message: `You can only edit your username once every 3 months. You can change it again in ${cooldown.daysRemaining} day(s) on ${formattedDate}.`,
+          },
+          { status: 400 }
+        );
       }
 
-      // Check uniqueness
+      // Check uniqueness across all users (case-insensitive)
       const existingUsername = await prisma.user.findFirst({
         where: {
           userName: {
@@ -164,25 +147,22 @@ export async function PUT(request: Request) {
       }
 
       updatedUsername = cleanUsername;
-      newUsernameChangedAt = new Date();
+      usernameIsChanging = true;
     }
 
     const updateData: any = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       ...(phoneNumber ? { phoneNumber: phoneNumber.trim() } : {}),
-      ...(updatedUsername !== currentUser.userName ? { userName: updatedUsername } : {}),
+      ...(usernameIsChanging ? { userName: updatedUsername } : {}),
     };
-
-    // Attempt to set usernameChangedAt if field exists
-    if (newUsernameChangedAt) {
-      try {
-        updateData.usernameChangedAt = newUsernameChangedAt;
-      } catch {}
-    }
 
     let updatedUser: any;
     try {
+      if (usernameIsChanging) {
+        updateData.usernameChangedAt = new Date();
+      }
+
       updatedUser = await prisma.user.update({
         where: { id: currentUser.id },
         data: updateData,
@@ -198,7 +178,7 @@ export async function PUT(request: Request) {
         },
       });
     } catch (dbErr: any) {
-      // Fallback if usernameChangedAt column isn't in database yet
+      // Fallback if usernameChangedAt column isn't in database table yet
       if (updateData.usernameChangedAt) {
         delete updateData.usernameChangedAt;
         updatedUser = await prisma.user.update({
@@ -218,6 +198,11 @@ export async function PUT(request: Request) {
       } else {
         throw dbErr;
       }
+    }
+
+    // If username was changed, record in persistent cooldown store
+    if (usernameIsChanging) {
+      await recordUsernameChange(currentUser.id, new Date());
     }
 
     // Refresh token with updated details

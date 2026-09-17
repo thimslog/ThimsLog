@@ -93,6 +93,12 @@ export default function ProfileSettingsPage() {
         email: user.email || "",
         phoneNumber: user.phoneNumber || "",
       });
+
+      if (user.canChangeUsername !== undefined) {
+        setCanChangeUsername(user.canChangeUsername);
+        setDaysRemaining(user.daysRemaining ?? 0);
+        setNextAllowedDate(user.nextAllowedDate || null);
+      }
     }
   }, [user]);
 

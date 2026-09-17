@@ -17,6 +17,8 @@ import {
   Loader2,
   LifeBuoy,
   MessageSquare,
+  ArrowLeftRight,
+  UserCircle,
 } from "lucide-react";
 import { useAuth } from "@/context/admin-auth-context";
 import { toast } from "@/components/ui/toast";
@@ -249,6 +251,17 @@ export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
 
         {/* Admin Footer & Logout */}
         <div className="p-3 border-t border-[#e5e7eb] dark:border-white/10 space-y-2 bg-slate-50/50 dark:bg-white/[0.02]">
+          {/* Switch to User Account / Customer Portal */}
+          <Link
+            href="/dashboard"
+            onClick={onClose}
+            className="w-full flex items-center justify-center gap-2 text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 hover:bg-sky-100 dark:hover:bg-sky-500/20 border border-sky-200/80 dark:border-sky-500/20 text-xs font-bold py-2.5 px-3 rounded-xl transition-all cursor-pointer shadow-2xs"
+            title="Return to Customer Dashboard"
+          >
+            <ArrowLeftRight size={14} className="text-sky-600 dark:text-sky-400" />
+            <span>Customer Portal</span>
+          </Link>
+
           {/* Admin User Profile */}
           <Link
             href="/admin/settings"
