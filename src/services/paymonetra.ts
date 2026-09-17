@@ -85,24 +85,38 @@ export function calculateGrossAmount(netAmount: number): {
   };
 }
 
-export const createPayment = (params: {
+export const createPayment = async (params: {
   amount: number;
   reference: string; // OUR order id
-  customerReference: string; // wallet.paymonetraCustomer
-  customerName: string;
+  customerReference?: string; // wallet.paymonetraCustomer
+  customerName?: string;
   description?: string;
-  feeBearer?: "customer" | "merchant";
-}) =>
-  paymonetraRequest("/payments", {
+}) => {
+  const payload: Record<string, unknown> = {
     amount: params.amount,
     reference: params.reference,
-    customer_reference: params.customerReference,
-    customer_name: params.customerName,
-    description: params.description,
-    fee_bearer: params.feeBearer || "customer",
-    bearer: params.feeBearer || "customer",
-    charge_bearer: params.feeBearer || "customer",
-  });
+  };
+  if (params.customerName) payload.customer_name = params.customerName;
+  if (params.description) payload.description = params.description;
+
+  if (params.customerReference) {
+    try {
+      return await paymonetraRequest("/payments", {
+        ...payload,
+        customer_reference: params.customerReference,
+      });
+    } catch (err: any) {
+      console.warn(
+        "Paymonetra createPayment with customer_reference failed, falling back to collection account:",
+        err?.message || err
+      );
+      // Fall back without customer_reference so checkout uses merchant collection account
+      return await paymonetraRequest("/payments", payload);
+    }
+  }
+
+  return paymonetraRequest("/payments", payload);
+};
 
 export const getPayment = (paymonetraReference: string) =>
   paymonetraRequest(`/payments/${paymonetraReference}`);
