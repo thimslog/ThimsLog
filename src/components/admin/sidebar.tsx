@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import {
   LayoutGrid,
@@ -12,7 +13,11 @@ import {
   Terminal,
   X,
   Receipt,
+  LogOut,
+  Loader2,
 } from "lucide-react";
+import { useAuth } from "@/context/admin-auth-context";
+import { toast } from "@/components/ui/toast";
 
 interface NavItem {
   href: string;
@@ -98,9 +103,34 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-
 export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
   const pathname = usePathname();
+  const router = useRouter();
+  const { signOut } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await signOut();
+      toast.success("Logged out successfully");
+      router.push("/admin/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error("Failed to log out");
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  const adminDisplayName =
+    `${admin.firstName || ""} ${admin.lastName || ""}`.trim() ||
+    admin.userName ||
+    "Admin";
+
+  const formattedRole = admin.role
+    ? admin.role.replaceAll("_", " ")
+    : "Admin";
 
   return (
     <>
@@ -116,8 +146,8 @@ export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
         className={`
           fixed inset-y-0 left-0 z-50
           flex w-64 flex-col
-          border-r border-[#e5e7eb]
-          bg-white
+          border-r border-[#e5e7eb] dark:border-white/10
+          bg-white dark:bg-[#0b101b]
 
           transform transition-transform duration-300 ease-in-out
 
@@ -127,17 +157,16 @@ export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between gap-2 px-5 h-16 border-b border-[#e5e7eb]">
+        <div className="flex items-center justify-between gap-2 px-5 h-16 border-b border-[#e5e7eb] dark:border-white/10">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-card bg-brand/15 text-brand">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300">
               <Terminal size={18} />
             </div>
 
             <div>
-              <h1 className="font-semibold text-lg">Thims Log</h1>
-
-              <p className="font-display text-[15px] tracking-tight text-sky-800">
-                Admin Dashboard
+              <h1 className="font-bold text-base text-slate-900 dark:text-white">Thims Log</h1>
+              <p className="text-[11px] font-semibold tracking-wide text-sky-700 dark:text-sky-400 uppercase">
+                Admin Panel
               </p>
             </div>
           </div>
@@ -146,7 +175,7 @@ export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
           <button
             type="button"
             onClick={onClose}
-            className="md:hidden flex h-8 w-8 items-center justify-center rounded-card text-ink-muted hover:bg-base-elevated hover:text-ink"
+            className="md:hidden flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-800 transition-colors"
             aria-label="Close sidebar"
           >
             <X size={18} />
@@ -157,7 +186,7 @@ export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
         <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-6">
           {navGroups.map((group) => (
             <div key={group.title}>
-              <p className="px-2 mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-faint">
+              <p className="px-2 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 {group.title}
               </p>
 
@@ -176,14 +205,14 @@ export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
                         onClick={onClose}
                         className={`
                           group flex items-center gap-2.5
-                          rounded-card px-2.5 py-2
-                          text-[13.5px]
+                          rounded-xl px-3 py-2
+                          text-[13.5px] font-medium
                           transition-colors
 
                           ${
                             active
-                              ? "bg-brand-soft text-ink"
-                              : "text-ink-muted hover:bg-base-elevated hover:text-ink"
+                              ? "bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 font-semibold"
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                           }
                         `}
                       >
@@ -191,8 +220,8 @@ export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
                           size={16}
                           className={
                             active
-                              ? "text-brand"
-                              : "text-ink-faint group-hover:text-ink-muted"
+                              ? "text-sky-600 dark:text-sky-400"
+                              : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
                           }
                         />
 
@@ -206,24 +235,52 @@ export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
           ))}
         </nav>
 
-        {/* Admin */}
-        <div className="px-3 py-4 border-t border-[#e5e7eb]">
-          <div className="flex items-center gap-2.5 rounded-card px-2.5 py-2">
-            <div className="h-8 w-8 rounded-full bg-base-elevated flex items-center justify-center text-[12px] font-mono text-ink-muted">
-              {admin.firstName?.[0]}
-              {admin.lastName?.[0]}
+        {/* Admin Footer & Logout */}
+        <div className="p-3 border-t border-[#e5e7eb] dark:border-white/10 space-y-2 bg-slate-50/50 dark:bg-white/[0.02]">
+          {/* Admin User Profile */}
+          <Link
+            href="/admin/settings"
+            onClick={onClose}
+            className="flex items-center gap-2.5 rounded-xl p-2 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group cursor-pointer"
+            title="Go to Admin Settings"
+          >
+            <div className="h-9 w-9 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 flex items-center justify-center text-xs font-bold shrink-0">
+              {admin.firstName?.[0] || "A"}
+              {admin.lastName?.[0] || ""}
             </div>
 
-            <div className="leading-tight min-w-0">
-              <p className="text-[13px] text-sky font-medium truncate">
-                {admin.role.replaceAll("_", " ")}
+            <div className="leading-tight min-w-0 flex-1">
+              <p className="text-[13px] font-bold text-slate-900 dark:text-white truncate group-hover:text-sky-600 transition-colors">
+                {adminDisplayName}
               </p>
 
-              <p className="text-[11px] text-ink-faint truncate">
-                {admin.email}
-              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10 px-1.5 py-0.5 rounded-md truncate">
+                  {formattedRole}
+                </span>
+              </div>
             </div>
-          </div>
+          </Link>
+
+          {/* Logout Button */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="w-full flex items-center justify-center gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs font-semibold py-2 px-3 rounded-xl border border-rose-200/60 dark:border-rose-500/20 transition-all cursor-pointer disabled:opacity-50"
+          >
+            {loggingOut ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Signing out...</span>
+              </>
+            ) : (
+              <>
+                <LogOut size={14} />
+                <span>Log Out</span>
+              </>
+            )}
+          </button>
         </div>
       </aside>
     </>

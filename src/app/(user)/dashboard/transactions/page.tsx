@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { CreditCard, Plus, X, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { toast } from "@/components/ui/toast";
 
 interface TransactionRow {
   id: string;
@@ -53,10 +55,14 @@ export default function TransactionHistoryPage() {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
   const refetchTransactions = async () => {
-    const res = await fetch("/api/wallet/transactions");
-    if (res.ok) {
-      const data = await res.json();
-      setTransactions(data.transactions);
+    try {
+      const res = await fetch("/api/wallet/transactions");
+      if (res.ok) {
+        const data = await res.json();
+        setTransactions(data.transactions || []);
+      }
+    } catch (err) {
+      console.error("Failed to refresh transactions:", err);
     }
   };
 
@@ -66,9 +72,10 @@ export default function TransactionHistoryPage() {
         const res = await fetch("/api/wallet/transactions");
         if (!res.ok) throw new Error("Could not load transaction history");
         const data = await res.json();
-        setTransactions(data.transactions);
+        setTransactions(data.transactions || []);
       } catch (err) {
         setError((err as Error).message);
+        toast.error((err as Error).message || "Could not load transaction history");
       } finally {
         setLoading(false);
       }
@@ -82,13 +89,26 @@ export default function TransactionHistoryPage() {
       const res = await fetch(`/api/wallet/transactions/${id}/verify`, {
         method: "POST",
       });
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message ?? "Could not verify transaction");
+        toast.error(data.message || "Could not verify transaction");
+        return;
       }
-      await refetchTransactions(); // balances shift if it settled, so refresh the whole list
-    } catch (err) {
-      setError((err as Error).message);
+
+      if (data.updated) {
+        toast.success(
+          data.message || "Transaction verified successfully! Wallet balance updated."
+        );
+      } else {
+        toast.info(
+          data.message || "Transaction is still pending on payment gateway."
+        );
+      }
+
+      await refetchTransactions();
+    } catch (err: any) {
+      toast.error(err?.message || "Network error while querying transaction");
     } finally {
       setVerifyingId(null);
     }
@@ -103,10 +123,13 @@ export default function TransactionHistoryPage() {
             Track all your deposits, payments and transactions
           </p>
         </div>
-        <button className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-glow cursor-pointer">
+        <Link
+          href="/dashboard/wallet"
+          className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-glow cursor-pointer"
+        >
           <Plus size={15} />
           Fund Account
-        </button>
+        </Link>
       </div>
 
       <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] overflow-hidden shadow-xs transition-colors">

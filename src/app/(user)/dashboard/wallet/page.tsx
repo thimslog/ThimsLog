@@ -24,6 +24,7 @@ import {
   Lock,
 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
+import { toast } from "@/components/ui/toast";
 
 interface WalletData {
   id?: string;
@@ -151,10 +152,13 @@ function WalletContent() {
 
       setWallet(data.wallet);
       setSuccess("Virtual account generated successfully!");
+      toast.success("Virtual account generated successfully!");
       await refreshUser();
     } catch (err: any) {
       console.error("Generate account error:", err);
-      setError(err?.message || "Failed to generate virtual account");
+      const msg = err?.message || "Failed to generate virtual account";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setGenerating(false);
     }
@@ -163,6 +167,7 @@ function WalletContent() {
   const copyToClipboard = (text: string, fieldName: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(fieldName);
+    toast.success("Copied to clipboard!");
     setTimeout(() => {
       setCopiedField(null);
     }, 2000);
@@ -171,11 +176,15 @@ function WalletContent() {
   const handleManualFundSubmit = async () => {
     const amount = Number(manualAmount);
     if (!amount || amount < 1000) {
-      setManualError("Minimum deposit amount is ₦1,000");
+      const msg = "Minimum deposit amount is ₦1,000";
+      setManualError(msg);
+      toast.error(msg);
       return;
     }
     if (amount > 1000000) {
-      setManualError("Maximum deposit amount is ₦1,000,000");
+      const msg = "Maximum deposit amount is ₦1,000,000";
+      setManualError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -206,7 +215,9 @@ function WalletContent() {
 
       window.location.href = data.checkoutUrl;
     } catch (err: any) {
-      setManualError(err?.message || "Failed to initiate payment");
+      const msg = err?.message || "Failed to initiate payment";
+      setManualError(msg);
+      toast.error(msg);
       setIsSubmittingManual(false);
     }
   };

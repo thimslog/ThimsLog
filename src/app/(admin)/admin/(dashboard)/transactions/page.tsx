@@ -24,6 +24,7 @@ import {
 
 import { StatusPill } from "@/components/admin/status-pill";
 import { useAdminPage } from "@/context/admin-page-context";
+import { toast } from "@/components/ui/toast";
 
 interface UserInfo {
   id: string;
@@ -200,17 +201,13 @@ export default function AdminTransactionsPage() {
       }
 
       if (data.updated) {
-        setActionFeedback({
-          type: "success",
-          message: data.message || "Transaction status updated successfully!",
-        });
+        const msg = data.message || "Transaction status updated successfully!";
+        setActionFeedback({ type: "success", message: msg });
+        toast.success(msg);
       } else {
-        setActionFeedback({
-          type: "warn",
-          message:
-            data.message ||
-            "Transaction was queried. Gateway reported it is still pending.",
-        });
+        const msg = data.message || "Transaction was queried. Gateway reported it is still pending.";
+        setActionFeedback({ type: "warn", message: msg });
+        toast.info(msg);
       }
 
       // Refresh list and modal
@@ -220,13 +217,12 @@ export default function AdminTransactionsPage() {
         setSelectedTx(data.transaction);
       }
     } catch (err) {
-      setActionFeedback({
-        type: "error",
-        message:
-          err instanceof Error
-            ? err.message
-            : "An error occurred while querying payment",
-      });
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : "An error occurred while querying payment";
+      setActionFeedback({ type: "error", message: errMsg });
+      toast.error(errMsg);
     } finally {
       setVerifyingId(null);
     }
@@ -235,6 +231,7 @@ export default function AdminTransactionsPage() {
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedRef(id);
+    toast.success("Copied to clipboard!");
     setTimeout(() => setCopiedRef(null), 2000);
   };
 

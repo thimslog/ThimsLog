@@ -8,74 +8,134 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  const userData = await getCurrentUser();
-  const userId = userData?.id;
-  if (!userId) {
-    return NextResponse.json({ message: "Unauthorized Access" }, { status: 401 });
-  }
+    const userData = await getCurrentUser();
+    const userId = userData?.id;
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized Access" },
+        { status: 401 }
+      );
+    }
 
-  const wallet = await prisma.wallet.findUnique({ where: { userId } });
-  if (!wallet) {
-    return NextResponse.json({ message: "Wallet not found" }, { status: 404 });
-  }
+    const wallet = await prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet) {
+      return NextResponse.json(
+        { success: false, message: "Wallet not found" },
+        { status: 404 }
+      );
+    }
 
-  const transaction = await prisma.transaction.findUnique({ where: { id } });
-  if (!transaction || transaction.walletId !== wallet.id) {
-    return NextResponse.json({ message: "Transaction not found" }, { status: 404 });
-  }
+    const transaction = await prisma.transaction.findUnique({ where: { id } });
+    if (!transaction || transaction.walletId !== wallet.id) {
+      return NextResponse.json(
+        { success: false, message: "Transaction not found" },
+        { status: 404 }
+      );
+    }
 
-  if (transaction.status !== "PENDING") {
-    return NextResponse.json(
-      { message: "Only pending transactions can be requeried" },
-      { status: 400 }
-    );
-  }
-
-  if (!transaction.paymonetraReference) {
-    return NextResponse.json(
-      { message: "Transaction has no Paymonetra reference to verify against" },
-      { status: 400 }
-    );
-  }
-
-  const remoteStatus = await getPayment(transaction.paymonetraReference);
-
-  // TODO: confirm the real field names Paymonetra returns here (status / amount) —
-  // this assumes `remoteStatus.status` is one of pending/success/failed and
-  // `remoteStatus.amount` is the settled amount. Adjust once you have a sample response.
-  const status = String(remoteStatus.status ?? "").toUpperCase();
-
-  if (status !== "SUCCESS" && status !== "FAILED") {
-    // Still pending on Paymonetra's side — nothing to update yet.
-    return NextResponse.json({ transaction, updated: false });
-  }
-
-  const settledAmount = remoteStatus.amount
-    ? new Prisma.Decimal(remoteStatus.amount)
-    : transaction.amountRequested;
-
-  const updatedTransaction = await prisma.$transaction(async (tx) => {
-    const result = await tx.transaction.update({
-      where: { id: transaction.id },
-      data: {
-        status,
-        amount: settledAmount,
-        metadata: remoteStatus,
-      },
-    });
-
-    // Only a confirmed success actually moves money.
-    if (status === "SUCCESS") {
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: { increment: settledAmount } },
+    if (transaction.status !== "PENDING") {
+      return NextResponse.json({
+        success: true,
+        updated: false,
+        message: `Transaction is already marked as ${transaction.status}`,
+        transaction,
       });
     }
 
-    return result;
-  });
+    const referenceToQuery =
+      transaction.paymonetraReference || transaction.merchantReference;
 
-  return NextResponse.json({ transaction: updatedTransaction, updated: true });
+    if (!referenceToQuery) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Transaction has no reference to verify against payment gateway",
+        },
+        { status: 400 }
+      );
+    }
+
+    let remoteStatus: any = null;
+    try {
+      remoteStatus = await getPayment(referenceToQuery);
+    } catch (err: any) {
+      console.warn("Paymonetra query payment error:", err?.message || err);
+      return NextResponse.json({
+        success: true,
+        updated: false,
+        message: "Payment is still processing or not yet settled on the gateway.",
+        transaction,
+      });
+    }
+
+    const rawStatus =
+      remoteStatus?.status ||
+      remoteStatus?.data?.status ||
+      remoteStatus?.payment_status ||
+      "";
+    const status = String(rawStatus).toUpperCase();
+
+    if (status !== "SUCCESS" && status !== "PAID" && status !== "FAILED") {
+      // Still pending on Paymonetra's side — nothing to update yet.
+      return NextResponse.json({
+        success: true,
+        updated: false,
+        message: "Payment is still pending on gateway. Please check back shortly.",
+        transaction,
+      });
+    }
+
+    const finalStatus =
+      status === "SUCCESS" || status === "PAID" ? "SUCCESS" : "FAILED";
+
+    const settledAmount =
+      remoteStatus.amount || remoteStatus.data?.amount
+        ? new Prisma.Decimal(remoteStatus.amount || remoteStatus.data?.amount)
+        : transaction.amountRequested;
+
+    const creditAmount = transaction.amountRequested || settledAmount;
+
+    const updatedTransaction = await prisma.$transaction(async (tx) => {
+      const result = await tx.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: finalStatus as any,
+          amount: settledAmount,
+          metadata: remoteStatus,
+        },
+      });
+
+      // Only a confirmed success actually moves money.
+      if (finalStatus === "SUCCESS" && transaction.type === "FUNDING") {
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { increment: creditAmount } },
+        });
+      }
+
+      return result;
+    });
+
+    return NextResponse.json({
+      success: true,
+      updated: true,
+      message:
+        finalStatus === "SUCCESS"
+          ? "Payment verified successfully! Your wallet has been credited."
+          : "Payment was marked as failed by gateway.",
+      transaction: updatedTransaction,
+    });
+  } catch (error: any) {
+    console.error("Wallet verify route error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: error?.message || "Could not verify transaction at this time.",
+      },
+      { status: 500 }
+    );
+  }
 }

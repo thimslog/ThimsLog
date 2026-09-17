@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-
+import Link from "next/link";
 import { MoreVertical } from "lucide-react";
 
 import { Topbar } from "@/components/admin/topbar";
@@ -192,50 +192,40 @@ export default function UsersPage() {
                   users.map((user) => (
                     <tr
                       key={user.id}
-                      className="border-b border-[#e5e7eb] last:border-b-0"
+                      className="border-b border-[#e5e7eb] last:border-b-0 hover:bg-slate-50/70 transition-colors"
                     >
-                      <td className="px-5 py-3 text-[13.5px] text-ink">
-                        {user.name}
+                      <td className="px-5 py-3 text-[13.5px] font-semibold text-slate-900">
+                        <Link
+                          href={`/admin/users/${user.id}`}
+                          className="hover:text-sky-600 transition-colors"
+                        >
+                          {user.name}
+                        </Link>
                       </td>
 
-                      <td className="px-5 py-3 font-mono text-[13px] text-ink-muted">
+                      <td className="px-5 py-3 font-mono text-[13px] text-slate-600">
                         {user.email}
                       </td>
 
-                      <td className="px-5 py-3 font-mono text-[13px] text-ink-muted">
-                        {user.username}
+                      <td className="px-5 py-3 font-mono text-[13px] text-sky-700">
+                        @{user.username}
                       </td>
 
-                      {/* <td className="px-5 py-3">
-                        <StatusPill
-                          label={
-                            user.status === "active"
-                              ? "Active"
-                              : "Banned"
-                          }
-                          tone={
-                            user.status === "active"
-                              ? "good"
-                              : "bad"
-                          }
-                        />
-                      </td> */}
-
-                      <td className="px-5 py-3 text-[13px] text-ink-muted">
+                      <td className="px-5 py-3 text-[13px] text-slate-500">
                         {new Date(user.joinedAt).toLocaleDateString()}
                       </td>
 
-                      <td className="px-5 py-3 text-[13px] text-ink-muted">
-                        {new Date(user.lastActive).toLocaleString()}
+                      <td className="px-5 py-3 text-[13px] text-slate-500">
+                        {new Date(user.lastActive).toLocaleDateString()}
                       </td>
 
                       <td className="px-5 py-3 text-right">
-                        <button
-                          className="text-ink-faint transition-colors hover:text-ink"
-                          aria-label="Row actions"
+                        <Link
+                          href={`/admin/users/${user.id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold transition-colors"
                         >
-                          <MoreVertical size={16} />
-                        </button>
+                          <span>View Details</span>
+                        </Link>
                       </td>
                     </tr>
                   ))

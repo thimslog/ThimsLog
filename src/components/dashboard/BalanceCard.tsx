@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Plus, ArrowRight, X, Loader2 } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 interface BalanceCardProps {
   name: string;
@@ -52,6 +53,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
     const amount = Number(amountInput);
     if (!amount || amount <= 0) {
       setError("Enter a valid amount");
+      toast.error("Please enter a valid amount");
       return;
     }
 
@@ -79,8 +81,10 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
       setIsFunding(false);
 
       window.location.href = data.checkoutUrl;
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (err: any) {
+      const msg = err?.message || "Could not start funding";
+      setError(msg);
+      toast.error(msg);
       setIsFunding(false);
     }
   };
