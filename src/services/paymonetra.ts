@@ -1,20 +1,139 @@
 const BASE_URL = "https://api.paymonetra.com/v1";
 
 function getSecretKey(): string {
-  if (process.env.NODE_ENV === "development") {
-    return (
+  const isDev = process.env.NODE_ENV === "development";
+  const explicitMode = process.env.PAYMONETRA_MODE?.toLowerCase(); // "test" | "live"
+
+  // 1. In Development or when PAYMONETRA_MODE=test: prioritize test keys if provided
+  if (explicitMode === "test" || (isDev && explicitMode !== "live")) {
+    const testKey =
       process.env.PAYMONETRA_SECRET_TEST_KEY ||
-      process.env.PAYMONETRA_SECRET_KEY ||
-      process.env.PAYMONETRA_SECRET_LIVE_KEY ||
-      ""
-    );
+      process.env.PAYMONETRA_TEST_SECRET_KEY ||
+      process.env.PAYMONETRA_TEST_KEY;
+
+    if (testKey) return testKey;
   }
+
+  // 2. In Production (or dev fallback when testing live keys): prioritize live keys
   return (
     process.env.PAYMONETRA_SECRET_LIVE_KEY ||
+    process.env.PAYMONETRA_LIVE_SECRET_KEY ||
+    process.env.PAYMONETRA_LIVE_KEY ||
     process.env.PAYMONETRA_SECRET_KEY ||
+    process.env.PAYMONETRA_API_KEY ||
+    process.env.PAYMONETRA_KEY ||
     process.env.PAYMONETRA_SECRET_TEST_KEY ||
+    process.env.PAYMONETRA_TEST_SECRET_KEY ||
+    process.env.PAYMONETRA_TEST_KEY ||
+    process.env.PAYMONETRA_SECRET ||
     ""
   );
+}
+
+/**
+ * Robustly parses and extracts collected, ready, clearing, and settled balances
+ * from Paymonetra /balance payload:
+ * {
+ *   mode: "live",
+ *   collected: { amount: 430770.62, ready: 203270.62, clearing: 227500 },
+ *   settled: { amount: 600000 },
+ *   currency: "NGN"
+ * }
+ */
+export function extractPaymonetraBalance(res: any): {
+  balance: number;
+  collectedAmount: number;
+  collectedReady: number;
+  collectedClearing: number;
+  settledAmount: number;
+  ledgerBalance?: number;
+  currency: string;
+  mode?: string;
+} {
+  if (!res) {
+    return {
+      balance: 0,
+      collectedAmount: 0,
+      collectedReady: 0,
+      collectedClearing: 0,
+      settledAmount: 0,
+      currency: "NGN",
+    };
+  }
+
+  let target: any = res;
+  if (res.data) {
+    target = res.data;
+  }
+
+  const parseNum = (val: any): number | undefined => {
+    if (val === undefined || val === null || val === "") return undefined;
+    if (typeof val === "number") return isNaN(val) ? 0 : val;
+    if (typeof val === "string") {
+      const clean = val.replace(/,/g, "").trim();
+      const n = parseFloat(clean);
+      return isNaN(n) ? 0 : n;
+    }
+    return undefined;
+  };
+
+  // 1. Official Paymonetra Schema: `collected` and `settled`
+  const collected = target.collected || res.collected;
+  const settled = target.settled || res.settled;
+
+  const collectedAmount = parseNum(collected?.amount) ?? 0;
+  const collectedReady = parseNum(collected?.ready) ?? collectedAmount;
+  const collectedClearing = parseNum(collected?.clearing) ?? 0;
+  const settledAmount = parseNum(settled?.amount) ?? 0;
+
+  // Fallback candidate checks for other payload styles
+  const balanceCandidates = [
+    collectedReady > 0 ? collectedReady : undefined,
+    collectedAmount > 0 ? collectedAmount : undefined,
+    parseNum(target.available_balance),
+    parseNum(target.balance),
+    parseNum(target.available),
+    parseNum(target.current_balance),
+    parseNum(target.wallet_balance),
+    parseNum(target.amount),
+    parseNum(target.total_balance),
+    parseNum(target.main?.balance),
+    parseNum(target.main?.available_balance),
+    parseNum(target.wallet?.balance),
+    parseNum(target.collections?.balance),
+    parseNum(res.balance),
+    parseNum(res.available_balance),
+    settledAmount > 0 ? settledAmount : undefined,
+  ];
+
+  const ledgerCandidates = [
+    parseNum(target.ledger_balance),
+    parseNum(target.ledger),
+    parseNum(target.total_balance),
+    parseNum(res.ledger_balance),
+    settledAmount > 0 ? settledAmount : undefined,
+  ];
+
+  // If collectedReady is defined (even 0 when collected exists), use it as primary balance
+  let primaryBalance = collectedReady;
+  if (collected === undefined) {
+    primaryBalance = balanceCandidates.find((b) => b !== undefined) ?? 0;
+  }
+
+  const ledgerBalance = ledgerCandidates.find((l) => l !== undefined);
+  const currency = target.currency || res.currency || "NGN";
+  const mode = target.mode || res.mode || "live";
+
+  return {
+    balance: primaryBalance,
+    collectedAmount,
+    collectedReady,
+    collectedClearing,
+    settledAmount,
+    ledgerBalance,
+    currency,
+    mode,
+  };
 }
 
 export async function paymonetraRequest(path: string, body?: Record<string, unknown>) {
@@ -234,3 +353,10 @@ export const createVirtualAccount = async (params: {
 
 export const getVirtualAccount = (accountReference: string) =>
   paymonetraRequest(`/customer_accounts/${accountReference}`);
+
+/**
+ * Fetches the merchant's live balance from Paymonetra (https://api.paymonetra.com/v1/balance)
+ */
+export const getMerchantBalance = async () => {
+  return paymonetraRequest("/balance");
+};

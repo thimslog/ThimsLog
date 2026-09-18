@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdmin } from "@/lib/jwt";
 import { fallbackTickets } from "@/lib/ticket-store";
+import { getMerchantBalance, extractPaymonetraBalance } from "@/services/paymonetra";
 
 export async function GET() {
   try {
@@ -230,9 +231,47 @@ export async function GET() {
       recentTickets = fallbackTickets.slice(0, 4);
     }
 
+    // 7. Paymonetra Live Merchant Balance
+    let paymonetraBalance = 0;
+    let paymonetraCollectedAmount = 0;
+    let paymonetraCollectedReady = 0;
+    let paymonetraCollectedClearing = 0;
+    let paymonetraSettledAmount = 0;
+    let paymonetraLedgerBalance: number | undefined = undefined;
+    let paymonetraCurrency = "NGN";
+    let paymonetraMode = "live";
+    let paymonetraStatus: "connected" | "error" = "connected";
+
+    try {
+      const pmRes = await getMerchantBalance();
+      const extracted = extractPaymonetraBalance(pmRes);
+      paymonetraBalance = extracted.balance;
+      paymonetraCollectedAmount = extracted.collectedAmount;
+      paymonetraCollectedReady = extracted.collectedReady;
+      paymonetraCollectedClearing = extracted.collectedClearing;
+      paymonetraSettledAmount = extracted.settledAmount;
+      paymonetraLedgerBalance = extracted.ledgerBalance;
+      paymonetraCurrency = extracted.currency;
+      paymonetraMode = extracted.mode || "live";
+    } catch (pmErr) {
+      console.warn("Could not fetch Paymonetra merchant balance for dashboard:", pmErr);
+      paymonetraStatus = "error";
+    }
+
     return NextResponse.json({
       success: true,
       data: {
+        paymonetra: {
+          balance: paymonetraBalance,
+          collectedAmount: paymonetraCollectedAmount,
+          collectedReady: paymonetraCollectedReady,
+          collectedClearing: paymonetraCollectedClearing,
+          settledAmount: paymonetraSettledAmount,
+          ledgerBalance: paymonetraLedgerBalance,
+          currency: paymonetraCurrency,
+          mode: paymonetraMode,
+          status: paymonetraStatus,
+        },
         financials: {
           totalSettledRevenue: successRevenue,
           totalWalletLiability: totalWalletLiability,
