@@ -76,10 +76,11 @@ const statusStyles: Record<string, string> = {
   OVERPAID: "text-blue-600 dark:text-blue-400",
 };
 
-export default function TransactionHistoryPage() {
+export default function TransactionsPage() {
   const { user, refreshUser } = useAuth();
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<TransactionRow | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
@@ -94,6 +95,26 @@ export default function TransactionHistoryPage() {
       }
     } catch (err) {
       console.error("Failed to refresh transactions:", err);
+    }
+  };
+
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/wallet/transactions");
+      if (res.ok) {
+        const data = await res.json();
+        setTransactions(data.transactions || []);
+        toast.success("Transactions updated!");
+      } else {
+        toast.error("Failed to refresh transactions");
+      }
+      await refreshUser();
+    } catch (err) {
+      console.error("Failed to refresh transactions:", err);
+      toast.error("Network error while refreshing transactions");
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -176,7 +197,17 @@ export default function TransactionHistoryPage() {
             Track all your deposits, transfers, purchases and account activity
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-sm font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 transition-all shadow-2xs cursor-pointer disabled:opacity-60"
+            title="Refresh Transactions"
+          >
+            <RefreshCw size={14} className={refreshing ? "animate-spin text-sky-500" : "text-slate-500"} />
+            <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
+          </button>
           <button
             type="button"
             onClick={() => setShowTransferModal(true)}
