@@ -9,6 +9,7 @@ import {
   Bell,
   UserCircle,
   LifeBuoy,
+  Gift,
   type LucideIcon,
 } from "lucide-react";
 
@@ -48,6 +49,11 @@ export const sidebarHistoryLinks: {
     icon: Wallet,
     label: "Wallet",
     path: "/dashboard/wallet",
+  },
+  {
+    icon: Gift,
+    label: "Refer & Earn",
+    path: "/dashboard/referrals",
   },
 ];
 

@@ -20,8 +20,18 @@ export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayloa
 
 export type AggregateUser = {
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
+}
+
+export type UserAvgAggregateOutputType = {
+  referralEarnings: runtime.Decimal | null
+}
+
+export type UserSumAggregateOutputType = {
+  referralEarnings: runtime.Decimal | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -33,6 +43,9 @@ export type UserMinAggregateOutputType = {
   userName: string | null
   usernameChangedAt: Date | null
   password: string | null
+  referralCode: string | null
+  referredById: string | null
+  referralEarnings: runtime.Decimal | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -46,6 +59,9 @@ export type UserMaxAggregateOutputType = {
   userName: string | null
   usernameChangedAt: Date | null
   password: string | null
+  referralCode: string | null
+  referredById: string | null
+  referralEarnings: runtime.Decimal | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -59,11 +75,22 @@ export type UserCountAggregateOutputType = {
   userName: number
   usernameChangedAt: number
   password: number
+  referralCode: number
+  referredById: number
+  referralEarnings: number
   createdAt: number
   updatedAt: number
   _all: number
 }
 
+
+export type UserAvgAggregateInputType = {
+  referralEarnings?: true
+}
+
+export type UserSumAggregateInputType = {
+  referralEarnings?: true
+}
 
 export type UserMinAggregateInputType = {
   id?: true
@@ -74,6 +101,9 @@ export type UserMinAggregateInputType = {
   userName?: true
   usernameChangedAt?: true
   password?: true
+  referralCode?: true
+  referredById?: true
+  referralEarnings?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -87,6 +117,9 @@ export type UserMaxAggregateInputType = {
   userName?: true
   usernameChangedAt?: true
   password?: true
+  referralCode?: true
+  referredById?: true
+  referralEarnings?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -100,6 +133,9 @@ export type UserCountAggregateInputType = {
   userName?: true
   usernameChangedAt?: true
   password?: true
+  referralCode?: true
+  referredById?: true
+  referralEarnings?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -143,6 +179,18 @@ export type UserAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserMinAggregateInputType
@@ -173,6 +221,8 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: UserCountAggregateInputType | true
+  _avg?: UserAvgAggregateInputType
+  _sum?: UserSumAggregateInputType
   _min?: UserMinAggregateInputType
   _max?: UserMaxAggregateInputType
 }
@@ -186,9 +236,14 @@ export type UserGroupByOutputType = {
   userName: string
   usernameChangedAt: Date | null
   password: string
+  referralCode: string | null
+  referredById: string | null
+  referralEarnings: runtime.Decimal
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
@@ -220,12 +275,19 @@ export type UserWhereInput = {
   userName?: Prisma.StringFilter<"User"> | string
   usernameChangedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   password?: Prisma.StringFilter<"User"> | string
+  referralCode?: Prisma.StringNullableFilter<"User"> | string | null
+  referredById?: Prisma.StringNullableFilter<"User"> | string | null
+  referralEarnings?: Prisma.DecimalFilter<"User"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   wallet?: Prisma.XOR<Prisma.WalletNullableScalarRelationFilter, Prisma.WalletWhereInput> | null
   orders?: Prisma.OrderListRelationFilter
   tickets?: Prisma.SupportTicketListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
+  referredBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  referrals?: Prisma.UserListRelationFilter
+  referralRewardsReceived?: Prisma.ReferralRewardListRelationFilter
+  referralRewardsGiven?: Prisma.ReferralRewardListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -237,12 +299,19 @@ export type UserOrderByWithRelationInput = {
   userName?: Prisma.SortOrder
   usernameChangedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   password?: Prisma.SortOrder
+  referralCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  referredById?: Prisma.SortOrderInput | Prisma.SortOrder
+  referralEarnings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   wallet?: Prisma.WalletOrderByWithRelationInput
   orders?: Prisma.OrderOrderByRelationAggregateInput
   tickets?: Prisma.SupportTicketOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
+  referredBy?: Prisma.UserOrderByWithRelationInput
+  referrals?: Prisma.UserOrderByRelationAggregateInput
+  referralRewardsReceived?: Prisma.ReferralRewardOrderByRelationAggregateInput
+  referralRewardsGiven?: Prisma.ReferralRewardOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -250,6 +319,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   email?: string
   phoneNumber?: string
   userName?: string
+  referralCode?: string
   AND?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
@@ -257,13 +327,19 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   lastName?: Prisma.StringFilter<"User"> | string
   usernameChangedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   password?: Prisma.StringFilter<"User"> | string
+  referredById?: Prisma.StringNullableFilter<"User"> | string | null
+  referralEarnings?: Prisma.DecimalFilter<"User"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   wallet?: Prisma.XOR<Prisma.WalletNullableScalarRelationFilter, Prisma.WalletWhereInput> | null
   orders?: Prisma.OrderListRelationFilter
   tickets?: Prisma.SupportTicketListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
-}, "id" | "email" | "phoneNumber" | "userName">
+  referredBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  referrals?: Prisma.UserListRelationFilter
+  referralRewardsReceived?: Prisma.ReferralRewardListRelationFilter
+  referralRewardsGiven?: Prisma.ReferralRewardListRelationFilter
+}, "id" | "email" | "phoneNumber" | "userName" | "referralCode">
 
 export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -274,11 +350,16 @@ export type UserOrderByWithAggregationInput = {
   userName?: Prisma.SortOrder
   usernameChangedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   password?: Prisma.SortOrder
+  referralCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  referredById?: Prisma.SortOrderInput | Prisma.SortOrder
+  referralEarnings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
+  _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
+  _sum?: Prisma.UserSumOrderByAggregateInput
 }
 
 export type UserScalarWhereWithAggregatesInput = {
@@ -293,6 +374,9 @@ export type UserScalarWhereWithAggregatesInput = {
   userName?: Prisma.StringWithAggregatesFilter<"User"> | string
   usernameChangedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   password?: Prisma.StringWithAggregatesFilter<"User"> | string
+  referralCode?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  referredById?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  referralEarnings?: Prisma.DecimalWithAggregatesFilter<"User"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
@@ -306,12 +390,18 @@ export type UserCreateInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
   wallet?: Prisma.WalletCreateNestedOneWithoutUserInput
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  referredBy?: Prisma.UserCreateNestedOneWithoutReferralsInput
+  referrals?: Prisma.UserCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardCreateNestedManyWithoutRefereeInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -323,12 +413,18 @@ export type UserUncheckedCreateInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referredById?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
   wallet?: Prisma.WalletUncheckedCreateNestedOneWithoutUserInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  referrals?: Prisma.UserUncheckedCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutRefereeInput
 }
 
 export type UserUpdateInput = {
@@ -340,12 +436,18 @@ export type UserUpdateInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   wallet?: Prisma.WalletUpdateOneWithoutUserNestedInput
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  referredBy?: Prisma.UserUpdateOneWithoutReferralsNestedInput
+  referrals?: Prisma.UserUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUpdateManyWithoutRefereeNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -357,12 +459,18 @@ export type UserUncheckedUpdateInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   wallet?: Prisma.WalletUncheckedUpdateOneWithoutUserNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  referrals?: Prisma.UserUncheckedUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedUpdateManyWithoutRefereeNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -374,6 +482,9 @@ export type UserCreateManyInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referredById?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -387,6 +498,8 @@ export type UserUpdateManyMutationInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -400,6 +513,9 @@ export type UserUncheckedUpdateManyInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -407,6 +523,21 @@ export type UserUncheckedUpdateManyInput = {
 export type UserScalarRelationFilter = {
   is?: Prisma.UserWhereInput
   isNot?: Prisma.UserWhereInput
+}
+
+export type UserNullableScalarRelationFilter = {
+  is?: Prisma.UserWhereInput | null
+  isNot?: Prisma.UserWhereInput | null
+}
+
+export type UserListRelationFilter = {
+  every?: Prisma.UserWhereInput
+  some?: Prisma.UserWhereInput
+  none?: Prisma.UserWhereInput
+}
+
+export type UserOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -418,8 +549,15 @@ export type UserCountOrderByAggregateInput = {
   userName?: Prisma.SortOrder
   usernameChangedAt?: Prisma.SortOrder
   password?: Prisma.SortOrder
+  referralCode?: Prisma.SortOrder
+  referredById?: Prisma.SortOrder
+  referralEarnings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserAvgOrderByAggregateInput = {
+  referralEarnings?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -431,6 +569,9 @@ export type UserMaxOrderByAggregateInput = {
   userName?: Prisma.SortOrder
   usernameChangedAt?: Prisma.SortOrder
   password?: Prisma.SortOrder
+  referralCode?: Prisma.SortOrder
+  referredById?: Prisma.SortOrder
+  referralEarnings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -444,8 +585,15 @@ export type UserMinOrderByAggregateInput = {
   userName?: Prisma.SortOrder
   usernameChangedAt?: Prisma.SortOrder
   password?: Prisma.SortOrder
+  referralCode?: Prisma.SortOrder
+  referredById?: Prisma.SortOrder
+  referralEarnings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserSumOrderByAggregateInput = {
+  referralEarnings?: Prisma.SortOrder
 }
 
 export type UserCreateNestedOneWithoutNotificationsInput = {
@@ -476,6 +624,34 @@ export type UserUpdateOneRequiredWithoutOrdersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOrdersInput, Prisma.UserUpdateWithoutOrdersInput>, Prisma.UserUncheckedUpdateWithoutOrdersInput>
 }
 
+export type UserCreateNestedOneWithoutReferralRewardsReceivedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReferralRewardsReceivedInput, Prisma.UserUncheckedCreateWithoutReferralRewardsReceivedInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReferralRewardsReceivedInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserCreateNestedOneWithoutReferralRewardsGivenInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReferralRewardsGivenInput, Prisma.UserUncheckedCreateWithoutReferralRewardsGivenInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReferralRewardsGivenInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutReferralRewardsReceivedNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReferralRewardsReceivedInput, Prisma.UserUncheckedCreateWithoutReferralRewardsReceivedInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReferralRewardsReceivedInput
+  upsert?: Prisma.UserUpsertWithoutReferralRewardsReceivedInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutReferralRewardsReceivedInput, Prisma.UserUpdateWithoutReferralRewardsReceivedInput>, Prisma.UserUncheckedUpdateWithoutReferralRewardsReceivedInput>
+}
+
+export type UserUpdateOneRequiredWithoutReferralRewardsGivenNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReferralRewardsGivenInput, Prisma.UserUncheckedCreateWithoutReferralRewardsGivenInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReferralRewardsGivenInput
+  upsert?: Prisma.UserUpsertWithoutReferralRewardsGivenInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutReferralRewardsGivenInput, Prisma.UserUpdateWithoutReferralRewardsGivenInput>, Prisma.UserUncheckedUpdateWithoutReferralRewardsGivenInput>
+}
+
 export type UserCreateNestedOneWithoutTicketsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutTicketsInput, Prisma.UserUncheckedCreateWithoutTicketsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutTicketsInput
@@ -488,6 +664,64 @@ export type UserUpdateOneRequiredWithoutTicketsNestedInput = {
   upsert?: Prisma.UserUpsertWithoutTicketsInput
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTicketsInput, Prisma.UserUpdateWithoutTicketsInput>, Prisma.UserUncheckedUpdateWithoutTicketsInput>
+}
+
+export type UserCreateNestedOneWithoutReferralsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReferralsInput, Prisma.UserUncheckedCreateWithoutReferralsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReferralsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserCreateNestedManyWithoutReferredByInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReferredByInput, Prisma.UserUncheckedCreateWithoutReferredByInput> | Prisma.UserCreateWithoutReferredByInput[] | Prisma.UserUncheckedCreateWithoutReferredByInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReferredByInput | Prisma.UserCreateOrConnectWithoutReferredByInput[]
+  createMany?: Prisma.UserCreateManyReferredByInputEnvelope
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+}
+
+export type UserUncheckedCreateNestedManyWithoutReferredByInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReferredByInput, Prisma.UserUncheckedCreateWithoutReferredByInput> | Prisma.UserCreateWithoutReferredByInput[] | Prisma.UserUncheckedCreateWithoutReferredByInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReferredByInput | Prisma.UserCreateOrConnectWithoutReferredByInput[]
+  createMany?: Prisma.UserCreateManyReferredByInputEnvelope
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+}
+
+export type UserUpdateOneWithoutReferralsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReferralsInput, Prisma.UserUncheckedCreateWithoutReferralsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReferralsInput
+  upsert?: Prisma.UserUpsertWithoutReferralsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutReferralsInput, Prisma.UserUpdateWithoutReferralsInput>, Prisma.UserUncheckedUpdateWithoutReferralsInput>
+}
+
+export type UserUpdateManyWithoutReferredByNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReferredByInput, Prisma.UserUncheckedCreateWithoutReferredByInput> | Prisma.UserCreateWithoutReferredByInput[] | Prisma.UserUncheckedCreateWithoutReferredByInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReferredByInput | Prisma.UserCreateOrConnectWithoutReferredByInput[]
+  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutReferredByInput | Prisma.UserUpsertWithWhereUniqueWithoutReferredByInput[]
+  createMany?: Prisma.UserCreateManyReferredByInputEnvelope
+  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  update?: Prisma.UserUpdateWithWhereUniqueWithoutReferredByInput | Prisma.UserUpdateWithWhereUniqueWithoutReferredByInput[]
+  updateMany?: Prisma.UserUpdateManyWithWhereWithoutReferredByInput | Prisma.UserUpdateManyWithWhereWithoutReferredByInput[]
+  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+}
+
+export type UserUncheckedUpdateManyWithoutReferredByNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReferredByInput, Prisma.UserUncheckedCreateWithoutReferredByInput> | Prisma.UserCreateWithoutReferredByInput[] | Prisma.UserUncheckedCreateWithoutReferredByInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReferredByInput | Prisma.UserCreateOrConnectWithoutReferredByInput[]
+  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutReferredByInput | Prisma.UserUpsertWithWhereUniqueWithoutReferredByInput[]
+  createMany?: Prisma.UserCreateManyReferredByInputEnvelope
+  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  update?: Prisma.UserUpdateWithWhereUniqueWithoutReferredByInput | Prisma.UserUpdateWithWhereUniqueWithoutReferredByInput[]
+  updateMany?: Prisma.UserUpdateManyWithWhereWithoutReferredByInput | Prisma.UserUpdateManyWithWhereWithoutReferredByInput[]
+  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
 }
 
 export type UserCreateNestedOneWithoutWalletInput = {
@@ -513,11 +747,17 @@ export type UserCreateWithoutNotificationsInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
   wallet?: Prisma.WalletCreateNestedOneWithoutUserInput
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutUserInput
+  referredBy?: Prisma.UserCreateNestedOneWithoutReferralsInput
+  referrals?: Prisma.UserCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardCreateNestedManyWithoutRefereeInput
 }
 
 export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -529,11 +769,17 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referredById?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
   wallet?: Prisma.WalletUncheckedCreateNestedOneWithoutUserInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutUserInput
+  referrals?: Prisma.UserUncheckedCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutRefereeInput
 }
 
 export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -561,11 +807,17 @@ export type UserUpdateWithoutNotificationsInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   wallet?: Prisma.WalletUpdateOneWithoutUserNestedInput
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutUserNestedInput
+  referredBy?: Prisma.UserUpdateOneWithoutReferralsNestedInput
+  referrals?: Prisma.UserUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUpdateManyWithoutRefereeNestedInput
 }
 
 export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -577,11 +829,17 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   wallet?: Prisma.WalletUncheckedUpdateOneWithoutUserNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+  referrals?: Prisma.UserUncheckedUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedUpdateManyWithoutRefereeNestedInput
 }
 
 export type UserCreateWithoutOrdersInput = {
@@ -593,11 +851,17 @@ export type UserCreateWithoutOrdersInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
   wallet?: Prisma.WalletCreateNestedOneWithoutUserInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  referredBy?: Prisma.UserCreateNestedOneWithoutReferralsInput
+  referrals?: Prisma.UserCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardCreateNestedManyWithoutRefereeInput
 }
 
 export type UserUncheckedCreateWithoutOrdersInput = {
@@ -609,11 +873,17 @@ export type UserUncheckedCreateWithoutOrdersInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referredById?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
   wallet?: Prisma.WalletUncheckedCreateNestedOneWithoutUserInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  referrals?: Prisma.UserUncheckedCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutRefereeInput
 }
 
 export type UserCreateOrConnectWithoutOrdersInput = {
@@ -641,11 +911,17 @@ export type UserUpdateWithoutOrdersInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   wallet?: Prisma.WalletUpdateOneWithoutUserNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  referredBy?: Prisma.UserUpdateOneWithoutReferralsNestedInput
+  referrals?: Prisma.UserUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUpdateManyWithoutRefereeNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOrdersInput = {
@@ -657,11 +933,225 @@ export type UserUncheckedUpdateWithoutOrdersInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   wallet?: Prisma.WalletUncheckedUpdateOneWithoutUserNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  referrals?: Prisma.UserUncheckedUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedUpdateManyWithoutRefereeNestedInput
+}
+
+export type UserCreateWithoutReferralRewardsReceivedInput = {
+  id?: string
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string
+  userName: string
+  usernameChangedAt?: Date | string | null
+  password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  wallet?: Prisma.WalletCreateNestedOneWithoutUserInput
+  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  tickets?: Prisma.SupportTicketCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  referredBy?: Prisma.UserCreateNestedOneWithoutReferralsInput
+  referrals?: Prisma.UserCreateNestedManyWithoutReferredByInput
+  referralRewardsGiven?: Prisma.ReferralRewardCreateNestedManyWithoutRefereeInput
+}
+
+export type UserUncheckedCreateWithoutReferralRewardsReceivedInput = {
+  id?: string
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string
+  userName: string
+  usernameChangedAt?: Date | string | null
+  password: string
+  referralCode?: string | null
+  referredById?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  wallet?: Prisma.WalletUncheckedCreateNestedOneWithoutUserInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  referrals?: Prisma.UserUncheckedCreateNestedManyWithoutReferredByInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutRefereeInput
+}
+
+export type UserCreateOrConnectWithoutReferralRewardsReceivedInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutReferralRewardsReceivedInput, Prisma.UserUncheckedCreateWithoutReferralRewardsReceivedInput>
+}
+
+export type UserCreateWithoutReferralRewardsGivenInput = {
+  id?: string
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string
+  userName: string
+  usernameChangedAt?: Date | string | null
+  password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  wallet?: Prisma.WalletCreateNestedOneWithoutUserInput
+  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  tickets?: Prisma.SupportTicketCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  referredBy?: Prisma.UserCreateNestedOneWithoutReferralsInput
+  referrals?: Prisma.UserCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardCreateNestedManyWithoutReferrerInput
+}
+
+export type UserUncheckedCreateWithoutReferralRewardsGivenInput = {
+  id?: string
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string
+  userName: string
+  usernameChangedAt?: Date | string | null
+  password: string
+  referralCode?: string | null
+  referredById?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  wallet?: Prisma.WalletUncheckedCreateNestedOneWithoutUserInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  referrals?: Prisma.UserUncheckedCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutReferrerInput
+}
+
+export type UserCreateOrConnectWithoutReferralRewardsGivenInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutReferralRewardsGivenInput, Prisma.UserUncheckedCreateWithoutReferralRewardsGivenInput>
+}
+
+export type UserUpsertWithoutReferralRewardsReceivedInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutReferralRewardsReceivedInput, Prisma.UserUncheckedUpdateWithoutReferralRewardsReceivedInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutReferralRewardsReceivedInput, Prisma.UserUncheckedCreateWithoutReferralRewardsReceivedInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutReferralRewardsReceivedInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutReferralRewardsReceivedInput, Prisma.UserUncheckedUpdateWithoutReferralRewardsReceivedInput>
+}
+
+export type UserUpdateWithoutReferralRewardsReceivedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  wallet?: Prisma.WalletUpdateOneWithoutUserNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  tickets?: Prisma.SupportTicketUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  referredBy?: Prisma.UserUpdateOneWithoutReferralsNestedInput
+  referrals?: Prisma.UserUpdateManyWithoutReferredByNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUpdateManyWithoutRefereeNestedInput
+}
+
+export type UserUncheckedUpdateWithoutReferralRewardsReceivedInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  wallet?: Prisma.WalletUncheckedUpdateOneWithoutUserNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  referrals?: Prisma.UserUncheckedUpdateManyWithoutReferredByNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedUpdateManyWithoutRefereeNestedInput
+}
+
+export type UserUpsertWithoutReferralRewardsGivenInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutReferralRewardsGivenInput, Prisma.UserUncheckedUpdateWithoutReferralRewardsGivenInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutReferralRewardsGivenInput, Prisma.UserUncheckedCreateWithoutReferralRewardsGivenInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutReferralRewardsGivenInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutReferralRewardsGivenInput, Prisma.UserUncheckedUpdateWithoutReferralRewardsGivenInput>
+}
+
+export type UserUpdateWithoutReferralRewardsGivenInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  wallet?: Prisma.WalletUpdateOneWithoutUserNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  tickets?: Prisma.SupportTicketUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  referredBy?: Prisma.UserUpdateOneWithoutReferralsNestedInput
+  referrals?: Prisma.UserUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUpdateManyWithoutReferrerNestedInput
+}
+
+export type UserUncheckedUpdateWithoutReferralRewardsGivenInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  wallet?: Prisma.WalletUncheckedUpdateOneWithoutUserNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  referrals?: Prisma.UserUncheckedUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedUpdateManyWithoutReferrerNestedInput
 }
 
 export type UserCreateWithoutTicketsInput = {
@@ -673,11 +1163,17 @@ export type UserCreateWithoutTicketsInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
   wallet?: Prisma.WalletCreateNestedOneWithoutUserInput
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  referredBy?: Prisma.UserCreateNestedOneWithoutReferralsInput
+  referrals?: Prisma.UserCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardCreateNestedManyWithoutRefereeInput
 }
 
 export type UserUncheckedCreateWithoutTicketsInput = {
@@ -689,11 +1185,17 @@ export type UserUncheckedCreateWithoutTicketsInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referredById?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
   wallet?: Prisma.WalletUncheckedCreateNestedOneWithoutUserInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  referrals?: Prisma.UserUncheckedCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutRefereeInput
 }
 
 export type UserCreateOrConnectWithoutTicketsInput = {
@@ -721,11 +1223,17 @@ export type UserUpdateWithoutTicketsInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   wallet?: Prisma.WalletUpdateOneWithoutUserNestedInput
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  referredBy?: Prisma.UserUpdateOneWithoutReferralsNestedInput
+  referrals?: Prisma.UserUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUpdateManyWithoutRefereeNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTicketsInput = {
@@ -737,11 +1245,210 @@ export type UserUncheckedUpdateWithoutTicketsInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   wallet?: Prisma.WalletUncheckedUpdateOneWithoutUserNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  referrals?: Prisma.UserUncheckedUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedUpdateManyWithoutRefereeNestedInput
+}
+
+export type UserCreateWithoutReferralsInput = {
+  id?: string
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string
+  userName: string
+  usernameChangedAt?: Date | string | null
+  password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  wallet?: Prisma.WalletCreateNestedOneWithoutUserInput
+  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  tickets?: Prisma.SupportTicketCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  referredBy?: Prisma.UserCreateNestedOneWithoutReferralsInput
+  referralRewardsReceived?: Prisma.ReferralRewardCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardCreateNestedManyWithoutRefereeInput
+}
+
+export type UserUncheckedCreateWithoutReferralsInput = {
+  id?: string
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string
+  userName: string
+  usernameChangedAt?: Date | string | null
+  password: string
+  referralCode?: string | null
+  referredById?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  wallet?: Prisma.WalletUncheckedCreateNestedOneWithoutUserInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutRefereeInput
+}
+
+export type UserCreateOrConnectWithoutReferralsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutReferralsInput, Prisma.UserUncheckedCreateWithoutReferralsInput>
+}
+
+export type UserCreateWithoutReferredByInput = {
+  id?: string
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string
+  userName: string
+  usernameChangedAt?: Date | string | null
+  password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  wallet?: Prisma.WalletCreateNestedOneWithoutUserInput
+  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  tickets?: Prisma.SupportTicketCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  referrals?: Prisma.UserCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardCreateNestedManyWithoutRefereeInput
+}
+
+export type UserUncheckedCreateWithoutReferredByInput = {
+  id?: string
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string
+  userName: string
+  usernameChangedAt?: Date | string | null
+  password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  wallet?: Prisma.WalletUncheckedCreateNestedOneWithoutUserInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  referrals?: Prisma.UserUncheckedCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutRefereeInput
+}
+
+export type UserCreateOrConnectWithoutReferredByInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutReferredByInput, Prisma.UserUncheckedCreateWithoutReferredByInput>
+}
+
+export type UserCreateManyReferredByInputEnvelope = {
+  data: Prisma.UserCreateManyReferredByInput | Prisma.UserCreateManyReferredByInput[]
+  skipDuplicates?: boolean
+}
+
+export type UserUpsertWithoutReferralsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutReferralsInput, Prisma.UserUncheckedUpdateWithoutReferralsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutReferralsInput, Prisma.UserUncheckedCreateWithoutReferralsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutReferralsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutReferralsInput, Prisma.UserUncheckedUpdateWithoutReferralsInput>
+}
+
+export type UserUpdateWithoutReferralsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  wallet?: Prisma.WalletUpdateOneWithoutUserNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  tickets?: Prisma.SupportTicketUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  referredBy?: Prisma.UserUpdateOneWithoutReferralsNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUpdateManyWithoutRefereeNestedInput
+}
+
+export type UserUncheckedUpdateWithoutReferralsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  wallet?: Prisma.WalletUncheckedUpdateOneWithoutUserNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedUpdateManyWithoutRefereeNestedInput
+}
+
+export type UserUpsertWithWhereUniqueWithoutReferredByInput = {
+  where: Prisma.UserWhereUniqueInput
+  update: Prisma.XOR<Prisma.UserUpdateWithoutReferredByInput, Prisma.UserUncheckedUpdateWithoutReferredByInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutReferredByInput, Prisma.UserUncheckedCreateWithoutReferredByInput>
+}
+
+export type UserUpdateWithWhereUniqueWithoutReferredByInput = {
+  where: Prisma.UserWhereUniqueInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutReferredByInput, Prisma.UserUncheckedUpdateWithoutReferredByInput>
+}
+
+export type UserUpdateManyWithWhereWithoutReferredByInput = {
+  where: Prisma.UserScalarWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateManyMutationInput, Prisma.UserUncheckedUpdateManyWithoutReferredByInput>
+}
+
+export type UserScalarWhereInput = {
+  AND?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+  OR?: Prisma.UserScalarWhereInput[]
+  NOT?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+  id?: Prisma.StringFilter<"User"> | string
+  firstName?: Prisma.StringFilter<"User"> | string
+  lastName?: Prisma.StringFilter<"User"> | string
+  email?: Prisma.StringFilter<"User"> | string
+  phoneNumber?: Prisma.StringFilter<"User"> | string
+  userName?: Prisma.StringFilter<"User"> | string
+  usernameChangedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  password?: Prisma.StringFilter<"User"> | string
+  referralCode?: Prisma.StringNullableFilter<"User"> | string | null
+  referredById?: Prisma.StringNullableFilter<"User"> | string | null
+  referralEarnings?: Prisma.DecimalFilter<"User"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
 }
 
 export type UserCreateWithoutWalletInput = {
@@ -753,11 +1460,17 @@ export type UserCreateWithoutWalletInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
   tickets?: Prisma.SupportTicketCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  referredBy?: Prisma.UserCreateNestedOneWithoutReferralsInput
+  referrals?: Prisma.UserCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardCreateNestedManyWithoutRefereeInput
 }
 
 export type UserUncheckedCreateWithoutWalletInput = {
@@ -769,11 +1482,17 @@ export type UserUncheckedCreateWithoutWalletInput = {
   userName: string
   usernameChangedAt?: Date | string | null
   password: string
+  referralCode?: string | null
+  referredById?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   updatedAt?: Date | string
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
   tickets?: Prisma.SupportTicketUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  referrals?: Prisma.UserUncheckedCreateNestedManyWithoutReferredByInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutReferrerInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutRefereeInput
 }
 
 export type UserCreateOrConnectWithoutWalletInput = {
@@ -801,11 +1520,17 @@ export type UserUpdateWithoutWalletInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
   tickets?: Prisma.SupportTicketUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  referredBy?: Prisma.UserUpdateOneWithoutReferralsNestedInput
+  referrals?: Prisma.UserUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUpdateManyWithoutRefereeNestedInput
 }
 
 export type UserUncheckedUpdateWithoutWalletInput = {
@@ -817,11 +1542,91 @@ export type UserUncheckedUpdateWithoutWalletInput = {
   userName?: Prisma.StringFieldUpdateOperationsInput | string
   usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
   tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  referrals?: Prisma.UserUncheckedUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedUpdateManyWithoutRefereeNestedInput
+}
+
+export type UserCreateManyReferredByInput = {
+  id?: string
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string
+  userName: string
+  usernameChangedAt?: Date | string | null
+  password: string
+  referralCode?: string | null
+  referralEarnings?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type UserUpdateWithoutReferredByInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  wallet?: Prisma.WalletUpdateOneWithoutUserNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  tickets?: Prisma.SupportTicketUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  referrals?: Prisma.UserUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUpdateManyWithoutRefereeNestedInput
+}
+
+export type UserUncheckedUpdateWithoutReferredByInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  wallet?: Prisma.WalletUncheckedUpdateOneWithoutUserNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  tickets?: Prisma.SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  referrals?: Prisma.UserUncheckedUpdateManyWithoutReferredByNestedInput
+  referralRewardsReceived?: Prisma.ReferralRewardUncheckedUpdateManyWithoutReferrerNestedInput
+  referralRewardsGiven?: Prisma.ReferralRewardUncheckedUpdateManyWithoutRefereeNestedInput
+}
+
+export type UserUncheckedUpdateManyWithoutReferredByInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  userName?: Prisma.StringFieldUpdateOperationsInput | string
+  usernameChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralEarnings?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -833,12 +1638,18 @@ export type UserCountOutputType = {
   orders: number
   tickets: number
   notifications: number
+  referrals: number
+  referralRewardsReceived: number
+  referralRewardsGiven: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   orders?: boolean | UserCountOutputTypeCountOrdersArgs
   tickets?: boolean | UserCountOutputTypeCountTicketsArgs
   notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
+  referrals?: boolean | UserCountOutputTypeCountReferralsArgs
+  referralRewardsReceived?: boolean | UserCountOutputTypeCountReferralRewardsReceivedArgs
+  referralRewardsGiven?: boolean | UserCountOutputTypeCountReferralRewardsGivenArgs
 }
 
 /**
@@ -872,6 +1683,27 @@ export type UserCountOutputTypeCountNotificationsArgs<ExtArgs extends runtime.Ty
   where?: Prisma.NotificationWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountReferralsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountReferralRewardsReceivedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ReferralRewardWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountReferralRewardsGivenArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ReferralRewardWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -882,12 +1714,19 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   userName?: boolean
   usernameChangedAt?: boolean
   password?: boolean
+  referralCode?: boolean
+  referredById?: boolean
+  referralEarnings?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   wallet?: boolean | Prisma.User$walletArgs<ExtArgs>
   orders?: boolean | Prisma.User$ordersArgs<ExtArgs>
   tickets?: boolean | Prisma.User$ticketsArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
+  referredBy?: boolean | Prisma.User$referredByArgs<ExtArgs>
+  referrals?: boolean | Prisma.User$referralsArgs<ExtArgs>
+  referralRewardsReceived?: boolean | Prisma.User$referralRewardsReceivedArgs<ExtArgs>
+  referralRewardsGiven?: boolean | Prisma.User$referralRewardsGivenArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -900,8 +1739,12 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   userName?: boolean
   usernameChangedAt?: boolean
   password?: boolean
+  referralCode?: boolean
+  referredById?: boolean
+  referralEarnings?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  referredBy?: boolean | Prisma.User$referredByArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -913,8 +1756,12 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   userName?: boolean
   usernameChangedAt?: boolean
   password?: boolean
+  referralCode?: boolean
+  referredById?: boolean
+  referralEarnings?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  referredBy?: boolean | Prisma.User$referredByArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -926,20 +1773,31 @@ export type UserSelectScalar = {
   userName?: boolean
   usernameChangedAt?: boolean
   password?: boolean
+  referralCode?: boolean
+  referredById?: boolean
+  referralEarnings?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "firstName" | "lastName" | "email" | "phoneNumber" | "userName" | "usernameChangedAt" | "password" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "firstName" | "lastName" | "email" | "phoneNumber" | "userName" | "usernameChangedAt" | "password" | "referralCode" | "referredById" | "referralEarnings" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   wallet?: boolean | Prisma.User$walletArgs<ExtArgs>
   orders?: boolean | Prisma.User$ordersArgs<ExtArgs>
   tickets?: boolean | Prisma.User$ticketsArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
+  referredBy?: boolean | Prisma.User$referredByArgs<ExtArgs>
+  referrals?: boolean | Prisma.User$referralsArgs<ExtArgs>
+  referralRewardsReceived?: boolean | Prisma.User$referralRewardsReceivedArgs<ExtArgs>
+  referralRewardsGiven?: boolean | Prisma.User$referralRewardsGivenArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
-export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  referredBy?: boolean | Prisma.User$referredByArgs<ExtArgs>
+}
+export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  referredBy?: boolean | Prisma.User$referredByArgs<ExtArgs>
+}
 
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
@@ -948,6 +1806,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     orders: Prisma.$OrderPayload<ExtArgs>[]
     tickets: Prisma.$SupportTicketPayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
+    referredBy: Prisma.$UserPayload<ExtArgs> | null
+    referrals: Prisma.$UserPayload<ExtArgs>[]
+    referralRewardsReceived: Prisma.$ReferralRewardPayload<ExtArgs>[]
+    referralRewardsGiven: Prisma.$ReferralRewardPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -958,6 +1820,9 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     userName: string
     usernameChangedAt: Date | null
     password: string
+    referralCode: string | null
+    referredById: string | null
+    referralEarnings: runtime.Decimal
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["user"]>
@@ -1358,6 +2223,10 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   orders<T extends Prisma.User$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   tickets<T extends Prisma.User$ticketsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ticketsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SupportTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  referredBy<T extends Prisma.User$referredByArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$referredByArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  referrals<T extends Prisma.User$referralsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$referralsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  referralRewardsReceived<T extends Prisma.User$referralRewardsReceivedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$referralRewardsReceivedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReferralRewardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  referralRewardsGiven<T extends Prisma.User$referralRewardsGivenArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$referralRewardsGivenArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReferralRewardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1395,6 +2264,9 @@ export interface UserFieldRefs {
   readonly userName: Prisma.FieldRef<"User", 'String'>
   readonly usernameChangedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly password: Prisma.FieldRef<"User", 'String'>
+  readonly referralCode: Prisma.FieldRef<"User", 'String'>
+  readonly referredById: Prisma.FieldRef<"User", 'String'>
+  readonly referralEarnings: Prisma.FieldRef<"User", 'Decimal'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }
@@ -1651,6 +2523,10 @@ export type UserCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions
    */
   data: Prisma.UserCreateManyInput | Prisma.UserCreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1721,6 +2597,10 @@ export type UserUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many Users to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1878,6 +2758,97 @@ export type User$notificationsArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.NotificationScalarFieldEnum | Prisma.NotificationScalarFieldEnum[]
+}
+
+/**
+ * User.referredBy
+ */
+export type User$referredByArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
+}
+
+/**
+ * User.referrals
+ */
+export type User$referralsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
+  orderBy?: Prisma.UserOrderByWithRelationInput | Prisma.UserOrderByWithRelationInput[]
+  cursor?: Prisma.UserWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserScalarFieldEnum | Prisma.UserScalarFieldEnum[]
+}
+
+/**
+ * User.referralRewardsReceived
+ */
+export type User$referralRewardsReceivedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ReferralReward
+   */
+  select?: Prisma.ReferralRewardSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ReferralReward
+   */
+  omit?: Prisma.ReferralRewardOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ReferralRewardInclude<ExtArgs> | null
+  where?: Prisma.ReferralRewardWhereInput
+  orderBy?: Prisma.ReferralRewardOrderByWithRelationInput | Prisma.ReferralRewardOrderByWithRelationInput[]
+  cursor?: Prisma.ReferralRewardWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ReferralRewardScalarFieldEnum | Prisma.ReferralRewardScalarFieldEnum[]
+}
+
+/**
+ * User.referralRewardsGiven
+ */
+export type User$referralRewardsGivenArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ReferralReward
+   */
+  select?: Prisma.ReferralRewardSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ReferralReward
+   */
+  omit?: Prisma.ReferralRewardOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ReferralRewardInclude<ExtArgs> | null
+  where?: Prisma.ReferralRewardWhereInput
+  orderBy?: Prisma.ReferralRewardOrderByWithRelationInput | Prisma.ReferralRewardOrderByWithRelationInput[]
+  cursor?: Prisma.ReferralRewardWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ReferralRewardScalarFieldEnum | Prisma.ReferralRewardScalarFieldEnum[]
 }
 
 /**

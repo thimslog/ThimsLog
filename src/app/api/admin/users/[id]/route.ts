@@ -172,3 +172,162 @@ export async function GET(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const admin = await getCurrentAdmin();
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized access" },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        wallet: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Cascade delete user and associated records inside transaction
+    await prisma.$transaction(async (tx) => {
+      // 1. Unlink any users referred by this user
+      try {
+        await tx.$executeRaw`
+          UPDATE "User" SET "referredById" = NULL WHERE "referredById" = ${id};
+        `;
+      } catch {
+        // Table/column might not exist
+      }
+
+      // 2. Delete ReferralReward records
+      try {
+        if ((tx as any).referralReward) {
+          await (tx as any).referralReward.deleteMany({
+            where: {
+              OR: [{ referrerId: id }, { refereeId: id }],
+            },
+          });
+        }
+      } catch {
+        // ReferralReward model might not exist
+      }
+
+      // 3. Delete Notifications
+      try {
+        await tx.notification.deleteMany({
+          where: { userId: id },
+        });
+      } catch {
+        // Notification model
+      }
+
+      // 4. Delete Support Tickets and responses
+      try {
+        const userTickets = await tx.supportTicket.findMany({
+          where: { userId: id },
+          select: { id: true },
+        });
+        const ticketIds = userTickets.map((t) => t.id);
+        if (ticketIds.length > 0) {
+          await tx.ticketResponse.deleteMany({
+            where: { ticketId: { in: ticketIds } },
+          });
+          await tx.supportTicket.deleteMany({
+            where: { id: { in: ticketIds } },
+          });
+        }
+      } catch {
+        // SupportTicket handling
+      }
+
+      // 5. Unlink Inventory Accounts from User's Orders, then delete Orders
+      try {
+        const userOrders = await tx.order.findMany({
+          where: { userId: id },
+          select: { id: true },
+        });
+        const orderIds = userOrders.map((o) => o.id);
+        if (orderIds.length > 0) {
+          await tx.inventoryAccount.updateMany({
+            where: { orderId: { in: orderIds } },
+            data: { orderId: null },
+          });
+          await tx.order.deleteMany({
+            where: { id: { in: orderIds } },
+          });
+        }
+      } catch {
+        // Order handling
+      }
+
+      // 6. Delete Wallet and its Transactions
+      if (user.wallet?.id) {
+        await tx.transaction.deleteMany({
+          where: { walletId: user.wallet.id },
+        });
+        await tx.wallet.delete({
+          where: { id: user.wallet.id },
+        });
+      }
+
+      // 7. Delete User record
+      await tx.user.delete({
+        where: { id },
+      });
+
+      // 8. Log Admin Audit Log
+      try {
+        if (tx.adminAuditLog) {
+          await tx.adminAuditLog.create({
+            data: {
+              adminId: admin.adminId,
+              adminEmail: admin.email,
+              action: "DELETE_USER",
+              entityType: "USER",
+              entityId: id,
+              entityLabel: `${user.firstName} ${user.lastName} (${user.userName})`,
+              description: `Admin ${admin.email} deleted user account ${user.email} (@${user.userName})`,
+              metadata: {
+                deletedUser: {
+                  id: user.id,
+                  email: user.email,
+                  userName: user.userName,
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  phoneNumber: user.phoneNumber,
+                },
+              },
+            },
+          });
+        }
+      } catch (auditErr) {
+        console.warn("Could not log admin audit entry:", auditErr);
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `User ${user.firstName} ${user.lastName} (@${user.userName}) was deleted successfully.`,
+    });
+  } catch (error: any) {
+    console.error("DELETE user error:", error);
+    return NextResponse.json(
+      { success: false, message: error?.message || "Failed to delete user" },
+      { status: 500 }
+    );
+  }
+}

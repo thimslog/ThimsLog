@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { ShoppingBag, Loader2 } from "lucide-react";
 import { RecentOrder, formatMoney, formatDate } from "./types";
 
@@ -69,12 +70,29 @@ export function RecentOrdersCard({
                     </div>
                   </td>
                   <td className="px-5 py-3.5">
-                    <div className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[130px]">
-                      {ord.buyerName}
-                    </div>
-                    <div className="text-[11px] text-slate-400 truncate max-w-[130px]">
-                      {ord.buyerEmail}
-                    </div>
+                    {ord.userId ? (
+                      <Link
+                        href={`/admin/users/${ord.userId}`}
+                        className="group block"
+                        title="View customer details"
+                      >
+                        <div className="font-medium text-slate-800 dark:text-slate-200 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors truncate max-w-[130px]">
+                          {ord.buyerName}
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate max-w-[130px]">
+                          {ord.buyerEmail}
+                        </div>
+                      </Link>
+                    ) : (
+                      <div>
+                        <div className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[130px]">
+                          {ord.buyerName}
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate max-w-[130px]">
+                          {ord.buyerEmail}
+                        </div>
+                      </div>
+                    )}
                   </td>
                   <td className="px-5 py-3.5 font-mono">
                     <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 font-semibold">

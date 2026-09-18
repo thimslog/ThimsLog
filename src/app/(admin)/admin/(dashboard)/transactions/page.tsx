@@ -39,6 +39,7 @@ function AdminTransactionsContent() {
   const [appliedSearch, setAppliedSearch] = useState(initialSearch);
 
   const [loading, setLoading] = useState(true);
+  const [exportingCsv, setExportingCsv] = useState(false);
   const [error, setError] = useState("");
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -54,6 +55,96 @@ function AdminTransactionsContent() {
   const [selectedTx, setSelectedTx] = useState<TransactionRecord | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
+
+  const handleExportCsv = async () => {
+    try {
+      setExportingCsv(true);
+      const params = new URLSearchParams({
+        export: "true",
+      });
+      if (statusFilter !== "ALL") params.append("status", statusFilter);
+      if (typeFilter !== "ALL") params.append("type", typeFilter);
+      if (appliedSearch.trim()) params.append("search", appliedSearch.trim());
+
+      const res = await fetch(`/api/admin/transactions?${params.toString()}`, {
+        method: "GET",
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data?.message || "Failed to fetch transactions for export");
+      }
+
+      const list: TransactionRecord[] = data.data.transactions || [];
+      if (list.length === 0) {
+        toast.info("No transactions found to export");
+        return;
+      }
+
+      const headers = [
+        "Transaction ID",
+        "Date (UTC)",
+        "Customer Name",
+        "Email",
+        "Phone",
+        "Type",
+        "Provider",
+        "Status",
+        "Amount Requested (NGN)",
+        "Amount Settled (NGN)",
+        "Fee (NGN)",
+        "Merchant Ref",
+        "Paymonetra Ref",
+        "Collection Ref",
+      ];
+
+      const csvRows = [headers.join(",")];
+
+      list.forEach((tx) => {
+        const customerName = (
+          (tx.wallet?.user?.firstName || "") + " " + (tx.wallet?.user?.lastName || "")
+        ).trim() || tx.wallet?.user?.userName || "N/A";
+        const email = tx.wallet?.user?.email || "N/A";
+        const phone = tx.wallet?.user?.phoneNumber || "N/A";
+        const dateStr = new Date(tx.createdAt).toISOString();
+
+        const row = [
+          `"${tx.id}"`,
+          `"${dateStr}"`,
+          `"${customerName.replace(/"/g, '""')}"`,
+          `"${email.replace(/"/g, '""')}"`,
+          `"${phone.replace(/"/g, '""')}"`,
+          `"${tx.type}"`,
+          `"${tx.provider}"`,
+          `"${tx.status}"`,
+          tx.amountRequested || 0,
+          tx.amount || 0,
+          tx.fee || tx.metadata?.fee || 0,
+          `"${(tx.merchantReference || "").replace(/"/g, '""')}"`,
+          `"${(tx.paymonetraReference || "N/A").replace(/"/g, '""')}"`,
+          `"${(tx.collectionReference || "N/A").replace(/"/g, '""')}"`,
+        ];
+        csvRows.push(row.join(","));
+      });
+
+      const csvBlob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(csvBlob);
+      const link = document.createElement("a");
+      const dateTag = new Date().toISOString().split("T")[0];
+      link.setAttribute("href", url);
+      link.setAttribute("download", `ThimsLog-Transactions-${dateTag}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${list.length} transactions as CSV`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to export transactions");
+    } finally {
+      setExportingCsv(false);
+    }
+  };
 
   // Core fetch transactions function
   const fetchTransactions = useCallback(
@@ -341,6 +432,8 @@ function AdminTransactionsContent() {
         onTypeChange={handleTypeChange}
         onOpenSyncModal={() => setShowSyncModal(true)}
         onRefresh={handleRefresh}
+        onExportCsv={handleExportCsv}
+        exportingCsv={exportingCsv}
         loading={loading}
         appliedSearch={appliedSearch}
         totalTransactions={pagination?.total}

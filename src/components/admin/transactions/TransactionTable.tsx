@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -10,6 +11,8 @@ import {
   Check,
   Copy,
   Loader2,
+  User as UserIcon,
+  ExternalLink,
 } from "lucide-react";
 import { StatusPill } from "@/components/admin/status-pill";
 import {
@@ -86,7 +89,31 @@ export function TransactionTable({
                 >
                   {/* Customer Info */}
                   <td className="px-5 py-4">
-                    {user ? (
+                    {user?.id ? (
+                      <Link
+                        href={`/admin/users/${user.id}`}
+                        className="flex items-center gap-3 group/user hover:opacity-95 transition-opacity"
+                        title="View user details"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 group-hover/user:bg-sky-50 dark:group-hover/user:bg-sky-500/10 group-hover/user:text-sky-600 dark:group-hover/user:text-sky-400 flex items-center justify-center text-xs font-bold shrink-0 transition-colors">
+                          {user.firstName?.[0] || "U"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-900 dark:text-white group-hover/user:text-sky-600 dark:group-hover/user:text-sky-400 truncate max-w-[140px] transition-colors flex items-center gap-1">
+                            <span>
+                              {user.firstName} {user.lastName}
+                            </span>
+                            <ExternalLink
+                              size={10}
+                              className="opacity-0 group-hover/user:opacity-100 text-sky-500 transition-opacity shrink-0"
+                            />
+                          </p>
+                          <p className="text-[11.5px] text-slate-400 truncate max-w-[140px]">
+                            {user.email}
+                          </p>
+                        </div>
+                      </Link>
+                    ) : user ? (
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 flex items-center justify-center text-xs font-bold shrink-0">
                           {user.firstName?.[0] || "U"}
@@ -200,11 +227,21 @@ export function TransactionTable({
                         </button>
                       )}
 
+                      {user?.id && (
+                        <Link
+                          href={`/admin/users/${user.id}`}
+                          className="p-1.5 rounded-xl text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                          title="View user details"
+                        >
+                          <UserIcon size={16} />
+                        </Link>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => onSelectTransaction(tx)}
                         className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                        title="View full details"
+                        title="View transaction details"
                       >
                         <Eye size={16} />
                       </button>

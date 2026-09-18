@@ -28,6 +28,9 @@ import {
   Package,
   Search,
   ExternalLink,
+  Trash2,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useAdminPage } from "@/context/admin-page-context";
 import { StatusPill } from "@/components/admin/status-pill";
@@ -158,6 +161,28 @@ export default function SingleUserPage({
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [selectedTx, setSelectedTx] = useState<TransactionDetail | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteUser = async () => {
+    try {
+      setDeleting(true);
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete user");
+      }
+      toast.success(data.message || "User deleted successfully");
+      router.push("/admin/users");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete user");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     setPageTitle({
@@ -308,31 +333,42 @@ export default function SingleUserPage({
   return (
     <div className="space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Back Button & Action Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Link
           href="/admin/users"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl shadow-2xs transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl shadow-2xs transition-colors w-fit"
         >
           <ArrowLeft size={14} />
           Back to Users List
         </Link>
 
-        <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-          <span>ID:</span>
-          <span className="text-slate-700 dark:text-slate-300 select-all font-semibold">
-            {user.id}
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+            <span>ID:</span>
+            <span className="text-slate-700 dark:text-slate-300 select-all font-semibold">
+              {user.id}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleCopy(user.id, "userId")}
+              className="p-1 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+              title="Copy user ID"
+            >
+              {copiedKey === "userId" ? (
+                <Check size={13} className="text-emerald-500" />
+              ) : (
+                <Copy size={13} />
+              )}
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={() => handleCopy(user.id, "userId")}
-            className="p-1 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
-            title="Copy user ID"
+            onClick={() => setShowDeleteModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-xs font-semibold transition-colors cursor-pointer"
           >
-            {copiedKey === "userId" ? (
-              <Check size={13} className="text-emerald-500" />
-            ) : (
-              <Copy size={13} />
-            )}
+            <Trash2 size={13} />
+            <span>Delete User</span>
           </button>
         </div>
       </div>
@@ -1099,6 +1135,101 @@ export default function SingleUserPage({
                 className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-800 dark:text-white text-xs font-bold transition-colors cursor-pointer"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white dark:bg-[#0b101b] rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-5 pb-3 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                  <Trash2 size={18} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+                    Delete User Account
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => !deleting && setShowDeleteModal(false)}
+                disabled={deleting}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-5 space-y-4 text-xs">
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                Are you sure you want to permanently delete the account of{" "}
+                <strong className="text-slate-900 dark:text-white font-bold">
+                  {user.firstName} {user.lastName}
+                </strong>{" "}
+                (<span className="font-mono text-sky-600 dark:text-sky-400">@{user.userName}</span>)?
+              </p>
+
+              {/* User Summary Pill */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 space-y-2">
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span>Email:</span>
+                  <span className="font-mono font-medium text-slate-800 dark:text-slate-200">{user.email}</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span>Wallet Balance:</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    ₦{Number(wallet?.balance || 0).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Warning Notice */}
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/20 text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="leading-normal text-[11.5px]">
+                  All associated wallet transactions, support tickets, and notifications will be deleted. Any un-transferred balances will be removed.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/5 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteUser}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={13} />
+                    <span>Delete User</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Mail,
@@ -12,12 +12,14 @@ import {
   Loader2,
   AlertCircle,
   Check,
+  Gift,
 } from "lucide-react";
 import { AuthShell } from "@/components/AuthShell";
 import { useAuth } from "@/context/auth-context";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading, refreshUser, setUser } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -26,12 +28,20 @@ export default function RegisterPage() {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const strength = getPasswordStrength(password);
+
+  useEffect(() => {
+    const refParam = searchParams.get("ref") || searchParams.get("code");
+    if (refParam) {
+      setReferralCode(refParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -59,6 +69,7 @@ export default function RegisterPage() {
           userName,
           password,
           confirmPassword,
+          referralCode: referralCode.trim() || undefined,
         }),
       });
 
@@ -275,6 +286,23 @@ export default function RegisterPage() {
               </span>
             </div>
           )}
+        </div>
+
+        {/* Referral Code (Optional) */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+            Referral Code <span className="text-slate-400 font-normal lowercase">(optional)</span>
+          </label>
+          <div className="relative">
+            <Gift className="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value)}
+              placeholder="e.g. username or referral code"
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-sky-600 dark:focus:border-sky-400/50 focus:ring-2 focus:ring-sky-500/20 transition-all shadow-2xs font-mono text-sm"
+            />
+          </div>
         </div>
 
         <button

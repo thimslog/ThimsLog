@@ -8,6 +8,7 @@ export interface LowStockProduct {
 
 export interface RecentOrder {
   id: string;
+  userId?: string;
   productName: string;
   categoryName: string;
   buyerName: string;
@@ -20,6 +21,7 @@ export interface RecentOrder {
 
 export interface RecentTransaction {
   id: string;
+  userId?: string;
   customerName: string;
   customerEmail: string;
   type: "FUNDING" | "PAYMENT" | "REFUND";

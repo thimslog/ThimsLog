@@ -59,6 +59,7 @@ export const ModelName = {
   HelpCenterLink: 'HelpCenterLink',
   Notification: 'Notification',
   Order: 'Order',
+  ReferralReward: 'ReferralReward',
   SupportTicket: 'SupportTicket',
   TicketResponse: 'TicketResponse',
   Transaction: 'Transaction',
@@ -219,6 +220,23 @@ export const OrderScalarFieldEnum = {
 export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
 
 
+export const ReferralRewardScalarFieldEnum = {
+  id: 'id',
+  referrerId: 'referrerId',
+  refereeId: 'refereeId',
+  amount: 'amount',
+  commissionRate: 'commissionRate',
+  sourceType: 'sourceType',
+  sourceAmount: 'sourceAmount',
+  sourceReference: 'sourceReference',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReferralRewardScalarFieldEnum = (typeof ReferralRewardScalarFieldEnum)[keyof typeof ReferralRewardScalarFieldEnum]
+
+
 export const SupportTicketScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -273,6 +291,9 @@ export const UserScalarFieldEnum = {
   userName: 'userName',
   usernameChangedAt: 'usernameChangedAt',
   password: 'password',
+  referralCode: 'referralCode',
+  referredById: 'referredById',
+  referralEarnings: 'referralEarnings',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

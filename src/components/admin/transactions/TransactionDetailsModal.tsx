@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { X, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { X, RefreshCw, User as UserIcon, ExternalLink } from "lucide-react";
 import { StatusPill } from "@/components/admin/status-pill";
 import {
   TransactionRecord,
@@ -25,38 +26,40 @@ export function TransactionDetailsModal({
 }: TransactionDetailsModalProps) {
   if (!transaction) return null;
 
+  const user = transaction.wallet?.user;
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-[#0b101b] rounded-2xl border border-slate-200 dark:border-white/10 w-full max-w-lg shadow-2xl p-6 overflow-hidden max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
-          <div className="flex items-center gap-2">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/5">
+          <div className="flex items-center gap-2.5">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Transaction Details
+            </h3>
             <StatusPill
               label={transaction.status}
               tone={getToneForStatus(transaction.status)}
             />
-            <span className="text-xs font-mono font-bold text-slate-500">
-              {transaction.type}
-            </span>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Modal Body Info */}
-        <div className="space-y-4 text-xs">
+        {/* Scrollable details */}
+        <div className="flex-1 overflow-y-auto py-4 space-y-4 text-xs">
           {/* Amount Info */}
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 flex items-center justify-between">
             <div>
@@ -82,27 +85,39 @@ export function TransactionDetailsModal({
 
           {/* Customer details */}
           <div className="space-y-2 p-3.5 rounded-xl border border-slate-200/60 dark:border-white/10 bg-white dark:bg-[#0b101b]">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Customer Information
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Customer Information
+              </span>
+              {user?.id && (
+                <Link
+                  href={`/admin/users/${user.id}`}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 hover:underline bg-sky-50 dark:bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-200/60 dark:border-sky-500/20 transition-colors"
+                >
+                  <UserIcon size={12} />
+                  <span>View Profile</span>
+                  <ExternalLink size={10} />
+                </Link>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-2 pt-1">
               <div>
                 <span className="text-slate-400 block text-[11px]">Name</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {transaction.wallet?.user?.firstName}{" "}
-                  {transaction.wallet?.user?.lastName}
+                  {user?.firstName} {user?.lastName}
                 </span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[11px]">Username</span>
                 <span className="font-mono text-sky-600 dark:text-sky-400">
-                  @{transaction.wallet?.user?.userName || "N/A"}
+                  @{user?.userName || "N/A"}
                 </span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[11px]">Email</span>
                 <span className="font-mono text-slate-700 dark:text-slate-300 truncate block">
-                  {transaction.wallet?.user?.email}
+                  {user?.email}
                 </span>
               </div>
               <div>

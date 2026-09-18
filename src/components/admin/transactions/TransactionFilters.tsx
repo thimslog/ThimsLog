@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, RotateCcw, RefreshCw, X } from "lucide-react";
+import { Search, RotateCcw, RefreshCw, X, Download, Loader2 } from "lucide-react";
 
 interface TransactionFiltersProps {
   searchQuery: string;
@@ -14,6 +14,8 @@ interface TransactionFiltersProps {
   onTypeChange: (type: string) => void;
   onOpenSyncModal: () => void;
   onRefresh: () => void;
+  onExportCsv?: () => void;
+  exportingCsv?: boolean;
   loading: boolean;
   appliedSearch: string;
   totalTransactions?: number;
@@ -30,6 +32,8 @@ export function TransactionFilters({
   onTypeChange,
   onOpenSyncModal,
   onRefresh,
+  onExportCsv,
+  exportingCsv = false,
   loading,
   appliedSearch,
   totalTransactions,
@@ -96,6 +100,24 @@ export function TransactionFilters({
             <option value="REFUND">Refund</option>
           </select>
 
+          {/* Export CSV Button */}
+          {onExportCsv && (
+            <button
+              type="button"
+              onClick={onExportCsv}
+              disabled={exportingCsv}
+              title="Export filtered transactions as CSV spreadsheet"
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold shadow-xs"
+            >
+              {exportingCsv ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Download size={13} />
+              )}
+              <span>Export CSV</span>
+            </button>
+          )}
+
           {/* Sync Paymonetra Transfer Button */}
           <button
             type="button"
@@ -104,7 +126,7 @@ export function TransactionFilters({
             title="Import or resolve a missing Paymonetra transfer"
           >
             <RotateCcw size={13} />
-            <span>Sync Paymonetra Transfer</span>
+            <span className="hidden sm:inline">Sync Transfer</span>
           </button>
 
           {/* Refresh Button */}

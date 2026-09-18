@@ -58,6 +58,11 @@ export type Notification = Prisma.NotificationModel
  */
 export type Order = Prisma.OrderModel
 /**
+ * Model ReferralReward
+ * 
+ */
+export type ReferralReward = Prisma.ReferralRewardModel
+/**
  * Model SupportTicket
  * 
  */

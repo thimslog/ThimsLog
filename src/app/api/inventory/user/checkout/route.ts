@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/get-current-user";
+import { processReferralCommission } from "@/services/referral";
 
 export async function POST(req: NextRequest) {
   try {
@@ -137,6 +138,18 @@ export async function POST(req: NextRequest) {
         timeout: 20000,
       }
     );
+
+    // Trigger referral commission for purchases >= ₦20,000 (non-blocking)
+    if (result && result.totalCost >= 20000) {
+      processReferralCommission({
+        refereeUserId: userId,
+        sourceAmount: result.totalCost,
+        sourceType: "ORDER_PURCHASE",
+        sourceReference: result.orderId,
+      }).catch((refErr) => {
+        console.error("Referral commission processing error:", refErr);
+      });
+    }
 
     return NextResponse.json({
       success: true,

@@ -14,6 +14,7 @@ export interface TransactionRecord {
   status: "PENDING" | "SUCCESS" | "FAILED" | "UNDERPAID" | "OVERPAID" | "EXPIRED";
   amountRequested: string | number;
   amount: string | number | null;
+  fee?: string | number | null;
   merchantReference: string;
   paymonetraReference?: string | null;
   collectionReference?: string | null;

@@ -16,10 +16,21 @@ model User {
     tickets     SupportTicket[]
     notifications Notification[]
 
+    // Referrals & Affiliate System
+    referralCode            String?          @unique
+    referredById            String?
+    referredBy              User?            @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+    referrals               User[]           @relation("UserReferrals")
+    referralEarnings        Decimal          @default(0) @db.Decimal(14, 2)
+    referralRewardsReceived ReferralReward[] @relation("ReferrerRewards")
+    referralRewardsGiven    ReferralReward[] @relation("RefereeRewards")
+
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@index([email])
     @@index([userName])
     @@index([phoneNumber])
+    @@index([referralCode])
+    @@index([referredById])
 }

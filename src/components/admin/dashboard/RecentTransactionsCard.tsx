@@ -75,12 +75,29 @@ export function RecentTransactionsCard({
                     className="hover:bg-slate-50/60 dark:hover:bg-white/[0.02] transition-colors"
                   >
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-slate-900 dark:text-white truncate max-w-[140px]">
-                        {tx.customerName}
-                      </div>
-                      <div className="text-[11px] text-slate-400 truncate max-w-[140px]">
-                        {tx.customerEmail}
-                      </div>
+                      {tx.userId ? (
+                        <Link
+                          href={`/admin/users/${tx.userId}`}
+                          className="group block"
+                          title="View user details"
+                        >
+                          <div className="font-semibold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors truncate max-w-[140px]">
+                            {tx.customerName}
+                          </div>
+                          <div className="text-[11px] text-slate-400 truncate max-w-[140px]">
+                            {tx.customerEmail}
+                          </div>
+                        </Link>
+                      ) : (
+                        <div>
+                          <div className="font-semibold text-slate-900 dark:text-white truncate max-w-[140px]">
+                            {tx.customerName}
+                          </div>
+                          <div className="text-[11px] text-slate-400 truncate max-w-[140px]">
+                            {tx.customerEmail}
+                          </div>
+                        </div>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="font-medium text-slate-700 dark:text-slate-300">

@@ -14,13 +14,14 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = Math.max(Number(searchParams.get("page")) || 1, 1);
-    const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 15, 1), 100);
+    const isExport = searchParams.get("export") === "true";
+    const page = isExport ? 1 : Math.max(Number(searchParams.get("page")) || 1, 1);
+    const limit = isExport ? 10000 : Math.min(Math.max(Number(searchParams.get("limit")) || 15, 1), 100);
     const status = searchParams.get("status");
     const type = searchParams.get("type");
     const search = searchParams.get("search")?.trim();
 
-    const skip = (page - 1) * limit;
+    const skip = isExport ? 0 : (page - 1) * limit;
 
     // Build where clause
     const where: Prisma.TransactionWhereInput = {};
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     const transactions = await prisma.transaction.findMany({
       where,
-      skip,
+      ...(isExport ? {} : { skip }),
       take: limit,
       orderBy: { createdAt: "desc" },
       include: {

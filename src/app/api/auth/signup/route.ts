@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 import { generateToken } from "@/lib/auth";
+import { ensureReferralSchema } from "@/services/referral";
 
 export async function POST(request: Request) {
   try {
@@ -110,6 +111,26 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Referral lookup (referral code is the user's username)
+    let referredById: string | undefined = undefined;
+    const rawRef = (body.referralCode || body.ref || "").trim();
+    if (rawRef) {
+      try {
+        await ensureReferralSchema();
+        const rows = await prisma.$queryRaw<Array<{ id: string; firstName: string }>>`
+          SELECT id, "firstName" FROM "User"
+          WHERE LOWER("userName") = LOWER(${rawRef})
+             OR LOWER(COALESCE("referralCode", '')) = LOWER(${rawRef})
+          LIMIT 1;
+        `;
+        if (rows && rows.length > 0) {
+          referredById = rows[0].id;
+        }
+      } catch (refErr) {
+        console.warn("Referral lookup warning:", refErr);
+      }
+    }
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -121,6 +142,37 @@ export async function POST(request: Request) {
         password: hashedPassword,
       },
     });
+
+    // Ensure referral link and referral code are set in database
+    try {
+      await ensureReferralSchema();
+      await prisma.$executeRaw`
+        UPDATE "User"
+        SET "referralCode" = ${normalizedUsername},
+            "referredById" = ${referredById || null}
+        WHERE id = ${user.id};
+      `;
+    } catch (setRefErr) {
+      console.warn("Could not set referralCode/referredById on user:", setRefErr);
+    }
+
+    // If referred, create a welcome notification for referrer
+    if (referredById) {
+      try {
+        if ((prisma as any).notification) {
+          await (prisma as any).notification.create({
+            data: {
+              userId: referredById,
+              title: "🎉 New Referral Signup!",
+              message: `${firstName.trim()} just registered using your referral link. You will earn 1% commission when they make purchases above ₦20,000!`,
+              type: "REFERRAL",
+            },
+          });
+        }
+      } catch (notifErr) {
+        console.warn("Could not create referral notification:", notifErr);
+      }
+    }
 
     // Generate token
     const token = generateToken({

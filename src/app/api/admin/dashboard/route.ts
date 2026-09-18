@@ -298,6 +298,7 @@ export async function GET() {
         lowStockProducts,
         recentOrders: recentOrders.map((o) => ({
           id: o.id,
+          userId: o.user?.id,
           productName: o.accountType?.name || "Social Account Pack",
           categoryName: o.accountType?.category?.name || "Inventory",
           buyerName: `${o.user?.firstName || ""} ${o.user?.lastName || ""}`.trim() || o.user?.userName || "Customer",
@@ -309,6 +310,7 @@ export async function GET() {
         })),
         recentTransactions: recentTransactions.map((t) => ({
           id: t.id,
+          userId: t.wallet?.user?.id,
           customerName: `${t.wallet?.user?.firstName || ""} ${t.wallet?.user?.lastName || ""}`.trim() || t.wallet?.user?.userName || "Customer",
           customerEmail: t.wallet?.user?.email || "N/A",
           type: t.type,
