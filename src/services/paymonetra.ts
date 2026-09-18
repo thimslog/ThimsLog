@@ -17,7 +17,7 @@ function getSecretKey(): string {
   );
 }
 
-async function paymonetraRequest(path: string, body?: Record<string, unknown>) {
+export async function paymonetraRequest(path: string, body?: Record<string, unknown>) {
   const secretKey = getSecretKey();
   if (!secretKey) {
     throw new Error(
@@ -85,6 +85,50 @@ export function calculateGrossAmount(netAmount: number): {
   };
 }
 
+/**
+ * Calculates net wallet credit when a user transfers directly into their dedicated Virtual Account.
+ * Paymonetra charges:
+ * - 1% for transfers under ₦2,500 (e.g. ₦2,200 -> ₦22 fee -> ₦2,178 net credit)
+ * - 1% + ₦100 for transfers >= ₦2,500 (capped at ₦2,000)
+ */
+export function calculateVirtualAccountDeposit(
+  grossAmount: number,
+  providedFee?: number | null,
+  providedNet?: number | null
+): {
+  grossAmount: number;
+  fee: number;
+  netAmount: number;
+} {
+  const gross = Number(grossAmount) || 0;
+  if (gross <= 0) return { grossAmount: 0, fee: 0, netAmount: 0 };
+
+  let fee = 0;
+  if (providedFee !== undefined && providedFee !== null) {
+    fee = Number(providedFee);
+  } else if (providedNet !== undefined && providedNet !== null && Number(providedNet) > 0) {
+    fee = Math.max(0, gross - Number(providedNet));
+  } else {
+    if (gross < 2500) {
+      fee = Math.round(gross * 0.01 * 100) / 100; // 1% (e.g. 2200 -> 22)
+    } else {
+      const calculated = gross * 0.01 + 100;
+      fee = Math.min(Math.round(calculated * 100) / 100, 2000); // capped at 2000
+    }
+  }
+
+  const netAmount =
+    providedNet !== undefined && providedNet !== null && Number(providedNet) > 0
+      ? Number(providedNet)
+      : Math.max(0, gross - fee);
+
+  return {
+    grossAmount: gross,
+    fee,
+    netAmount,
+  };
+}
+
 export const createPayment = async (params: {
   amount: number;
   reference: string; // OUR order id
@@ -120,6 +164,40 @@ export const createPayment = async (params: {
 
 export const getPayment = (paymonetraReference: string) =>
   paymonetraRequest(`/payments/${paymonetraReference}`);
+
+export const getCollection = (collectionReference: string) =>
+  paymonetraRequest(`/collections/${collectionReference}`);
+
+export const getCustomerAccount = (accountReference: string) =>
+  paymonetraRequest(`/customer_accounts/${accountReference}`);
+
+/**
+ * Searches Paymonetra API across /collections, /payments, and /customer_accounts
+ * to find the transaction by whatever reference ID is provided from the dashboard.
+ */
+export async function queryAnyPaymonetraReference(reference: string) {
+  const cleanRef = reference.trim();
+
+  // 1. Try /collections/:reference (virtual account collection events)
+  try {
+    const res = await paymonetraRequest(`/collections/${cleanRef}`);
+    if (res?.data || res?.reference || res?.amount) return { type: "COLLECTION", data: res?.data || res };
+  } catch { }
+
+  // 2. Try /payments/:reference (checkout payments)
+  try {
+    const res = await paymonetraRequest(`/payments/${cleanRef}`);
+    if (res?.data || res?.reference || res?.amount) return { type: "PAYMENT", data: res?.data || res };
+  } catch { }
+
+  // 3. Try /customer_accounts/:reference
+  try {
+    const res = await paymonetraRequest(`/customer_accounts/${cleanRef}`);
+    if (res?.data || res?.account_number) return { type: "CUSTOMER_ACCOUNT", data: res?.data || res };
+  } catch { }
+
+  return null;
+}
 
 export const createVirtualAccount = async (params: {
   customerReference: string;
