@@ -87,13 +87,35 @@ export async function GET(request: NextRequest) {
       _count: { _all: number };
       _sum: { amount: any; amountRequested: any };
     }> = [];
+    let orderAgg: { _sum: { totalAmount: any }; _count: { _all: number } } | null = null;
+    let fundingRows: Array<{ totalVolume: string | number | null; totalCount: string | number | bigint }> = [];
 
     try {
-      stats = (await prisma.transaction.groupBy({
-        by: ["status", "type"],
-        _count: { _all: true },
-        _sum: { amount: true, amountRequested: true },
-      })) as any;
+      const [txStats, orders, fundingRaw] = await Promise.all([
+        prisma.transaction.groupBy({
+          by: ["status", "type"],
+          _count: { _all: true },
+          _sum: { amount: true, amountRequested: true },
+        }),
+        prisma.order.aggregate({
+          where: { status: "COMPLETED" },
+          _sum: { totalAmount: true },
+          _count: { _all: true },
+        }),
+        // Exact external gateway deposits using SQL COALESCE
+        prisma.$queryRaw<Array<{ totalVolume: string | number | null; totalCount: string | number | bigint }>>`
+          SELECT 
+            COALESCE(SUM(COALESCE(amount, "amountRequested")), 0) AS "totalVolume",
+            COUNT(*) AS "totalCount"
+          FROM "Transaction"
+          WHERE status = 'SUCCESS' 
+            AND type = 'FUNDING'
+            AND (provider != 'thimslog_internal' OR provider IS NULL);
+        `,
+      ]);
+      stats = txStats as any;
+      orderAgg = orders as any;
+      fundingRows = fundingRaw as any;
     } catch (aggErr) {
       console.warn("Could not aggregate metrics summary:", aggErr);
     }
@@ -104,10 +126,13 @@ export async function GET(request: NextRequest) {
     let failedCount = 0;
     let totalSuccessVolume = 0;
 
-    let totalFundingVolume = 0;
-    let totalFundingCount = 0;
-    let totalPaymentVolume = 0;
-    let totalPaymentCount = 0;
+    // Direct gateway deposits (accurate COALESCE across all successful funding records)
+    let totalFundingVolume = Number(fundingRows?.[0]?.totalVolume || 0);
+    let totalFundingCount = Number(fundingRows?.[0]?.totalCount || 0);
+
+    // Direct completed order purchases
+    let totalPaymentVolume = Number(orderAgg?._sum?.totalAmount || 0);
+    let totalPaymentCount = orderAgg?._count?._all || 0;
     let totalTransferVolume = 0;
 
     stats.forEach((item) => {
@@ -118,13 +143,7 @@ export async function GET(request: NextRequest) {
         successCount += count;
         totalSuccessVolume += sum;
 
-        if (item.type === "FUNDING") {
-          totalFundingVolume += sum;
-          totalFundingCount += count;
-        } else if (item.type === "PAYMENT") {
-          totalPaymentVolume += sum;
-          totalPaymentCount += count;
-        } else if (item.type === "TRANSFER_SENT" || item.type === "TRANSFER_RECEIVED") {
+        if (item.type === "TRANSFER_SENT" || item.type === "TRANSFER_RECEIVED") {
           totalTransferVolume += sum;
         }
       } else if (item.status === "PENDING") {
@@ -133,6 +152,26 @@ export async function GET(request: NextRequest) {
         failedCount += count;
       }
     });
+
+    // Fallback if gatewayFundingAgg was not available
+    if (totalFundingVolume === 0 && totalFundingCount === 0) {
+      stats.forEach((item) => {
+        if (item.status === "SUCCESS" && item.type === "FUNDING") {
+          totalFundingVolume += Number(item._sum?.amount || item._sum?.amountRequested || 0);
+          totalFundingCount += item._count?._all || 0;
+        }
+      });
+    }
+
+    // Fallback if Order table had 0 records but transactions had PAYMENT
+    if (totalPaymentVolume === 0 && totalPaymentCount === 0) {
+      stats.forEach((item) => {
+        if (item.status === "SUCCESS" && item.type === "PAYMENT") {
+          totalPaymentVolume += Number(item._sum?.amount || item._sum?.amountRequested || 0);
+          totalPaymentCount += item._count?._all || 0;
+        }
+      });
+    }
 
     const totalCountAll = stats.reduce(
       (acc, curr) => acc + (curr._count?._all || 0),

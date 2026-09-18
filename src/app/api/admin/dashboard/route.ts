@@ -26,22 +26,26 @@ export async function GET() {
 
     try {
       const [
-        successFundingAgg,
-        successPaymentAgg,
+        fundingRows,
+        orderAgg,
         pendingAgg,
         pCount,
         allCount,
         txList,
       ] = await Promise.all([
-        prisma.transaction.aggregate({
-          where: { status: "SUCCESS", type: "FUNDING" },
-          _sum: { amountRequested: true, amount: true },
-          _count: true,
-        }),
-        prisma.transaction.aggregate({
-          where: { status: "SUCCESS", type: "PAYMENT" },
-          _sum: { amountRequested: true, amount: true },
-          _count: true,
+        prisma.$queryRaw<Array<{ totalVolume: string | number | null; totalCount: string | number | bigint }>>`
+          SELECT 
+            COALESCE(SUM(COALESCE(amount, "amountRequested")), 0) AS "totalVolume",
+            COUNT(*) AS "totalCount"
+          FROM "Transaction"
+          WHERE status = 'SUCCESS' 
+            AND type = 'FUNDING'
+            AND (provider != 'thimslog_internal' OR provider IS NULL);
+        `,
+        prisma.order.aggregate({
+          where: { status: "COMPLETED" },
+          _sum: { totalAmount: true },
+          _count: { _all: true },
         }),
         prisma.transaction.aggregate({
           where: { status: "PENDING" },
@@ -70,8 +74,8 @@ export async function GET() {
         }),
       ]);
 
-      successRevenue = Number(successFundingAgg._sum.amountRequested || successFundingAgg._sum.amount || 0);
-      successCount = successFundingAgg._count || 0;
+      successRevenue = Number(fundingRows?.[0]?.totalVolume || 0);
+      successCount = Number(fundingRows?.[0]?.totalCount || 0);
       pendingCount = pCount;
       pendingVolume = Number(pendingAgg._sum.amountRequested || 0);
       allTransactionsCount = allCount;

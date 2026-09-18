@@ -26,6 +26,22 @@ export async function GET(
         userName: true,
         email: true,
         phoneNumber: true,
+        referralCode: true,
+        referredById: true,
+        referredBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            userName: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            referrals: true,
+          },
+        },
         createdAt: true,
         updatedAt: true,
         wallet: {

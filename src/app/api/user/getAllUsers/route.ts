@@ -64,6 +64,16 @@ export async function GET(request: NextRequest) {
           userName: true,
           email: true,
           phoneNumber: true,
+          referralCode: true,
+          referredById: true,
+          referredBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              userName: true,
+            },
+          },
           createdAt: true,
           updatedAt: true,
           wallet: {

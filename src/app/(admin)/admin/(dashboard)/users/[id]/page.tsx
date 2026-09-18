@@ -5,114 +5,31 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  User as UserIcon,
-  Wallet,
-  Building2,
   Copy,
   Check,
-  CreditCard,
-  ArrowDownLeft,
-  ArrowUpRight,
-  RotateCcw,
   RefreshCw,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Eye,
-  X,
-  Phone,
-  Mail,
-  Calendar,
-  ShieldCheck,
   Receipt,
   Package,
   Search,
-  ExternalLink,
   Trash2,
-  AlertTriangle,
-  Loader2,
 } from "lucide-react";
 import { useAdminPage } from "@/context/admin-page-context";
-import { StatusPill } from "@/components/admin/status-pill";
-import { PlatformIcon } from "@/lib/platform-icons";
 import { toast } from "@/components/ui/toast";
-
-interface UserDetail {
-  id: string;
-  firstName: string;
-  lastName: string;
-  userName: string;
-  email: string;
-  phoneNumber: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface WalletDetail {
-  id: string;
-  balance: number;
-  currency: string;
-  paymonetraCustomer: string | null;
-  bankName: string | null;
-  accountNumber: string | null;
-  accountName: string | null;
-  virtualAccountReference: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface TransactionDetail {
-  id: string;
-  walletId: string;
-  type: string;
-  status: string;
-  amountRequested: number | string;
-  amount: number | string | null;
-  merchantReference: string;
-  paymonetraReference?: string | null;
-  collectionReference?: string | null;
-  provider: string;
-  metadata?: any;
-  createdAt: string;
-}
-
-interface OrderAccount {
-  id: string;
-  name?: string | null;
-  username?: string | null;
-  email?: string | null;
-  url?: string | null;
-  country?: string | null;
-  followers?: number | null;
-  status: string;
-  notes?: string | null;
-  loginInstructions?: string | null;
-}
-
-interface OrderDetail {
-  id: string;
-  quantity: number;
-  unitPrice: number;
-  totalAmount: number;
-  status: string;
-  createdAt: string;
-  accountType: {
-    id: string;
-    name: string;
-    category?: string;
-  } | null;
-  accounts: OrderAccount[];
-}
-
-interface UserStats {
-  totalTransactions: number;
-  totalOrders: number;
-  totalFunded: number;
-  totalSpent: number;
-  successCount: number;
-  pendingCount: number;
-  failedCount: number;
-}
+import {
+  UserDetail,
+  WalletDetail,
+  TransactionDetail,
+  OrderDetail,
+  UserStats,
+  UserProfileCard,
+  UserWalletCard,
+  UserStatsCards,
+  UserTransactionsTable,
+  UserOrdersTable,
+  UserOrderDetailModal,
+  UserTransactionModal,
+  UserDeleteModal,
+} from "@/components/admin/user-detail";
 
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   minimumFractionDigits: 2,
@@ -259,7 +176,7 @@ export default function SingleUserPage({
     }
   };
 
-  const getToneForStatus = (status: string) => {
+  const getToneForStatus = (status: string): "good" | "warn" | "bad" | "neutral" => {
     switch (status) {
       case "SUCCESS":
       case "COMPLETED":
@@ -373,213 +290,31 @@ export default function SingleUserPage({
         </div>
       </div>
 
-      {/* User Information Profile Card & Virtual Account Grid */}
+      {/* Profile & Wallet Details Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Card */}
-        <div className="lg:col-span-1 rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] p-6 shadow-xs space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 text-white flex items-center justify-center text-2xl font-black shadow-md shadow-sky-500/20 shrink-0">
-              {user.firstName?.[0] || "U"}
-              {user.lastName?.[0] || ""}
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">
-                {user.firstName} {user.lastName}
-              </h2>
-              <p className="text-xs font-semibold text-sky-600 dark:text-sky-400">
-                @{user.userName || "user"}
-              </p>
-              <div className="mt-1">
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Active Customer
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3 text-xs pt-2 border-t border-slate-100 dark:border-white/5">
-            <div className="flex items-center justify-between py-1.5">
-              <span className="text-slate-400 flex items-center gap-1.5">
-                <Mail size={13} /> Email
-              </span>
-              <div className="flex items-center gap-1 font-semibold text-slate-800 dark:text-slate-200">
-                <span className="truncate max-w-[170px]">{user.email}</span>
-                <button
-                  onClick={() => handleCopy(user.email, "email")}
-                  className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
-                >
-                  {copiedKey === "email" ? (
-                    <Check size={12} className="text-emerald-500" />
-                  ) : (
-                    <Copy size={12} />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between py-1.5 border-t border-slate-50 dark:border-white/5">
-              <span className="text-slate-400 flex items-center gap-1.5">
-                <Phone size={13} /> Phone
-              </span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {user.phoneNumber || "Not provided"}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between py-1.5 border-t border-slate-50 dark:border-white/5">
-              <span className="text-slate-400 flex items-center gap-1.5">
-                <Calendar size={13} /> Joined Date
-              </span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">
-                {formatDate(user.createdAt)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Dedicated Virtual Account & Wallet Card */}
-        <div className="lg:col-span-2 rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] p-6 shadow-xs flex flex-col justify-between space-y-6">
-          {/* Header & Balance Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-sky-700 text-white shadow-md">
-            <div>
-              <span className="text-[11px] font-bold tracking-widest uppercase text-sky-100">
-                WALLET BALANCE
-              </span>
-              <p className="text-3xl sm:text-4xl font-black mt-0.5 select-none">
-                {formatMoney(wallet?.balance || 0)}
-              </p>
-              <p className="text-xs text-sky-100/90 mt-1">
-                Currency: <span className="font-bold text-white">{wallet?.currency || "NGN"}</span>
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-white">
-                <Wallet size={24} />
-              </div>
-            </div>
-          </div>
-
-          {/* Virtual Account Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/5 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-medium">Bank Provider</span>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                  Active
-                </span>
-              </div>
-              <p className="text-sm font-bold text-slate-900 dark:text-white">
-                {wallet?.bankName || "Wema Bank"}
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/5 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-medium">Account Number</span>
-                {wallet?.accountNumber && (
-                  <button
-                    onClick={() => handleCopy(wallet.accountNumber!, "accountNum")}
-                    className="text-xs font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1 cursor-pointer"
-                  >
-                    {copiedKey === "accountNum" ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
-                    <span>{copiedKey === "accountNum" ? "Copied" : "Copy"}</span>
-                  </button>
-                )}
-              </div>
-              <p className="text-lg font-mono font-extrabold text-slate-900 dark:text-white tracking-wider">
-                {wallet?.accountNumber || "No account generated"}
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/5 space-y-1">
-              <span className="text-xs text-slate-400 font-medium">Account Name</span>
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
-                {wallet?.accountName || `${user.firstName} ${user.lastName}`}
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/5 space-y-1">
-              <span className="text-xs text-slate-400 font-medium">Customer Gateway Reference</span>
-              <p className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 truncate">
-                {wallet?.paymonetraCustomer || `wallet_${user.id}`}
-              </p>
-            </div>
-          </div>
-        </div>
+        <UserProfileCard
+          user={user}
+          copiedKey={copiedKey}
+          onCopy={handleCopy}
+          formatDate={formatDate}
+        />
+        <UserWalletCard
+          user={user}
+          wallet={wallet}
+          copiedKey={copiedKey}
+          onCopy={handleCopy}
+          formatMoney={formatMoney}
+        />
       </div>
 
       {/* Financial Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Funded */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Total Deposits
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <ArrowDownLeft size={16} />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
-            {formatMoney(stats?.totalFunded || 0)}
-          </p>
-          <p className="text-xs text-slate-400 mt-0.5">Lifetime funded volume</p>
-        </div>
+      <UserStatsCards
+        stats={stats}
+        ordersCount={orders.length}
+        formatMoney={formatMoney}
+      />
 
-        {/* Total Spent */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Total Spent
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-              <ArrowUpRight size={16} />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
-            {formatMoney(stats?.totalSpent || 0)}
-          </p>
-          <p className="text-xs text-slate-400 mt-0.5">Payments &amp; purchases</p>
-        </div>
-
-        {/* Total Orders */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-purple-600">
-              Orders Placed
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-              <Package size={16} />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-purple-700 dark:text-purple-400 mt-2">
-            {stats?.totalOrders ?? orders.length}
-          </p>
-          <p className="text-xs text-slate-400 mt-0.5">Completed product purchases</p>
-        </div>
-
-        {/* Successful Operations */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">
-              Success Txns
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 size={16} />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
-            {stats?.successCount ?? 0}
-          </p>
-          <p className="text-xs text-slate-400 mt-0.5">Completed transactions</p>
-        </div>
-      </div>
-
-      {/* ======================================================================= */}
-      {/* SCROLLABLE DATA TABLES SECTION WITH TABS                                */}
-      {/* ======================================================================= */}
+      {/* Scrollable Data Tables Section with Tabs */}
       <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] shadow-xs overflow-hidden">
         {/* Navigation Tabs Header & Search Filter */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -594,11 +329,13 @@ export default function SingleUserPage({
             >
               <Receipt size={14} />
               <span>Transactions</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                activeTab === "transactions"
-                  ? "bg-white/20 text-white"
-                  : "bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300"
-              }`}>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] ${
+                  activeTab === "transactions"
+                    ? "bg-white/20 text-white"
+                    : "bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300"
+                }`}
+              >
                 {transactions.length}
               </span>
             </button>
@@ -613,11 +350,13 @@ export default function SingleUserPage({
             >
               <Package size={14} />
               <span>Order History</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                activeTab === "orders"
-                  ? "bg-white/20 text-white"
-                  : "bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300"
-              }`}>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] ${
+                  activeTab === "orders"
+                    ? "bg-white/20 text-white"
+                    : "bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300"
+                }`}
+              >
                 {orders.length}
               </span>
             </button>
@@ -653,588 +392,62 @@ export default function SingleUserPage({
           </div>
         </div>
 
-        {/* ===================================================================== */}
-        {/* TAB 1: TRANSACTIONS TABLE (SCROLLABLE VIEWPORT)                       */}
-        {/* ===================================================================== */}
+        {/* Tab 1: Transactions Table */}
         {activeTab === "transactions" && (
-          <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#060a14] text-[11px] uppercase tracking-wider text-slate-400 font-bold">
-                <tr>
-                  <th className="px-5 py-3.5">Type</th>
-                  <th className="px-5 py-3.5">Amount</th>
-                  <th className="px-5 py-3.5">Status</th>
-                  <th className="px-5 py-3.5">Merchant Reference</th>
-                  <th className="px-5 py-3.5">Date</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs">
-                {filteredTransactions.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center text-slate-400">
-                      No transactions found for this user.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTransactions.map((tx) => {
-                    const isPending = tx.status === "PENDING";
-                    const isVerifying = verifyingId === tx.id;
-
-                    return (
-                      <tr
-                        key={tx.id}
-                        className="hover:bg-slate-50/60 dark:hover:bg-white/[0.02] transition-colors"
-                      >
-                        {/* Type */}
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`p-1.5 rounded-lg ${
-                                tx.type === "FUNDING"
-                                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10"
-                                  : tx.type === "PAYMENT"
-                                  ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10"
-                                  : "bg-amber-50 text-amber-600 dark:bg-amber-500/10"
-                              }`}
-                            >
-                              {tx.type === "FUNDING" ? (
-                                <ArrowDownLeft size={13} />
-                              ) : tx.type === "PAYMENT" ? (
-                                <ArrowUpRight size={13} />
-                              ) : (
-                                <RotateCcw size={13} />
-                              )}
-                            </span>
-                            <span className="font-bold text-slate-800 dark:text-slate-200">
-                              {tx.type}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Amount */}
-                        <td className="px-5 py-3.5">
-                          <p className={`font-extrabold ${
-                            tx.type === "PAYMENT"
-                              ? "text-rose-600 dark:text-rose-400"
-                              : "text-emerald-600 dark:text-emerald-400"
-                          }`}>
-                            {tx.type === "PAYMENT" ? "-" : "+"}
-                            {formatMoney(tx.amount || tx.amountRequested)}
-                          </p>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-5 py-3.5">
-                          <StatusPill
-                            label={tx.status}
-                            tone={getToneForStatus(tx.status)}
-                          />
-                        </td>
-
-                        {/* Reference */}
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1.5 font-mono text-slate-600 dark:text-slate-300">
-                            <span className="truncate max-w-[140px]">
-                              {tx.merchantReference}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(tx.merchantReference, tx.id)}
-                              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                            >
-                              {copiedKey === tx.id ? (
-                                <Check size={12} className="text-emerald-500" />
-                              ) : (
-                                <Copy size={12} />
-                              )}
-                            </button>
-                          </div>
-                        </td>
-
-                        {/* Date */}
-                        <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">
-                          {formatDate(tx.createdAt)}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-2">
-                            {isPending && (
-                              <button
-                                type="button"
-                                onClick={() => handleQueryTransaction(tx.id)}
-                                disabled={isVerifying}
-                                className="flex items-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-500/20 transition-colors cursor-pointer disabled:opacity-60"
-                                title="Query status from Paymonetra"
-                              >
-                                <RefreshCw
-                                  size={12}
-                                  className={isVerifying ? "animate-spin" : ""}
-                                />
-                                <span>{isVerifying ? "Checking..." : "Query"}</span>
-                              </button>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={() => setSelectedTx(tx)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                              title="View details"
-                            >
-                              <Eye size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+          <UserTransactionsTable
+            transactions={filteredTransactions}
+            verifyingId={verifyingId}
+            copiedKey={copiedKey}
+            onCopy={handleCopy}
+            onQueryTransaction={handleQueryTransaction}
+            onSelectTransaction={(tx) => setSelectedTx(tx)}
+            formatMoney={formatMoney}
+            formatDate={formatDate}
+            getToneForStatus={getToneForStatus}
+          />
         )}
 
-        {/* ===================================================================== */}
-        {/* TAB 2: ORDER HISTORY TABLE (SCROLLABLE VIEWPORT)                      */}
-        {/* ===================================================================== */}
+        {/* Tab 2: Orders Table */}
         {activeTab === "orders" && (
-          <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
-            <table className="w-full text-left text-sm font-sans">
-              <thead className="sticky top-0 z-10 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#060a14] text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
-                <tr>
-                  <th className="px-5 py-3.5">Product / Category</th>
-                  <th className="px-5 py-3.5">Order ID</th>
-                  <th className="px-5 py-3.5">Quantity</th>
-                  <th className="px-5 py-3.5">Total Amount</th>
-                  <th className="px-5 py-3.5">Status</th>
-                  <th className="px-5 py-3.5">Date</th>
-                  <th className="px-5 py-3.5 text-right">View Accounts</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs font-normal">
-                {filteredOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
-                      No orders placed by this user yet.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredOrders.map((ord) => {
-                    const title = ord.accountType?.name || "Social Account";
-                    return (
-                      <tr
-                        key={ord.id}
-                        className="hover:bg-slate-50/60 dark:hover:bg-white/[0.02] transition-colors"
-                      >
-                        {/* Product / Category */}
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            <PlatformIcon
-                              name={title}
-                              size={14}
-                              className="w-8 h-8 rounded-lg shrink-0"
-                            />
-                            <div>
-                              <p className="font-semibold text-slate-900 dark:text-white text-[13px]">
-                                {title}
-                              </p>
-                              {ord.accountType?.category && (
-                                <p className="text-[11px] text-slate-400 font-normal">
-                                  {ord.accountType.category}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Order ID */}
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1 font-mono text-slate-600 dark:text-slate-300">
-                            <span>{ord.id.slice(0, 8)}...</span>
-                            <button
-                              onClick={() => handleCopy(ord.id, ord.id)}
-                              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
-                            >
-                              {copiedKey === ord.id ? (
-                                <Check size={12} className="text-emerald-500" />
-                              ) : (
-                                <Copy size={12} />
-                              )}
-                            </button>
-                          </div>
-                        </td>
-
-                        {/* Quantity */}
-                        <td className="px-5 py-3.5">
-                          <span className="font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 px-2 py-0.5 rounded-md text-xs">
-                            {ord.quantity} pcs
-                          </span>
-                        </td>
-
-                        {/* Total Amount */}
-                        <td className="px-5 py-3.5">
-                          <span className="font-semibold text-slate-900 dark:text-white">
-                            {formatMoney(ord.totalAmount)}
-                          </span>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-5 py-3.5">
-                          <StatusPill
-                            label={ord.status}
-                            tone={getToneForStatus(ord.status)}
-                          />
-                        </td>
-
-                        {/* Date */}
-                        <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap font-normal">
-                          {formatDate(ord.createdAt)}
-                        </td>
-
-                        {/* View Accounts */}
-                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOrder(ord)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 text-xs font-medium transition-colors cursor-pointer"
-                          >
-                            <Eye size={13} />
-                            <span>Accounts ({ord.accounts.length})</span>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+          <UserOrdersTable
+            orders={filteredOrders}
+            copiedKey={copiedKey}
+            onCopy={handleCopy}
+            onSelectOrder={(ord) => setSelectedOrder(ord)}
+            formatMoney={formatMoney}
+            formatDate={formatDate}
+            getToneForStatus={getToneForStatus}
+          />
         )}
       </div>
 
-      {/* ======================================================================= */}
-      {/* ORDER DETAILS & ACCOUNTS MODAL                                          */}
-      {/* ======================================================================= */}
-      {selectedOrder && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
-          onClick={() => setSelectedOrder(null)}
-        >
-          <div
-            className="w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 p-6 shadow-2xl space-y-5 max-h-[88vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
-              <div className="flex items-center gap-3">
-                <PlatformIcon
-                  name={selectedOrder.accountType?.name || "Order"}
-                  size={18}
-                  className="w-9 h-9 rounded-xl"
-                />
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    {selectedOrder.accountType?.name || "Order Details"}
-                  </h3>
-                  <p className="text-xs text-slate-400 font-mono">
-                    Order ID: {selectedOrder.id}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5"
-              >
-                <X size={18} />
-              </button>
-            </div>
+      {/* Modals */}
+      <UserOrderDetailModal
+        selectedOrder={selectedOrder}
+        copiedKey={copiedKey}
+        onClose={() => setSelectedOrder(null)}
+        onCopy={handleCopy}
+        formatMoney={formatMoney}
+        formatDate={formatDate}
+      />
 
-            {/* Summary Bar */}
-            <div className="grid grid-cols-3 gap-3 p-3.5 bg-slate-50 dark:bg-white/5 rounded-2xl text-xs">
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-medium">Total Paid</span>
-                <span className="font-semibold text-slate-900 dark:text-white text-sm">
-                  {formatMoney(selectedOrder.totalAmount)}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-medium">Quantity</span>
-                <span className="font-medium text-purple-700 dark:text-purple-300">
-                  {selectedOrder.quantity} Accounts
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-medium">Date</span>
-                <span className="font-normal text-slate-700 dark:text-slate-300">
-                  {formatDate(selectedOrder.createdAt)}
-                </span>
-              </div>
-            </div>
+      <UserTransactionModal
+        selectedTx={selectedTx}
+        onClose={() => setSelectedTx(null)}
+        formatMoney={formatMoney}
+        formatDate={formatDate}
+        getToneForStatus={getToneForStatus}
+      />
 
-            {/* Accounts Delivered List */}
-            <div className="space-y-3 pt-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                Purchased Account Credentials ({selectedOrder.accounts.length})
-              </span>
-
-              {selectedOrder.accounts.map((acc, idx) => (
-                <div
-                  key={acc.id || idx}
-                  className="p-4 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/10 space-y-2.5 text-xs shadow-2xs"
-                >
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-normal text-slate-400 text-xs">
-                        #{idx + 1}
-                      </span>
-                      <span className="font-mono font-medium text-purple-600 dark:text-purple-400">
-                        {acc.username || acc.name || acc.id}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() =>
-                        handleCopy(
-                          `${acc.username || acc.id} | ${acc.loginInstructions || ""} | ${acc.notes || ""}`,
-                          `acc_${idx}`
-                        )
-                      }
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-lg cursor-pointer"
-                    >
-                      {copiedKey === `acc_${idx}` ? (
-                        <Check size={12} className="text-emerald-500" />
-                      ) : (
-                        <Copy size={12} />
-                      )}
-                      <span>{copiedKey === `acc_${idx}` ? "Copied" : "Copy"}</span>
-                    </button>
-                  </div>
-
-                  {acc.loginInstructions && (
-                    <div>
-                      <span className="text-slate-400 text-[10px] uppercase font-medium block mb-1">
-                        Credentials / Login Instructions:
-                      </span>
-                      <div className="p-2.5 bg-slate-50 dark:bg-white/5 rounded-xl font-mono text-xs text-slate-900 dark:text-white break-all select-all border border-slate-100 dark:border-white/5 font-normal">
-                        {acc.loginInstructions}
-                      </div>
-                    </div>
-                  )}
-
-                  {acc.notes && (
-                    <div>
-                      <span className="text-slate-400 text-[10px] uppercase font-medium block mb-0.5">
-                        Notes:
-                      </span>
-                      <p className="text-slate-600 dark:text-slate-300 text-xs font-normal leading-relaxed">
-                        {acc.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setSelectedOrder(null)}
-                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-800 dark:text-white text-xs font-bold transition-colors cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================================= */}
-      {/* TRANSACTION DETAILS MODAL                                               */}
-      {/* ======================================================================= */}
-      {selectedTx && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
-          onClick={() => setSelectedTx(null)}
-        >
-          <div
-            className="w-full max-w-lg rounded-3xl bg-white dark:bg-[#0b101b] border border-slate-200 dark:border-white/10 p-6 shadow-2xl space-y-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Transaction Details
-              </h3>
-              <button
-                onClick={() => setSelectedTx(null)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] uppercase font-bold text-slate-400">
-                  Amount
-                </span>
-                <p className="text-2xl font-black text-slate-900 dark:text-white">
-                  {formatMoney(selectedTx.amount || selectedTx.amountRequested)}
-                </p>
-              </div>
-              <StatusPill
-                label={selectedTx.status}
-                tone={getToneForStatus(selectedTx.status)}
-              />
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
-                <span className="text-slate-400">Type</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200 uppercase">
-                  {selectedTx.type}
-                </span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
-                <span className="text-slate-400">Merchant Reference</span>
-                <span className="font-mono font-medium text-slate-900 dark:text-white">
-                  {selectedTx.merchantReference}
-                </span>
-              </div>
-              {selectedTx.paymonetraReference && (
-                <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-slate-400">Gateway Reference</span>
-                  <span className="font-mono font-medium text-slate-900 dark:text-white">
-                    {selectedTx.paymonetraReference}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-400">Created Date</span>
-                <span className="text-slate-700 dark:text-slate-300">
-                  {formatDate(selectedTx.createdAt)}
-                </span>
-              </div>
-            </div>
-
-            {selectedTx.metadata && (
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Metadata
-                </span>
-                <pre className="p-3 rounded-xl bg-slate-900 text-slate-100 text-[11px] font-mono overflow-x-auto max-h-36">
-                  {JSON.stringify(selectedTx.metadata, null, 2)}
-                </pre>
-              </div>
-            )}
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setSelectedTx(null)}
-                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-800 dark:text-white text-xs font-bold transition-colors cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete User Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white dark:bg-[#0b101b] rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="p-5 pb-3 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                  <Trash2 size={18} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-                    Delete User Account
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    This action cannot be undone.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => !deleting && setShowDeleteModal(false)}
-                disabled={deleting}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-5 space-y-4 text-xs">
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                Are you sure you want to permanently delete the account of{" "}
-                <strong className="text-slate-900 dark:text-white font-bold">
-                  {user.firstName} {user.lastName}
-                </strong>{" "}
-                (<span className="font-mono text-sky-600 dark:text-sky-400">@{user.userName}</span>)?
-              </p>
-
-              {/* User Summary Pill */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 space-y-2">
-                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>Email:</span>
-                  <span className="font-mono font-medium text-slate-800 dark:text-slate-200">{user.email}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>Wallet Balance:</span>
-                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    ₦{Number(wallet?.balance || 0).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
-
-              {/* Warning Notice */}
-              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/20 text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
-                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <p className="leading-normal text-[11.5px]">
-                  All associated wallet transactions, support tickets, and notifications will be deleted. Any un-transferred balances will be removed.
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/5 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                disabled={deleting}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteUser}
-                disabled={deleting}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                {deleting ? (
-                  <>
-                    <Loader2 size={13} className="animate-spin" />
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 size={13} />
-                    <span>Delete User</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <UserDeleteModal
+        isOpen={showDeleteModal}
+        user={user}
+        wallet={wallet}
+        deleting={deleting}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirmDelete={handleDeleteUser}
+        formatMoney={formatMoney}
+      />
     </div>
   );
 }

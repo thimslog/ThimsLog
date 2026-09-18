@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Users,
   Boxes,
+  ShoppingBag,
   Settings,
   Terminal,
   X,
@@ -61,12 +62,17 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    title: "Catalog",
+    title: "Catalog & Sales",
     items: [
       {
         href: "/admin/inventory",
         label: "Inventory",
         icon: Boxes,
+      },
+      {
+        href: "/admin/orders",
+        label: "Order History",
+        icon: ShoppingBag,
       },
     ],
   },

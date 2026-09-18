@@ -1,97 +1,21 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import {
-  Search,
-  RefreshCw,
-  Wallet,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Loader2,
-  ExternalLink,
-  Trash2,
-  AlertTriangle,
-} from "lucide-react";
-
+import { Loader2 } from "lucide-react";
 import { useAdminPage } from "@/context/admin-page-context";
 import { toast } from "@/components/ui/toast";
+import {
+  Pagination,
+  UserRecord,
+  UsersResponse,
+  UsersSearchHeader,
+  UsersTable,
+  DeleteUserModal,
+  UsersPagination,
+} from "@/components/admin/users";
 
 const PAGE_SIZE = 10;
-
-interface WalletInfo {
-  balance: string | number;
-  currency: string;
-}
-
-interface UserApiRecord {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  userName: string;
-  phoneNumber?: string;
-  createdAt: string;
-  updatedAt?: string;
-  wallet?: WalletInfo | null;
-}
-
-interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-}
-
-interface UsersResponse {
-  success: boolean;
-  message: string;
-  data: {
-    users: UserApiRecord[];
-    pagination: Pagination;
-  };
-}
-
-interface UserRecord {
-  id: string;
-  name: string;
-  email: string;
-  username: string;
-  phoneNumber?: string;
-  balance: number;
-  currency: string;
-  joinedAt: string;
-  lastActive: string;
-}
-
-const currencyFormatter = new Intl.NumberFormat("en-NG", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-function formatMoney(value: string | number | null | undefined) {
-  if (value === null || value === undefined) return "₦0.00";
-  return `₦${currencyFormatter.format(Number(value))}`;
-}
-
-function formatDate(iso: string) {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-}
 
 function UsersContent() {
   const { setPageTitle } = useAdminPage();
@@ -117,27 +41,6 @@ function UsersContent() {
   const [deleting, setDeleting] = useState(false);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleDeleteUser = async () => {
-    if (!userToDelete) return;
-    try {
-      setDeleting(true);
-      const res = await fetch(`/api/admin/users/${userToDelete.id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to delete user");
-      }
-      toast.success(data.message || "User deleted successfully");
-      setUserToDelete(null);
-      fetchUsers(page, debouncedSearch);
-    } catch (err: any) {
-      toast.error(err.message || "An error occurred while deleting user");
-    } finally {
-      setDeleting(false);
-    }
-  };
 
   // Core fetch function
   const fetchUsers = useCallback(async (targetPage: number, search: string) => {
@@ -174,6 +77,16 @@ function UsersContent() {
         email: user.email,
         username: user.userName,
         phoneNumber: user.phoneNumber,
+        referralCode: user.referralCode,
+        referredBy: user.referredBy
+          ? {
+              id: user.referredBy.id,
+              name:
+                `${user.referredBy.firstName || ""} ${user.referredBy.lastName || ""}`.trim() ||
+                user.referredBy.userName,
+              username: user.referredBy.userName,
+            }
+          : null,
         balance:
           user.wallet?.balance !== undefined ? Number(user.wallet.balance) : 0,
         currency: user.wallet?.currency || "NGN",
@@ -192,6 +105,27 @@ function UsersContent() {
       setLoading(false);
     }
   }, []);
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      setDeleting(true);
+      const res = await fetch(`/api/admin/users/${userToDelete.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete user");
+      }
+      toast.success(data.message || "User deleted successfully");
+      setUserToDelete(null);
+      fetchUsers(page, debouncedSearch);
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred while deleting user");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Live debounce for typing in search input (350ms)
   const handleSearchChange = (value: string) => {
@@ -305,359 +239,39 @@ function UsersContent() {
       )}
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#0b101b] p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
-        {/* Live Search Input Form */}
-        <form
-          onSubmit={handleSearchSubmit}
-          className="relative flex-1 max-w-md flex items-center"
-        >
-          <Search
-            size={16}
-            className="absolute left-3.5 text-slate-400 pointer-events-none"
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search by name, email, @username or phone..."
-            className="w-full pl-9 pr-9 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-600 dark:focus:border-sky-500 transition-colors"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={handleClearSearch}
-              className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-md cursor-pointer transition-colors"
-              title="Clear search"
-            >
-              <X size={13} />
-            </button>
-          )}
-        </form>
-
-        {/* Refresh & Action Controls */}
-        <div className="flex items-center justify-end gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
-            title="Refresh user list"
-          >
-            <RefreshCw
-              size={14}
-              className={`text-slate-500 dark:text-slate-400 ${loading ? "animate-spin text-sky-600 dark:text-sky-400" : ""}`}
-            />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Active Search Filter Badge */}
-      {debouncedSearch && (
-        <div className="flex items-center justify-between px-1 text-xs text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-2">
-            <span>
-              Search results for{" "}
-              <strong className="text-slate-900 dark:text-white">
-                &ldquo;{debouncedSearch}&rdquo;
-              </strong>
-            </span>
-            <button
-              onClick={handleClearSearch}
-              className="text-sky-600 dark:text-sky-400 hover:underline font-semibold cursor-pointer"
-            >
-              Reset filter
-            </button>
-          </div>
-          {pagination && (
-            <span>{pagination.total} match{pagination.total === 1 ? "" : "es"} found</span>
-          )}
-        </div>
-      )}
+      <UsersSearchHeader
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+        onSearchSubmit={handleSearchSubmit}
+        onClearSearch={handleClearSearch}
+        onRefresh={handleRefresh}
+        loading={loading}
+        debouncedSearch={debouncedSearch}
+        pagination={pagination}
+      />
 
       {/* Users Table */}
-      <section className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="border-b border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.02]">
-              <tr className="text-[11.5px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
-                <th className="px-5 py-3.5">Customer Name</th>
-                <th className="px-5 py-3.5">Email</th>
-                <th className="px-5 py-3.5">Username</th>
-                <th className="px-5 py-3.5">Wallet Balance</th>
-                <th className="px-5 py-3.5">Joined Date</th>
-                <th className="px-5 py-3.5">Last Active</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody
-              className={`divide-y divide-slate-100 dark:divide-white/5 text-xs transition-opacity duration-150 ${
-                loading ? "opacity-50 pointer-events-none" : "opacity-100"
-              }`}
-            >
-              {loading && users.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-5 py-14 text-center text-[13px] text-slate-400"
-                  >
-                    <div className="flex items-center justify-center gap-2.5">
-                      <Loader2 size={18} className="animate-spin text-sky-600 dark:text-sky-400" />
-                      <span>Loading customers...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-5 py-14 text-center text-[13px] text-slate-400 dark:text-slate-500"
-                  >
-                    {debouncedSearch
-                      ? `No customers found matching "${debouncedSearch}"`
-                      : "No users found in database."}
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="hover:bg-slate-50/60 dark:hover:bg-white/[0.03] transition-colors"
-                  >
-                    {/* Customer Name */}
-                    <td className="px-5 py-3.5 font-semibold text-slate-900 dark:text-white">
-                      <Link
-                        href={`/admin/users/${user.id}`}
-                        className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors flex items-center gap-2"
-                      >
-                        <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 flex items-center justify-center text-[11px] font-bold shrink-0">
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="truncate max-w-[160px]">{user.name}</span>
-                      </Link>
-                    </td>
-
-                    {/* Email */}
-                    <td className="px-5 py-3.5 font-mono text-slate-600 dark:text-slate-300 text-[12px]">
-                      {user.email}
-                    </td>
-
-                    {/* Username */}
-                    <td className="px-5 py-3.5 font-mono text-sky-700 dark:text-sky-400 font-medium">
-                      @{user.username}
-                    </td>
-
-                    {/* Wallet Balance */}
-                    <td className="px-5 py-3.5">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono font-bold text-[12px]">
-                        <Wallet size={12} className="text-emerald-600 dark:text-emerald-400" />
-                        <span>{formatMoney(user.balance)}</span>
-                      </div>
-                    </td>
-
-                    {/* Joined Date */}
-                    <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                      {formatDate(user.joinedAt)}
-                    </td>
-
-                    {/* Last Active */}
-                    <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                      {formatDate(user.lastActive)}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Link
-                          href={`/admin/users/${user.id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-500/20 text-xs font-semibold transition-colors cursor-pointer"
-                        >
-                          <span>View Details</span>
-                          <ExternalLink size={11} />
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setUserToDelete(user)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-xs font-semibold transition-colors cursor-pointer"
-                          title={`Delete ${user.name}`}
-                        >
-                          <Trash2 size={12} />
-                          <span className="hidden sm:inline">Delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <UsersTable
+        users={users}
+        loading={loading}
+        debouncedSearch={debouncedSearch}
+        onSelectUserToDelete={(user) => setUserToDelete(user)}
+      />
 
       {/* Pagination Footer */}
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-2 py-2">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Showing Page <span className="font-bold text-slate-900 dark:text-white">{pagination.page}</span> of{" "}
-            <span className="font-bold text-slate-900 dark:text-white">{pagination.totalPages}</span> ({pagination.total} total customers)
-          </p>
-
-          <div className="flex items-center gap-1.5">
-            {/* Previous button */}
-            <button
-              type="button"
-              disabled={!pagination.hasPreviousPage}
-              onClick={() => handlePageChange(page - 1)}
-              className="flex items-center gap-1 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-            >
-              <ChevronLeft size={14} />
-              <span>Previous</span>
-            </button>
-
-            {/* Page number indicators */}
-            <div className="flex items-center gap-1 px-1">
-              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                .filter((p) => {
-                  return (
-                    p === 1 ||
-                    p === pagination.totalPages ||
-                    Math.abs(p - pagination.page) <= 1
-                  );
-                })
-                .map((pageNum, idx, arr) => {
-                  const prev = arr[idx - 1];
-                  const hasGap = prev && pageNum - prev > 1;
-
-                  return (
-                    <div key={pageNum} className="flex items-center">
-                      {hasGap && (
-                        <span className="px-1 text-slate-400 text-xs select-none">...</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`h-7 min-w-[28px] px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                          pageNum === page
-                            ? "bg-sky-600 text-white font-bold shadow-xs"
-                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    </div>
-                  );
-                })}
-            </div>
-
-            {/* Next button */}
-            <button
-              type="button"
-              disabled={!pagination.hasNextPage}
-              onClick={() => handlePageChange(page + 1)}
-              className="flex items-center gap-1 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-            >
-              <span>Next</span>
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      )}
+      <UsersPagination
+        pagination={pagination}
+        page={page}
+        onPageChange={handlePageChange}
+      />
 
       {/* Delete User Confirmation Modal */}
-      {userToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white dark:bg-[#0b101b] rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="p-5 pb-3 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                  <Trash2 size={18} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-                    Delete User Account
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    This action cannot be undone.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => !deleting && setUserToDelete(null)}
-                disabled={deleting}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-5 space-y-4 text-xs">
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                Are you sure you want to permanently delete the account of{" "}
-                <strong className="text-slate-900 dark:text-white font-bold">
-                  {userToDelete.name}
-                </strong>{" "}
-                (<span className="font-mono text-sky-600 dark:text-sky-400">@{userToDelete.username}</span>)?
-              </p>
-
-              {/* User Summary Pill */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 space-y-2">
-                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>Email:</span>
-                  <span className="font-mono font-medium text-slate-800 dark:text-slate-200">{userToDelete.email}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>Wallet Balance:</span>
-                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    {formatMoney(userToDelete.balance)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Warning Notice */}
-              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/20 text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
-                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <p className="leading-normal text-[11.5px]">
-                  All associated wallet transactions, support tickets, and notifications will be deleted. Any un-transferred balances will be removed.
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/5 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setUserToDelete(null)}
-                disabled={deleting}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteUser}
-                disabled={deleting}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                {deleting ? (
-                  <>
-                    <Loader2 size={13} className="animate-spin" />
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 size={13} />
-                    <span>Delete User</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteUserModal
+        userToDelete={userToDelete}
+        deleting={deleting}
+        onClose={() => setUserToDelete(null)}
+        onConfirmDelete={handleDeleteUser}
+      />
     </main>
   );
 }
