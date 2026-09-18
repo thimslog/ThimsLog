@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "../../../../../generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/get-current-user";
+import { reconcilePendingTransactions } from "@/lib/reconcile-transactions";
 
 export async function GET() {
   const userData = await getCurrentUser();
@@ -18,11 +19,28 @@ export async function GET() {
     return NextResponse.json({ transactions: [] });
   }
 
-  // Oldest-first so we can walk a running balance, then reverse for display.
-  const transactions = await prisma.transaction.findMany({
+  // 1. Fetch transactions
+  let transactions = await prisma.transaction.findMany({
     where: { walletId: wallet.id },
     orderBy: { createdAt: "asc" },
   });
+
+  // 2. Opportunistic reconciliation for any pending transactions
+  const hasPending = transactions.some((t) => t.status === "PENDING" && t.provider !== "thimslog_internal");
+  if (hasPending) {
+    try {
+      const recResult = await reconcilePendingTransactions({ walletId: wallet.id, limit: 10 });
+      if (recResult.updatedCount > 0) {
+        // Re-fetch with latest statuses
+        transactions = await prisma.transaction.findMany({
+          where: { walletId: wallet.id },
+          orderBy: { createdAt: "asc" },
+        });
+      }
+    } catch (err) {
+      console.warn("Opportunistic transaction reconciliation error:", err);
+    }
+  }
 
   let runningBalance = new Prisma.Decimal(0);
   const withBalances = transactions.map((tx) => {

@@ -297,6 +297,24 @@ Customers can send wallet balance to any registered Thimslog customer with zero 
   - **TopBar**: Features a quick "Customer App" button linking to `/dashboard`.
   - **Sidebar Footer**: Features a "Customer Portal" link with `ArrowLeftRight` icon above the profile & logout card.
 
+### 8.5 Automated Transaction Reconciliation Engine
+- **Core Engine** (`src/lib/reconcile-transactions.ts`):
+  - Fetches `PENDING` transactions within the last 72 hours.
+  - Checks status against Paymonetra gateway via `getPayment(reference)`.
+  - Performs atomic double-entry updates in `prisma.$transaction`.
+  - Credits wallet balance for `SUCCESS`, `OVERPAID`, or `UNDERPAID` funding transactions.
+  - Automatically expires transactions older than 24 hours that cannot be resolved on the gateway.
+  - Automatically dispatches in-app `WALLET_FUNDED` notification upon settlement.
+- **Dedicated Webhook/Cron Endpoint** (`/api/cron/reconcile-transactions`):
+  - Accepts `GET` and `POST` requests.
+  - Supports authorization via `CRON_SECRET` header or `?secret=...` query parameter.
+- **Multi-Layer Trigger Strategy for Vercel Free (Hobby) Tier**:
+  1. **Opportunistic On-Access Reconciliation**: Reconciles user pending payments automatically whenever `/api/wallet/transactions` is fetched.
+  2. **Free 15-Minute GitHub Actions Workflow** (`.github/workflows/reconcile-transactions.yml`): Runs on schedule `*/15 * * * *` with zero cost.
+  3. **External Free Cron (Cron-Job.org / Upstash)**: Pings `/api/cron/reconcile-transactions` on custom schedules.
+  4. **Daily Fallback Vercel Cron** (`vercel.json`): Runs `0 0 * * *` as a safety net.
+
+
 
 ---
 
