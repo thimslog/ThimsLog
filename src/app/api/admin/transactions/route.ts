@@ -83,13 +83,14 @@ export async function GET(request: NextRequest) {
 
     let stats: Array<{
       status: string;
+      type: string;
       _count: { _all: number };
       _sum: { amount: any; amountRequested: any };
     }> = [];
 
     try {
       stats = (await prisma.transaction.groupBy({
-        by: ["status"],
+        by: ["status", "type"],
         _count: { _all: true },
         _sum: { amount: true, amountRequested: true },
       })) as any;
@@ -97,11 +98,17 @@ export async function GET(request: NextRequest) {
       console.warn("Could not aggregate metrics summary:", aggErr);
     }
 
-    // Aggregate summary statistics
+    // Aggregate summary statistics separated by transaction type
     let successCount = 0;
     let pendingCount = 0;
     let failedCount = 0;
     let totalSuccessVolume = 0;
+
+    let totalFundingVolume = 0;
+    let totalFundingCount = 0;
+    let totalPaymentVolume = 0;
+    let totalPaymentCount = 0;
+    let totalTransferVolume = 0;
 
     stats.forEach((item) => {
       const count = item._count?._all || 0;
@@ -110,6 +117,16 @@ export async function GET(request: NextRequest) {
       if (item.status === "SUCCESS") {
         successCount += count;
         totalSuccessVolume += sum;
+
+        if (item.type === "FUNDING") {
+          totalFundingVolume += sum;
+          totalFundingCount += count;
+        } else if (item.type === "PAYMENT") {
+          totalPaymentVolume += sum;
+          totalPaymentCount += count;
+        } else if (item.type === "TRANSFER_SENT" || item.type === "TRANSFER_RECEIVED") {
+          totalTransferVolume += sum;
+        }
       } else if (item.status === "PENDING") {
         pendingCount += count;
       } else if (item.status === "FAILED") {
@@ -139,6 +156,11 @@ export async function GET(request: NextRequest) {
         metrics: {
           totalCountAll,
           totalSuccessVolume,
+          totalFundingVolume,
+          totalFundingCount,
+          totalPaymentVolume,
+          totalPaymentCount,
+          totalTransferVolume,
           successCount,
           pendingCount,
           failedCount,

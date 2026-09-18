@@ -31,6 +31,11 @@ export interface TransactionRecord {
 export interface Metrics {
   totalCountAll: number;
   totalSuccessVolume: number;
+  totalFundingVolume: number;
+  totalFundingCount: number;
+  totalPaymentVolume: number;
+  totalPaymentCount: number;
+  totalTransferVolume?: number;
   successCount: number;
   pendingCount: number;
   failedCount: number;

@@ -26,14 +26,20 @@ export async function GET() {
 
     try {
       const [
-        successAgg,
+        successFundingAgg,
+        successPaymentAgg,
         pendingAgg,
         pCount,
         allCount,
         txList,
       ] = await Promise.all([
         prisma.transaction.aggregate({
-          where: { status: "SUCCESS" },
+          where: { status: "SUCCESS", type: "FUNDING" },
+          _sum: { amountRequested: true, amount: true },
+          _count: true,
+        }),
+        prisma.transaction.aggregate({
+          where: { status: "SUCCESS", type: "PAYMENT" },
           _sum: { amountRequested: true, amount: true },
           _count: true,
         }),
@@ -64,8 +70,8 @@ export async function GET() {
         }),
       ]);
 
-      successRevenue = Number(successAgg._sum.amountRequested || 0);
-      successCount = successAgg._count || 0;
+      successRevenue = Number(successFundingAgg._sum.amountRequested || successFundingAgg._sum.amount || 0);
+      successCount = successFundingAgg._count || 0;
       pendingCount = pCount;
       pendingVolume = Number(pendingAgg._sum.amountRequested || 0);
       allTransactionsCount = allCount;
