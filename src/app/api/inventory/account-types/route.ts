@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAdmin } from "@/lib/jwt";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 // 1. CREATE ACCOUNT TYPE (POST)
 export async function POST(req: Request) {
   try {
+    const admin = await getCurrentAdmin();
     const { name, description, price, categoryId } = await req.json();
 
     if (!name || !categoryId) {
@@ -51,6 +54,21 @@ export async function POST(req: Request) {
         categoryId,
       },
     });
+
+    if (admin) {
+      await recordAdminAudit(
+        req,
+        { id: admin.adminId, email: admin.email },
+        {
+          action: "PRODUCT_CREATED",
+          entityId: accountType.id,
+          entityType: "INVENTORY",
+          entityLabel: accountType.name,
+          description: `Admin ${admin.email} created product "${accountType.name}" in category "${category.name}" at ${nigeriaTime()}`,
+          metadata: { name, description, price, categoryName: category.name },
+        }
+      );
+    }
 
     return NextResponse.json(
       {

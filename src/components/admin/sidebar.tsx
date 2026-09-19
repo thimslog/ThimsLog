@@ -20,6 +20,7 @@ import {
   MessageSquare,
   ArrowLeftRight,
   UserCircle,
+  ScrollText,
 } from "lucide-react";
 import { useAuth } from "@/context/admin-auth-context";
 import { toast } from "@/components/ui/toast";
@@ -113,6 +114,11 @@ const navGroups: NavGroup[] = [
         href: "/admin/help-center",
         label: "Help Center",
         icon: LifeBuoy,
+      },
+      {
+        href: "/admin/audit-logs",
+        label: "Audit Logs",
+        icon: ScrollText,
       },
       {
         href: "/admin/settings",

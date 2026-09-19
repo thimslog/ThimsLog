@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAdmin } from "@/lib/jwt";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 // 1. CREATE INVENTORY ACCOUNT (POST)
 export async function POST(req: Request) {
   try {
+    const admin = await getCurrentAdmin();
     const {
       accountTypeId,
       name,
@@ -51,6 +54,21 @@ export async function POST(req: Request) {
         loginInstructions: loginInstructions ? String(loginInstructions).trim() : null,
       },
     });
+
+    if (admin) {
+      await recordAdminAudit(
+        req,
+        { id: admin.adminId, email: admin.email },
+        {
+          action: "ACCOUNT_ADDED",
+          entityId: account.id,
+          entityType: "INVENTORY",
+          entityLabel: account.username || account.name || accountType.name,
+          description: `Admin ${admin.email} added account item (@${account.username || account.name || "N/A"}) to product "${accountType.name}" at ${nigeriaTime()}`,
+          metadata: { accountTypeId, username: account.username, email: account.email },
+        }
+      );
+    }
 
     return NextResponse.json(
       {

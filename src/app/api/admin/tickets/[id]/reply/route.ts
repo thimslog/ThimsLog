@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { fallbackTickets, FallbackResponse } from "@/lib/ticket-store";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 export async function POST(
   request: NextRequest,
@@ -31,6 +32,8 @@ export async function POST(
       `${admin.firstName || ""} ${admin.lastName || ""}`.trim() ||
       admin.userName ||
       "Support Admin";
+
+    let replyResult: any = null;
 
     try {
       if ((prisma as any).ticketResponse && (prisma as any).supportTicket) {
@@ -65,45 +68,64 @@ export async function POST(
           data: updateData,
         });
 
-        return NextResponse.json({
-          success: true,
-          message: "Response sent successfully",
-          data: reply,
-        });
+        replyResult = reply;
       }
     } catch (dbErr) {
       console.warn("DB admin reply failed, using fallback:", dbErr);
     }
 
-    const fbTicket = fallbackTickets.find((t) => t.id === id);
-    if (!fbTicket) {
-      return NextResponse.json(
-        { success: false, message: "Ticket not found" },
-        { status: 404 }
-      );
+    if (!replyResult) {
+      const fbTicket = fallbackTickets.find((t) => t.id === id);
+      if (!fbTicket) {
+        return NextResponse.json(
+          { success: false, message: "Ticket not found" },
+          { status: 404 }
+        );
+      }
+
+      const fallbackReply: FallbackResponse = {
+        id: `resp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        ticketId: id,
+        senderType: "ADMIN",
+        senderName,
+        message: message.trim(),
+        createdAt: new Date().toISOString(),
+      };
+
+      if (!fbTicket.responses) fbTicket.responses = [];
+      fbTicket.responses.push(fallbackReply);
+
+      if (status && ["OPEN", "RESOLVED", "CLOSED"].includes(status)) {
+        fbTicket.status = status;
+      }
+      fbTicket.updatedAt = new Date().toISOString();
+      replyResult = fallbackReply;
     }
 
-    const fallbackReply: FallbackResponse = {
-      id: `resp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      ticketId: id,
-      senderType: "ADMIN",
-      senderName,
-      message: message.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
-    if (!fbTicket.responses) fbTicket.responses = [];
-    fbTicket.responses.push(fallbackReply);
-
-    if (status && ["OPEN", "RESOLVED", "CLOSED"].includes(status)) {
-      fbTicket.status = status;
-    }
-    fbTicket.updatedAt = new Date().toISOString();
+    // Record Audit Log
+    await recordAdminAudit(
+      request,
+      { id: admin.adminId, email: admin.email },
+      {
+        action: "TICKET_REPLIED",
+        entityId: id,
+        entityType: "TICKET",
+        entityLabel: `Ticket #${id.slice(-6)}`,
+        description: `Admin ${admin.email} sent a reply on ticket #${id.slice(-6)}${
+          status ? ` and updated status to ${status}` : ""
+        } at ${nigeriaTime()}`,
+        metadata: {
+          ticketId: id,
+          status,
+          messagePreview: message.trim().slice(0, 100),
+        },
+      }
+    );
 
     return NextResponse.json({
       success: true,
       message: "Response sent successfully",
-      data: fallbackReply,
+      data: replyResult,
     });
   } catch (error) {
     console.error("Admin ticket reply error:", error);

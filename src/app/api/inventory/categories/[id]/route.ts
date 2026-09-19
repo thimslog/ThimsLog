@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAdmin } from "@/lib/jwt";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 // Next.js passes dynamic URL parameters in the second argument context
 export async function PATCH(
@@ -7,6 +9,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const admin = await getCurrentAdmin();
     // In newer Next.js versions, params must be awaited
     const { id } = await context.params;
 
@@ -33,6 +36,21 @@ export async function PATCH(
       },
     });
 
+    if (admin) {
+      await recordAdminAudit(
+        req,
+        { id: admin.adminId, email: admin.email },
+        {
+          action: "CATEGORY_UPDATED",
+          entityId: id,
+          entityType: "INVENTORY",
+          entityLabel: updatedCategory.name,
+          description: `Admin ${admin.email} updated category "${updatedCategory.name}" at ${nigeriaTime()}`,
+          metadata: { name, description, status },
+        }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       message: "Category updated successfully",
@@ -53,6 +71,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const admin = await getCurrentAdmin();
     // Await the dynamic URL parameter context
     const { id } = await context.params;
 
@@ -70,6 +89,21 @@ export async function DELETE(
     await prisma.inventoryCategory.delete({
       where: { id },
     });
+
+    if (admin) {
+      await recordAdminAudit(
+        req,
+        { id: admin.adminId, email: admin.email },
+        {
+          action: "CATEGORY_DELETED",
+          entityId: id,
+          entityType: "INVENTORY",
+          entityLabel: category.name,
+          description: `Admin ${admin.email} deleted category "${category.name}" at ${nigeriaTime()}`,
+          metadata: { id, name: category.name },
+        }
+      );
+    }
 
     return NextResponse.json({
       success: true,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { fallbackTickets } from "@/lib/ticket-store";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 export async function GET(
   request: NextRequest,
@@ -88,6 +89,8 @@ export async function PATCH(
     const body = await request.json();
     const { status, priority } = body;
 
+    let ticketData = null;
+
     try {
       if ((prisma as any).supportTicket) {
         const updateData: any = {};
@@ -99,32 +102,51 @@ export async function PATCH(
           data: updateData,
         });
 
-        return NextResponse.json({
-          success: true,
-          message: "Ticket updated successfully",
-          data: updated,
-        });
+        ticketData = updated;
       }
     } catch (dbErr) {
       console.warn("DB admin ticket patch failed, using fallback:", dbErr);
     }
 
-    const fb = fallbackTickets.find((t) => t.id === id);
-    if (!fb) {
-      return NextResponse.json(
-        { success: false, message: "Ticket not found" },
-        { status: 404 }
-      );
+    if (!ticketData) {
+      const fb = fallbackTickets.find((t) => t.id === id);
+      if (!fb) {
+        return NextResponse.json(
+          { success: false, message: "Ticket not found" },
+          { status: 404 }
+        );
+      }
+
+      if (status) fb.status = status;
+      if (priority) fb.priority = priority;
+      fb.updatedAt = new Date().toISOString();
+      ticketData = fb;
     }
 
-    if (status) fb.status = status;
-    if (priority) fb.priority = priority;
-    fb.updatedAt = new Date().toISOString();
+    // Record Audit Log
+    await recordAdminAudit(
+      request,
+      { id: admin.adminId, email: admin.email },
+      {
+        action: "TICKET_UPDATED",
+        entityId: id,
+        entityType: "TICKET",
+        entityLabel: `Ticket #${id.slice(-6)}`,
+        description: `Admin ${admin.email} updated ticket #${id.slice(-6)}${
+          status ? ` status to ${status}` : ""
+        }${priority ? ` priority to ${priority}` : ""} at ${nigeriaTime()}`,
+        metadata: {
+          ticketId: id,
+          newStatus: status,
+          newPriority: priority,
+        },
+      }
+    );
 
     return NextResponse.json({
       success: true,
       message: "Ticket updated successfully",
-      data: fb,
+      data: ticketData,
     });
   } catch (error) {
     console.error("Admin patch ticket error:", error);

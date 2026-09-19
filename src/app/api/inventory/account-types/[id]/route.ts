@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAdmin } from "@/lib/jwt";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 // 1. UPDATE ACCOUNT TYPE (PATCH)
 export async function PATCH(
@@ -7,6 +9,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const admin = await getCurrentAdmin();
     // Await the dynamic URL ID parameter
     const { id } = await context.params;
 
@@ -34,6 +37,21 @@ export async function PATCH(
       },
     });
 
+    if (admin) {
+      await recordAdminAudit(
+        req,
+        { id: admin.adminId, email: admin.email },
+        {
+          action: "PRODUCT_UPDATED",
+          entityId: id,
+          entityType: "INVENTORY",
+          entityLabel: updated.name,
+          description: `Admin ${admin.email} updated product "${updated.name}" at ${nigeriaTime()}`,
+          metadata: { name, description, price, categoryId },
+        }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       message: "Account type updated successfully",
@@ -55,6 +73,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const admin = await getCurrentAdmin();
     // Await the dynamic URL ID parameter
     const { id } = await context.params;
 
@@ -72,6 +91,21 @@ export async function DELETE(
     await prisma.accountType.delete({
       where: { id },
     });
+
+    if (admin) {
+      await recordAdminAudit(
+        req,
+        { id: admin.adminId, email: admin.email },
+        {
+          action: "PRODUCT_DELETED",
+          entityId: id,
+          entityType: "INVENTORY",
+          entityLabel: accountType.name,
+          description: `Admin ${admin.email} deleted product "${accountType.name}" at ${nigeriaTime()}`,
+          metadata: { id, name: accountType.name },
+        }
+      );
+    }
 
     return NextResponse.json({
       success: true,

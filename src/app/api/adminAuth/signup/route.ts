@@ -3,7 +3,7 @@ import { signupAdminSchema } from "@/lib/validations/admin";
 import { generateVerificationToken } from "@/lib/token";
 import { sendUserAddedEmail } from "@/lib/email";
 import { getCurrentAdmin } from "@/lib/jwt";
-import { writeAudit, nigeriaTime } from "@/lib/audit";
+import { writeAudit, recordAdminAudit, nigeriaTime } from "@/lib/audit";
 import { success, failure, handleError } from "@/lib/apiResponse";
 import { AdminRole } from "../../../../../generated/prisma/client";
 
@@ -73,19 +73,29 @@ export async function POST(request: Request) {
     });
 
     // 6. Audit
-    await writeAudit({
-      adminId: currentAdmin?.adminId ?? "",
-      adminEmail: currentAdmin?.email ?? "",
-      entityId: admin.id,
-      action: "ADMIN_SIGNUP",
-      entityType: "ADMIN",
-      entityLabel: admin.email,
-      description: `Admin ${admin.firstName} ${admin.lastName} (${admin.email}) was created at ${nigeriaTime()} by ${
-        currentAdmin
-          ? `(${currentAdmin.adminId}) (${currentAdmin.firstName}) (${currentAdmin.lastName}) (${currentAdmin.email})`
-          : "System"
-      }`,
-    });
+    await recordAdminAudit(
+      request,
+      {
+        id: currentAdmin?.adminId ?? "SYSTEM",
+        email: currentAdmin?.email ?? "system@thimslog.com",
+      },
+      {
+        entityId: admin.id,
+        action: "ADMIN_SIGNUP",
+        entityType: "ADMIN",
+        entityLabel: admin.email,
+        description: `Admin ${admin.firstName} ${admin.lastName} (${admin.email}) was invited/created at ${nigeriaTime()} by ${
+          currentAdmin
+            ? `${currentAdmin.firstName} ${currentAdmin.lastName} (${currentAdmin.email})`
+            : "System"
+        }`,
+        metadata: {
+          role: resolvedRole,
+          email: admin.email,
+          phone: phoneNumber,
+        },
+      }
+    );
 
     return success("Admin created. Set password email sent.", admin, 201);
   } catch (error) {

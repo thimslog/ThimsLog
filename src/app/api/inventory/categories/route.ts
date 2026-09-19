@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAdmin } from "@/lib/jwt";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 export async function POST(req: Request) {
   try {
+    const admin = await getCurrentAdmin();
     // In Next.js, you must await the JSON body parse
     const { name, description, status } = await req.json();
 
@@ -27,6 +30,21 @@ export async function POST(req: Request) {
     const category = await prisma.inventoryCategory.create({
       data: { name, description, status },
     });
+
+    if (admin) {
+      await recordAdminAudit(
+        req,
+        { id: admin.adminId, email: admin.email },
+        {
+          action: "CATEGORY_CREATED",
+          entityId: category.id,
+          entityType: "INVENTORY",
+          entityLabel: category.name,
+          description: `Admin ${admin.email} created category "${category.name}" at ${nigeriaTime()}`,
+          metadata: { name, description, status },
+        }
+      );
+    }
 
     return NextResponse.json(
       {

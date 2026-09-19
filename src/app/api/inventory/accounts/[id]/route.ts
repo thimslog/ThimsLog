@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAdmin } from "@/lib/jwt";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 // 1. UPDATE INVENTORY ACCOUNT (PUT & PATCH)
 export async function PUT(
@@ -7,6 +9,7 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await getCurrentAdmin();
     // Await the dynamic URL ID parameter
     const { id } = await context.params;
 
@@ -56,6 +59,21 @@ export async function PUT(
       },
     });
 
+    if (admin) {
+      await recordAdminAudit(
+        req,
+        { id: admin.adminId, email: admin.email },
+        {
+          action: "ACCOUNT_UPDATED",
+          entityId: id,
+          entityType: "INVENTORY",
+          entityLabel: updated.username || updated.name || id,
+          description: `Admin ${admin.email} updated account item (@${updated.username || updated.name || id}) at ${nigeriaTime()}`,
+          metadata: { status, username: updated.username, country: updated.country },
+        }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       message: "Account updated successfully",
@@ -84,6 +102,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await getCurrentAdmin();
     // Await the dynamic URL ID parameter
     const { id } = await context.params;
 
@@ -101,6 +120,21 @@ export async function DELETE(
     await prisma.inventoryAccount.delete({
       where: { id },
     });
+
+    if (admin) {
+      await recordAdminAudit(
+        req,
+        { id: admin.adminId, email: admin.email },
+        {
+          action: "ACCOUNT_DELETED",
+          entityId: id,
+          entityType: "INVENTORY",
+          entityLabel: account.username || account.name || id,
+          description: `Admin ${admin.email} deleted account item (@${account.username || account.name || id}) at ${nigeriaTime()}`,
+          metadata: { id, username: account.username },
+        }
+      );
+    }
 
     return NextResponse.json({
       success: true,

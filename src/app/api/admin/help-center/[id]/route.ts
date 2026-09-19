@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 export async function PATCH(
   req: NextRequest,
@@ -63,6 +64,20 @@ export async function PATCH(
       );
     }
 
+    // Record Audit Log
+    await recordAdminAudit(
+      req,
+      { id: admin.adminId, email: admin.email },
+      {
+        action: "HELP_LINK_UPDATED",
+        entityId: id,
+        entityType: "HELP_CENTER",
+        entityLabel: updatedLink?.title || title || id,
+        description: `Admin ${admin.email} updated help resource link "${updatedLink?.title || title || id}" at ${nigeriaTime()}`,
+        metadata: dataToUpdate,
+      }
+    );
+
     return NextResponse.json({
       success: true,
       message: "Help Center link updated successfully",
@@ -91,6 +106,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    let deletedTitle = id;
 
     try {
       if ((prisma as any).helpCenterLink) {
@@ -98,6 +114,7 @@ export async function DELETE(
           where: { id },
         });
         if (existing) {
+          deletedTitle = existing.title;
           await (prisma as any).helpCenterLink.delete({
             where: { id },
           });
@@ -110,6 +127,20 @@ export async function DELETE(
         { status: 500 }
       );
     }
+
+    // Record Audit Log
+    await recordAdminAudit(
+      req,
+      { id: admin.adminId, email: admin.email },
+      {
+        action: "HELP_LINK_DELETED",
+        entityId: id,
+        entityType: "HELP_CENTER",
+        entityLabel: deletedTitle,
+        description: `Admin ${admin.email} deleted help resource link "${deletedTitle}" at ${nigeriaTime()}`,
+        metadata: { id, title: deletedTitle },
+      }
+    );
 
     return NextResponse.json({
       success: true,

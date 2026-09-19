@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdmin, createAdminJWT, setAdminCookie } from "@/lib/jwt";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 // GET current admin's full profile
 export async function GET() {
@@ -180,6 +181,25 @@ export async function PATCH(request: NextRequest) {
       role: updatedAdmin.role,
     });
     await setAdminCookie(newToken);
+
+    // Record Audit Log
+    await recordAdminAudit(
+      request,
+      { id: updatedAdmin.id, email: updatedAdmin.email },
+      {
+        action: newPassword ? "ADMIN_PASSWORD_CHANGED" : "ADMIN_PROFILE_UPDATED",
+        entityId: updatedAdmin.id,
+        entityType: "ADMIN",
+        entityLabel: updatedAdmin.email,
+        description: newPassword
+          ? `Admin ${updatedAdmin.email} updated profile details and changed password at ${nigeriaTime()}`
+          : `Admin ${updatedAdmin.email} updated profile details at ${nigeriaTime()}`,
+        metadata: {
+          updatedFields: Object.keys(updateData).filter((k) => k !== "password"),
+          hasPasswordChanged: !!newPassword,
+        },
+      }
+    );
 
     return NextResponse.json({
       success: true,

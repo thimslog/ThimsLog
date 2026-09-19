@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
+import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -149,6 +150,26 @@ export async function POST(req: NextRequest) {
           message: "Database schema might need push: " + (dbErr?.message || ""),
         },
         { status: 500 }
+      );
+    }
+
+    // Record Audit Log
+    if (createdLink) {
+      await recordAdminAudit(
+        req,
+        { id: admin.adminId, email: admin.email },
+        {
+          action: "HELP_LINK_CREATED",
+          entityId: createdLink.id,
+          entityType: "HELP_CENTER",
+          entityLabel: createdLink.title,
+          description: `Admin ${admin.email} created help resource link "${createdLink.title}" (${createdLink.section}) at ${nigeriaTime()}`,
+          metadata: {
+            title: createdLink.title,
+            url: createdLink.url,
+            section: createdLink.section,
+          },
+        }
       );
     }
 
