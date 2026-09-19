@@ -111,11 +111,13 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ user }) => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // 2. React Query for recent orders (30s cache)
+  // 2. React Query for recent orders
   const { data: ordersData, isLoading: loadingOrders } = useQuery({
-    queryKey: ["inventory", "user", "orders"],
+    queryKey: ["inventory", "user", "orders", user?.id],
     queryFn: () => apiGet<{ success: boolean; data: RecentOrder[] }>("/api/inventory/user/orders"),
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    enabled: !!user?.id,
   });
 
   const categories = categoriesData?.data || [];

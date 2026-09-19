@@ -77,8 +77,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Sign out error:", error);
     } finally {
+      queryClient.clear();
       queryClient.setQueryData(ADMIN_AUTH_QUERY_KEY, null);
-      queryClient.removeQueries({ queryKey: ADMIN_AUTH_QUERY_KEY });
     }
   };
 

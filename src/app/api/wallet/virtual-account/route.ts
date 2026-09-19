@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/get-current-user";
 import { createVirtualAccount } from "@/services/paymonetra";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const userData = await getCurrentUser();
@@ -27,18 +30,25 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      wallet: {
-        id: wallet.id,
-        balance: Number(wallet.balance),
-        currency: wallet.currency,
-        bankName: wallet.bankName,
-        accountNumber: wallet.accountNumber,
-        accountName: wallet.accountName,
-        virtualAccountReference: wallet.virtualAccountReference,
+    return NextResponse.json(
+      {
+        success: true,
+        wallet: {
+          id: wallet.id,
+          balance: Number(wallet.balance),
+          currency: wallet.currency,
+          bankName: wallet.bankName,
+          accountNumber: wallet.accountNumber,
+          accountName: wallet.accountName,
+          virtualAccountReference: wallet.virtualAccountReference,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("GET virtual-account error:", error);
     return NextResponse.json(

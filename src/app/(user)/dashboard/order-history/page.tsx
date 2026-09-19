@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import Link from "next/link";
+import { useAuth } from "@/context/auth-context";
 import { apiGet } from "@/lib/api-client";
 import {
   OrderItem,
@@ -13,15 +14,18 @@ import {
 } from "@/components/dashboard/order-history";
 
 export default function OrderHistoryPage() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // React Query for User Orders
   const { data: ordersData, isLoading: loading } = useQuery({
-    queryKey: ["inventory", "user", "orders"],
+    queryKey: ["inventory", "user", "orders", user?.id],
     queryFn: () => apiGet<{ success: boolean; data: OrderItem[] }>("/api/inventory/user/orders"),
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    enabled: !!user?.id,
   });
 
   const orders = ordersData?.data || [];

@@ -140,10 +140,11 @@ export const Sidebar = ({ admin, open, onClose }: SidebarProps) => {
       setLoggingOut(true);
       await signOut();
       toast.success("Logged out successfully");
-      router.push("/admin/login");
+      window.location.href = "/admin/login";
     } catch (error) {
       console.error("Logout failed:", error);
       toast.error("Failed to log out");
+      window.location.href = "/admin/login";
     } finally {
       setLoggingOut(false);
     }

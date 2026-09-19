@@ -4,19 +4,29 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/get-current-user";
 import { reconcilePendingTransactions } from "@/lib/reconcile-transactions";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   const userData = await getCurrentUser();
   const userId = userData?.id;
   if (!userId) {
     return NextResponse.json(
       { message: "Unauthorized Access" },
-      { status: 401 },
+      { status: 401 }
     );
   }
 
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
   if (!wallet) {
-    return NextResponse.json({ transactions: [] });
+    return NextResponse.json(
+      { transactions: [] },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        },
+      }
+    );
   }
 
   // 1. Fetch transactions
@@ -79,9 +89,16 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({
-    success: true,
-    message: "Transaction fetched successfully",
-    transactions: withBalances.reverse(),
-  });
+  return NextResponse.json(
+    {
+      success: true,
+      message: "Transaction fetched successfully",
+      transactions: withBalances.reverse(),
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      },
+    }
+  );
 }

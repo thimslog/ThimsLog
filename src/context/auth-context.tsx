@@ -98,8 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Sign out error:", error);
     } finally {
+      queryClient.cancelQueries();
       queryClient.setQueryData(USER_AUTH_QUERY_KEY, null);
-      queryClient.removeQueries({ queryKey: USER_AUTH_QUERY_KEY });
+      queryClient.clear();
     }
   };
 

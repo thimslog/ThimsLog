@@ -40,9 +40,11 @@ function WalletContent() {
     isFetching: refreshing,
     refetch,
   } = useQuery({
-    queryKey: ["wallet", "virtual-account"],
+    queryKey: ["wallet", "virtual-account", user?.id],
     queryFn: () => apiGet<{ success: boolean; wallet: WalletData }>("/api/wallet/virtual-account"),
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    enabled: !!user?.id,
   });
 
   const wallet: WalletData | null = walletResponse?.wallet || (user?.wallet ? {

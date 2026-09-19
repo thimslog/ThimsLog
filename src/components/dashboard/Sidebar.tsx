@@ -43,8 +43,11 @@ const Sidebar: React.FC<SidebarProps> = ({ user, open = false, onClose }) => {
   }, [pathname]);
 
   const handleLogout = async () => {
-    await signOut();
-    router.push("/signin");
+    try {
+      await signOut();
+    } finally {
+      window.location.href = "/signin";
+    }
   };
 
   const handleSwitchToAdmin = async () => {

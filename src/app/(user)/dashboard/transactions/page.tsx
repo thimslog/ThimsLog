@@ -27,9 +27,11 @@ export default function TransactionsPage() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["wallet", "transactions"],
+    queryKey: ["wallet", "transactions", user?.id],
     queryFn: () => apiGet<{ transactions: TransactionRow[] }>("/api/wallet/transactions"),
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    enabled: !!user?.id,
   });
 
   const transactions = transactionsData?.transactions || [];
