@@ -86,7 +86,7 @@ function RegisterForm() {
       }
       await refreshUser();
 
-      router.replace("/dashboard");
+      window.location.href = "/dashboard";
     } catch (error) {
       setError("Something went wrong. Please try again.");
       setLoading(false);

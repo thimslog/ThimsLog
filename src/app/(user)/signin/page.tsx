@@ -55,7 +55,7 @@ export default function SignInPage() {
       }
       await refreshUser();
 
-      router.replace("/dashboard");
+      window.location.href = "/dashboard";
     } catch (error) {
       console.error(error);
       setError("Something went wrong. Please try again.");

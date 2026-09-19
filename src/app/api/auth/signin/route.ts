@@ -67,11 +67,31 @@ export async function POST(request: Request) {
     // Remove password
     const { password: _, ...userWithoutPassword } = user;
 
+    // Check if the user's email exists in the Admin table
+    let isAdmin = false;
+    let adminRole: string | null = null;
+    try {
+      const matchingAdmin = await prisma.admin.findUnique({
+        where: { email: user.email.trim().toLowerCase() },
+        select: { id: true, role: true, status: true },
+      });
+      if (matchingAdmin && matchingAdmin.status === "ACTIVE") {
+        isAdmin = true;
+        adminRole = matchingAdmin.role;
+      }
+    } catch (err) {
+      console.warn("Could not check admin status for user:", err);
+    }
+
     const response = NextResponse.json(
       {
         success: true,
         message: "Signed in successfully",
-        user: userWithoutPassword,
+        user: {
+          ...userWithoutPassword,
+          isAdmin,
+          adminRole,
+        },
       },
       { status: 200 }
     );
