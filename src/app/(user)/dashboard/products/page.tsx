@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Headphones } from "lucide-react";
-import { getPlatformConfig, PlatformIcon } from "@/lib/platform-icons";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
+import { PlatformIcon } from "@/lib/platform-icons";
+import { apiGet } from "@/lib/api-client";
 
 interface AccountTypeDTO {
   id: string;
@@ -21,8 +22,6 @@ interface CategoryDTO {
 
 const formatNaira = (n: number) =>
   `₦${n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-
 
 function AvailabilityTag({ available }: { available: number }) {
   return available > 0 ? (
@@ -100,20 +99,21 @@ function AccountTypeCard({
 
 export default function ProductCatalog() {
   const router = useRouter();
-  const [categories, setCategories] = useState<CategoryDTO[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch("/api/inventory/user/categories")
-      .then((r) => r.json())
-      .then((j) => setCategories(j.data ?? []))
-      .finally(() => setLoading(false));
-  }, []);
+  // Cached product catalog - 5 minutes staleTime
+  const { data: categoriesData, isLoading: loading } = useQuery({
+    queryKey: ["inventory", "categories"],
+    queryFn: () => apiGet<{ success: boolean; data: CategoryDTO[] }>("/api/inventory/user/categories"),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const categories = categoriesData?.data || [];
 
   if (loading)
     return (
-      <div className="min-h-[50vh] flex items-center justify-center text-slate-400">
-        Loading...
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-2 text-slate-400">
+        <Loader2 size={24} className="animate-spin text-sky-600" />
+        <span className="text-xs">Loading product catalog...</span>
       </div>
     );
 
@@ -143,9 +143,6 @@ export default function ProductCatalog() {
           </div>
         </section>
       ))}
-      <button className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-white/10 flex items-center justify-center text-sky-600 dark:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
-        <Headphones size={20} />
-      </button>
     </div>
   );
 }

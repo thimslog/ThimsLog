@@ -1,7 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import { Loader2, CheckCircle2, AlertTriangle, XCircle, X } from "lucide-react";
 import { useAdminPage } from "@/context/admin-page-context";
 import { toast } from "@/components/ui/toast";
@@ -22,15 +24,12 @@ function AdminTransactionsContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const initialPage = Math.max(Number(searchParams.get("page")) || 1, 1);
   const initialStatus = searchParams.get("status") || "ALL";
   const initialType = searchParams.get("type") || "ALL";
   const initialSearch = searchParams.get("search") || "";
-
-  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
 
   const [page, setPage] = useState(initialPage);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
@@ -38,10 +37,7 @@ function AdminTransactionsContent() {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [appliedSearch, setAppliedSearch] = useState(initialSearch);
 
-  const [loading, setLoading] = useState(true);
   const [exportingCsv, setExportingCsv] = useState(false);
-  const [error, setError] = useState("");
-
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Verification & Feedback State
@@ -55,6 +51,83 @@ function AdminTransactionsContent() {
   const [selectedTx, setSelectedTx] = useState<TransactionRecord | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
+
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: "15",
+  });
+  if (statusFilter !== "ALL") queryParams.append("status", statusFilter);
+  if (typeFilter !== "ALL") queryParams.append("type", typeFilter);
+  if (appliedSearch.trim()) queryParams.append("search", appliedSearch.trim());
+
+  const {
+    data: rawData,
+    isLoading: loading,
+    isRefetching,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      "admin",
+      "transactions",
+      page,
+      statusFilter,
+      typeFilter,
+      appliedSearch,
+    ],
+    queryFn: () =>
+      apiGet<{
+        success: boolean;
+        data: {
+          transactions: TransactionRecord[];
+          pagination: Pagination;
+          metrics: Metrics;
+        };
+      }>(`/api/admin/transactions?${queryParams.toString()}`),
+    staleTime: 30 * 1000,
+  });
+
+  const transactions = rawData?.data?.transactions || [];
+  const pagination = rawData?.data?.pagination || null;
+  const metrics = rawData?.data?.metrics || null;
+  const error = queryError ? (queryError as any).message || "Failed to load transactions" : "";
+
+  const verifyMutation = useMutation({
+    mutationFn: (txId: string) =>
+      apiMutate<{
+        updated: boolean;
+        message?: string;
+        transaction?: TransactionRecord;
+      }>(`/api/admin/transactions/${txId}/verify`, "POST"),
+    onSuccess: (data, txId) => {
+      if (data.updated) {
+        const msg = data.message || "Transaction status updated successfully!";
+        setActionFeedback({ type: "success", message: msg });
+        toast.success(msg);
+      } else {
+        const msg =
+          data.message ||
+          "Transaction was queried. Gateway reported it is still pending.";
+        setActionFeedback({ type: "warn", message: msg });
+        toast.info(msg);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["admin", "transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+
+      if (selectedTx && selectedTx.id === txId && data.transaction) {
+        setSelectedTx(data.transaction);
+      }
+    },
+    onError: (err: any) => {
+      const errMsg = err?.message || "An error occurred while querying payment";
+      setActionFeedback({ type: "error", message: errMsg });
+      toast.error(errMsg);
+    },
+    onSettled: () => {
+      setVerifyingId(null);
+    },
+  });
 
   const handleExportCsv = async () => {
     try {
@@ -146,61 +219,6 @@ function AdminTransactionsContent() {
     }
   };
 
-  // Core fetch transactions function
-  const fetchTransactions = useCallback(
-    async (
-      requestedPage = page,
-      status = statusFilter,
-      type = typeFilter,
-      search = appliedSearch
-    ) => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const params = new URLSearchParams({
-          page: String(requestedPage),
-          limit: "15",
-        });
-
-        if (status !== "ALL") params.append("status", status);
-        if (type !== "ALL") params.append("type", type);
-        if (search.trim()) params.append("search", search.trim());
-
-        const res = await fetch(`/api/admin/transactions?${params.toString()}`, {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        const data = await res.json();
-
-        if (!res.ok || !data.success) {
-          throw new Error(data?.message || "Failed to fetch transactions");
-        }
-
-        setTransactions(data.data.transactions);
-        setPagination(data.data.pagination);
-        setMetrics(data.data.metrics);
-        setPage(data.data.pagination.page);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load transactions"
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [page, statusFilter, typeFilter, appliedSearch]
-  );
-
-  // Initial load
-  useEffect(() => {
-    fetchTransactions(initialPage, initialStatus, initialType, initialSearch);
-    return () => {
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    };
-  }, [fetchTransactions, initialPage, initialStatus, initialType, initialSearch]);
-
   // Handle browser Back / Forward history
   useEffect(() => {
     const handlePopState = () => {
@@ -215,12 +233,11 @@ function AdminTransactionsContent() {
       setTypeFilter(t);
       setAppliedSearch(q);
       setSearchQuery(q);
-      fetchTransactions(p, s, t, q);
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [fetchTransactions]);
+  }, []);
 
   useEffect(() => {
     setPageTitle({
@@ -258,21 +275,18 @@ function AdminTransactionsContent() {
     if (pagination && newPage > pagination.totalPages) return;
     setPage(newPage);
     updateUrl(newPage, statusFilter, typeFilter, appliedSearch);
-    fetchTransactions(newPage, statusFilter, typeFilter, appliedSearch);
   };
 
   const handleStatusChange = (newStatus: string) => {
     setStatusFilter(newStatus);
     setPage(1);
     updateUrl(1, newStatus, typeFilter, appliedSearch);
-    fetchTransactions(1, newStatus, typeFilter, appliedSearch);
   };
 
   const handleTypeChange = (newType: string) => {
     setTypeFilter(newType);
     setPage(1);
     updateUrl(1, statusFilter, newType, appliedSearch);
-    fetchTransactions(1, statusFilter, newType, appliedSearch);
   };
 
   // Live search debounce (350ms)
@@ -288,7 +302,6 @@ function AdminTransactionsContent() {
       setAppliedSearch(clean);
       setPage(1);
       updateUrl(1, statusFilter, typeFilter, clean, true);
-      fetchTransactions(1, statusFilter, typeFilter, clean);
     }, 350);
   };
 
@@ -301,7 +314,6 @@ function AdminTransactionsContent() {
     setAppliedSearch(clean);
     setPage(1);
     updateUrl(1, statusFilter, typeFilter, clean);
-    fetchTransactions(1, statusFilter, typeFilter, clean);
   };
 
   const handleClearSearch = () => {
@@ -312,55 +324,17 @@ function AdminTransactionsContent() {
     setAppliedSearch("");
     setPage(1);
     updateUrl(1, statusFilter, typeFilter, "");
-    fetchTransactions(1, statusFilter, typeFilter, "");
   };
 
-  const handleRefresh = () => {
-    fetchTransactions(page, statusFilter, typeFilter, appliedSearch);
+  const handleRefresh = async () => {
+    await refetch();
     toast.success("Transactions refreshed");
   };
 
-  const handleQueryTransaction = async (txId: string) => {
+  const handleQueryTransaction = (txId: string) => {
     setVerifyingId(txId);
     setActionFeedback(null);
-
-    try {
-      const res = await fetch(`/api/admin/transactions/${txId}/verify`, {
-        method: "POST",
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to query transaction");
-      }
-
-      if (data.updated) {
-        const msg = data.message || "Transaction status updated successfully!";
-        setActionFeedback({ type: "success", message: msg });
-        toast.success(msg);
-      } else {
-        const msg = data.message || "Transaction was queried. Gateway reported it is still pending.";
-        setActionFeedback({ type: "warn", message: msg });
-        toast.info(msg);
-      }
-
-      // Refresh list and modal
-      await fetchTransactions(page, statusFilter, typeFilter, appliedSearch);
-
-      if (selectedTx && selectedTx.id === txId && data.transaction) {
-        setSelectedTx(data.transaction);
-      }
-    } catch (err) {
-      const errMsg =
-        err instanceof Error
-          ? err.message
-          : "An error occurred while querying payment";
-      setActionFeedback({ type: "error", message: errMsg });
-      toast.error(errMsg);
-    } finally {
-      setVerifyingId(null);
-    }
+    verifyMutation.mutate(txId);
   };
 
   const handleCopy = (text: string, id: string) => {
@@ -412,7 +386,7 @@ function AdminTransactionsContent() {
         <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 dark:bg-rose-500/10 dark:border-rose-500/20 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">
           <span>{error}</span>
           <button
-            onClick={() => fetchTransactions(page, statusFilter, typeFilter, appliedSearch)}
+            onClick={() => refetch()}
             className="font-semibold underline cursor-pointer hover:opacity-80"
           >
             Retry
@@ -434,7 +408,7 @@ function AdminTransactionsContent() {
         onRefresh={handleRefresh}
         onExportCsv={handleExportCsv}
         exportingCsv={exportingCsv}
-        loading={loading}
+        loading={loading || isRefetching}
         appliedSearch={appliedSearch}
         totalTransactions={pagination?.total}
       />
@@ -443,7 +417,7 @@ function AdminTransactionsContent() {
       <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] shadow-xs overflow-hidden">
         <TransactionTable
           transactions={transactions}
-          loading={loading}
+          loading={loading || isRefetching}
           verifyingId={verifyingId}
           copiedRef={copiedRef}
           onCopy={handleCopy}
@@ -472,7 +446,10 @@ function AdminTransactionsContent() {
       <SyncPaymentModal
         isOpen={showSyncModal}
         onClose={() => setShowSyncModal(false)}
-        onSuccess={() => fetchTransactions(page, statusFilter, typeFilter, appliedSearch)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["admin", "transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+        }}
       />
     </div>
   );

@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api-client";
 import Link from "next/link";
 import {
   Plus,
@@ -37,34 +39,26 @@ interface SupportTicket {
 }
 
 export default function UserTicketsPage() {
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  const fetchTickets = async (showToast = false) => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/user/tickets", { cache: "no-store" });
-      const data = await res.json();
-      if (res.ok && data.success && Array.isArray(data.data)) {
-        setTickets(data.data);
-        if (showToast) {
-          toast.success("Tickets updated!");
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load user tickets:", err);
-      if (showToast) {
-        toast.error("Failed to refresh tickets");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data,
+    isLoading: loading,
+    isRefetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["tickets", "user"],
+    queryFn: () =>
+      apiGet<{ success: boolean; data: SupportTicket[] }>("/api/user/tickets"),
+    staleTime: 30 * 1000,
+  });
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
+  const tickets = data?.data || [];
+
+  const handleRefresh = async () => {
+    await refetch();
+    toast.success("Tickets updated!");
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -147,15 +141,15 @@ export default function UserTicketsPage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => fetchTickets(true)}
-            disabled={loading}
+            onClick={handleRefresh}
+            disabled={loading || isRefetching}
             className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#0b101b] hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
             title="Check for agent responses"
           >
             <RefreshCw
               size={14}
               className={`text-slate-500 dark:text-slate-400 ${
-                loading ? "animate-spin text-[#7c3aed]" : ""
+                loading || isRefetching ? "animate-spin text-[#7c3aed]" : ""
               }`}
             />
             <span>Refresh</span>

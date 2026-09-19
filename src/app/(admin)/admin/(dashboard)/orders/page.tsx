@@ -1,7 +1,9 @@
 "use client";
 
-import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api-client";
 import { Loader2 } from "lucide-react";
 import { useAdminPage } from "@/context/admin-page-context";
 import { toast } from "@/components/ui/toast";
@@ -43,28 +45,52 @@ function AdminOrdersContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const initialPage = Math.max(Number(searchParams.get("page")) || 1, 1);
   const initialStatus = searchParams.get("status") || "ALL";
   const initialSearch = searchParams.get("search") || "";
-
-  const [orders, setOrders] = useState<AdminOrderRecord[]>([]);
-  const [metrics, setMetrics] = useState<OrderMetrics | null>(null);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
 
   const [page, setPage] = useState(initialPage);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
 
-  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-  // Selected Order for Details Modal
   const [selectedOrder, setSelectedOrder] = useState<AdminOrderRecord | null>(null);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: String(PAGE_SIZE),
+  });
+  if (statusFilter !== "ALL") queryParams.append("status", statusFilter);
+  if (debouncedSearch.trim()) queryParams.append("search", debouncedSearch.trim());
+
+  const {
+    data: rawData,
+    isLoading: loading,
+    isRefetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin", "orders", page, statusFilter, debouncedSearch],
+    queryFn: () =>
+      apiGet<{
+        success: boolean;
+        data: {
+          orders: AdminOrderRecord[];
+          metrics: OrderMetrics;
+          pagination: Pagination;
+        };
+      }>(`/api/admin/orders?${queryParams.toString()}`),
+    staleTime: 30 * 1000,
+  });
+
+  const orders = rawData?.data?.orders || [];
+  const metrics = rawData?.data?.metrics || null;
+  const pagination = rawData?.data?.pagination || null;
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -73,56 +99,16 @@ function AdminOrdersContent() {
     toast.success("Copied to clipboard!");
   };
 
-  const fetchOrders = useCallback(
-    async (targetPage: number, search: string, status: string, showToast = false) => {
-      try {
-        setLoading(true);
-        const params = new URLSearchParams({
-          page: String(targetPage),
-          limit: String(PAGE_SIZE),
-        });
-
-        if (status !== "ALL") params.append("status", status);
-        if (search.trim()) params.append("search", search.trim());
-
-        const res = await fetch(`/api/admin/orders?${params.toString()}`, {
-          method: "GET",
-          cache: "no-store",
-        });
-        const json = await res.json();
-
-        if (json.success && json.data) {
-          setOrders(json.data.orders);
-          setMetrics(json.data.metrics);
-          setPagination(json.data.pagination);
-          setPage(json.data.pagination.page);
-          if (showToast) toast.success("Orders refreshed");
-        } else {
-          toast.error(json.message || "Failed to load orders");
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Network error loading orders");
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
   // Sync URL query parameters
-  const updateUrlParams = useCallback(
-    (newPage: number, newSearch: string, newStatus: string) => {
-      const params = new URLSearchParams();
-      if (newPage > 1) params.set("page", String(newPage));
-      if (newStatus !== "ALL") params.set("status", newStatus);
-      if (newSearch.trim()) params.set("search", newSearch.trim());
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (page > 1) params.set("page", String(page));
+    if (statusFilter !== "ALL") params.set("status", statusFilter);
+    if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
 
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    },
-    [pathname, router]
-  );
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [page, debouncedSearch, statusFilter, pathname, router]);
 
   useEffect(() => {
     setPageTitle({
@@ -130,11 +116,6 @@ function AdminOrdersContent() {
       subtitle: "Track, inspect, and manage customer account purchases and delivered credentials",
     });
   }, [setPageTitle]);
-
-  useEffect(() => {
-    fetchOrders(page, debouncedSearch, statusFilter);
-    updateUrlParams(page, debouncedSearch, statusFilter);
-  }, [page, debouncedSearch, statusFilter, fetchOrders, updateUrlParams]);
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -148,6 +129,11 @@ function AdminOrdersContent() {
   const handleStatusFilter = (newStatus: string) => {
     setStatusFilter(newStatus);
     setPage(1);
+  };
+
+  const handleRefresh = async () => {
+    await refetch();
+    toast.success("Orders refreshed");
   };
 
   // 1-Click CSV Export for Admin Orders
@@ -234,9 +220,9 @@ function AdminOrdersContent() {
       <AdminOrdersFilters
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
-        onRefresh={() => fetchOrders(page, debouncedSearch, statusFilter, true)}
+        onRefresh={handleRefresh}
         onExportCSV={handleExportCSV}
-        loading={loading}
+        loading={loading || isRefetching}
         exporting={exporting}
         statusFilter={statusFilter}
         onStatusFilter={handleStatusFilter}

@@ -1,6 +1,8 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -42,71 +44,53 @@ export default function UserTicketDetailPage({
 }) {
   const resolvedParams = use(params);
   const ticketId = resolvedParams.id;
+  const queryClient = useQueryClient();
 
-  const [ticket, setTicket] = useState<TicketDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [replyMessage, setReplyMessage] = useState("");
-  const [sending, setSending] = useState(false);
 
-  const fetchTicket = async (showToast = false) => {
-    try {
-      if (showToast) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
+  const {
+    data,
+    isLoading: loading,
+    isRefetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["tickets", "detail", ticketId],
+    queryFn: () =>
+      apiGet<{ success: boolean; data: TicketDetail }>(
+        `/api/user/tickets/${ticketId}`
+      ),
+    staleTime: 15 * 1000,
+  });
 
-      const res = await fetch(`/api/user/tickets/${ticketId}`, {
-        cache: "no-store",
+  const ticket = data?.data || null;
+
+  const replyMutation = useMutation({
+    mutationFn: (msg: string) =>
+      apiMutate(`/api/user/tickets/${ticketId}/reply`, "POST", {
+        message: msg,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["tickets", "detail", ticketId],
       });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setTicket(data.data);
-        if (showToast) {
-          toast.success("Conversation updated!");
-        }
-      } else {
-        toast.error(data.message || "Failed to load ticket");
-      }
-    } catch (err) {
-      console.error("Failed to load ticket:", err);
-      toast.error("Failed to load ticket");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTicket();
-  }, [ticketId]);
-
-  const handleSendReply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!replyMessage.trim()) return;
-
-    try {
-      setSending(true);
-      const res = await fetch(`/api/user/tickets/${ticketId}/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: replyMessage.trim() }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to send reply");
-      }
-
+      queryClient.invalidateQueries({ queryKey: ["tickets", "user"] });
       toast.success("Reply sent!");
       setReplyMessage("");
-      await fetchTicket();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send reply");
-    } finally {
-      setSending(false);
-    }
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to send reply");
+    },
+  });
+
+  const handleSendReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyMessage.trim() || replyMutation.isPending) return;
+    replyMutation.mutate(replyMessage.trim());
+  };
+
+  const handleRefresh = async () => {
+    await refetch();
+    toast.success("Conversation updated!");
   };
 
   const getStatusBadge = (status: string) => {
@@ -151,18 +135,18 @@ export default function UserTicketDetailPage({
 
         <button
           type="button"
-          onClick={() => fetchTicket(true)}
-          disabled={loading || refreshing}
+          onClick={handleRefresh}
+          disabled={loading || isRefetching}
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#0b101b] hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
           title="Check if support agent has replied"
         >
           <RefreshCw
             size={13}
             className={`text-slate-500 dark:text-slate-400 ${
-              refreshing || loading ? "animate-spin text-[#7c3aed]" : ""
+              isRefetching || loading ? "animate-spin text-[#7c3aed]" : ""
             }`}
           />
-          <span>{refreshing ? "Checking..." : "Check for Updates"}</span>
+          <span>{isRefetching ? "Checking..." : "Check for Updates"}</span>
         </button>
       </div>
 
@@ -331,15 +315,15 @@ export default function UserTicketDetailPage({
 
                   <button
                     type="submit"
-                    disabled={sending || !replyMessage.trim()}
+                    disabled={replyMutation.isPending || !replyMessage.trim()}
                     className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-bold shadow-md shadow-[#7c3aed]/25 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
                   >
-                    {sending ? (
+                    {replyMutation.isPending ? (
                       <Loader2 size={14} className="animate-spin" />
                     ) : (
                       <Send size={13} />
                     )}
-                    <span>{sending ? "Sending..." : "Send Reply"}</span>
+                    <span>{replyMutation.isPending ? "Sending..." : "Send Reply"}</span>
                   </button>
                 </div>
               </form>

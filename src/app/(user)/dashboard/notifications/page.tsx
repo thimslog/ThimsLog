@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import {
   Bell,
   Check,
@@ -30,71 +32,61 @@ interface NotificationItem {
 }
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
-  const [markingAll, setMarkingAll] = useState(false);
-  const [markingId, setMarkingId] = useState<string | null>(null);
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/user/notifications?limit=100");
-      if (!res.ok) throw new Error("Could not load notifications");
-      const data = await res.json();
-      setNotifications(data.notifications || []);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to load notifications");
-    } finally {
-      setLoading(false);
-    }
+  const {
+    data,
+    isLoading: loading,
+    isRefetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["user", "notifications", 100],
+    queryFn: () =>
+      apiGet<{ notifications: NotificationItem[]; unreadCount: number }>(
+        "/api/user/notifications?limit=100"
+      ),
+    staleTime: 30 * 1000,
+  });
+
+  const notifications = data?.notifications || [];
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiMutate("/api/user/notifications", "PATCH", {
+        action: "mark_read",
+        id,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user", "notifications"] });
+      toast.success("Notification marked as read");
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Could not update notification");
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () =>
+      apiMutate("/api/user/notifications", "PATCH", {
+        action: "mark_all_read",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user", "notifications"] });
+      toast.success("All notifications marked as read");
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to mark all notifications as read");
+    },
+  });
+
+  const handleMarkAsRead = (id: string) => {
+    markReadMutation.mutate(id);
   };
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-
-  const handleMarkAsRead = async (id: string) => {
-    setMarkingId(id);
-    try {
-      const res = await fetch("/api/user/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark_read", id }),
-      });
-
-      if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-        );
-        toast.success("Notification marked as read");
-      }
-    } catch (err) {
-      toast.error("Could not update notification");
-    } finally {
-      setMarkingId(null);
-    }
-  };
-
-  const handleMarkAllAsRead = async () => {
-    if (markingAll) return;
-    setMarkingAll(true);
-    try {
-      const res = await fetch("/api/user/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark_all_read" }),
-      });
-
-      if (res.ok) {
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-        toast.success("All notifications marked as read");
-      }
-    } catch (err) {
-      toast.error("Failed to mark all notifications as read");
-    } finally {
-      setMarkingAll(false);
-    }
+  const handleMarkAllAsRead = () => {
+    if (markAllReadMutation.isPending) return;
+    markAllReadMutation.mutate();
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -164,22 +156,22 @@ export default function NotificationsPage() {
         <div className="flex items-center gap-2.5">
           <button
             type="button"
-            onClick={fetchNotifications}
-            disabled={loading}
+            onClick={() => refetch()}
+            disabled={loading || isRefetching}
             className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
             title="Refresh"
           >
-            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            <RefreshCw size={15} className={loading || isRefetching ? "animate-spin" : ""} />
           </button>
 
           {unreadCount > 0 && (
             <button
               type="button"
               onClick={handleMarkAllAsRead}
-              disabled={markingAll}
+              disabled={markAllReadMutation.isPending}
               className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-glow cursor-pointer disabled:opacity-60"
             >
-              {markingAll ? (
+              {markAllReadMutation.isPending ? (
                 <Loader2 size={14} className="animate-spin" />
               ) : (
                 <CheckCheck size={15} />
@@ -292,10 +284,10 @@ export default function NotificationsPage() {
                     <button
                       type="button"
                       onClick={() => handleMarkAsRead(n.id)}
-                      disabled={markingId === n.id}
+                      disabled={markReadMutation.isPending && markReadMutation.variables === n.id}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/20 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
                     >
-                      {markingId === n.id ? (
+                      {markReadMutation.isPending && markReadMutation.variables === n.id ? (
                         <Loader2 size={12} className="animate-spin" />
                       ) : (
                         <Check size={13} className="text-emerald-500" />

@@ -83,6 +83,9 @@ interface DashboardContentProps {
   user: DashboardContentUser;
 }
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api-client";
+
 const formatNaira = (n: number) =>
   `₦${Number(n || 0).toLocaleString("en-NG", {
     minimumFractionDigits: 2,
@@ -92,21 +95,34 @@ const formatNaira = (n: number) =>
 const DashboardContent: React.FC<DashboardContentProps> = ({ user }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { refreshUser } = useAuth();
 
   const [paymentNotice, setPaymentNotice] = useState<{
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
-
-  const [categories, setCategories] = useState<CategoryDTO[]>([]);
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  useEffect(() => {
-    refreshUser();
+  // 1. React Query for categories (5 mins cache)
+  const { data: categoriesData, isLoading: loadingCategories } = useQuery({
+    queryKey: ["inventory", "categories"],
+    queryFn: () => apiGet<{ success: boolean; data: CategoryDTO[] }>("/api/inventory/user/categories"),
+    staleTime: 5 * 60 * 1000,
+  });
 
+  // 2. React Query for recent orders (30s cache)
+  const { data: ordersData, isLoading: loadingOrders } = useQuery({
+    queryKey: ["inventory", "user", "orders"],
+    queryFn: () => apiGet<{ success: boolean; data: RecentOrder[] }>("/api/inventory/user/orders"),
+    staleTime: 30 * 1000,
+  });
+
+  const categories = categoriesData?.data || [];
+  const recentOrders = (ordersData?.data || []).slice(0, 3);
+  const loadingData = loadingCategories || loadingOrders;
+
+  useEffect(() => {
     const paymentStatus = searchParams.get("payment");
     const amount = searchParams.get("amount");
 
@@ -119,13 +135,11 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ user }) => {
         message: `Payment successful! ${formattedAmount} has been credited to your wallet balance.`,
       });
 
-      refreshUser();
-      const timer = setTimeout(() => {
-        refreshUser();
-      }, 1500);
+      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet", "virtual-account"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
 
       router.replace("/dashboard");
-      return () => clearTimeout(timer);
     } else if (paymentStatus === "failed") {
       setPaymentNotice({
         type: "error",
@@ -139,33 +153,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ user }) => {
       });
       router.replace("/dashboard");
     }
-  }, [searchParams, refreshUser, router]);
-
-  // Load catalog & recent orders
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        setLoadingData(true);
-        const [catRes, ordRes] = await Promise.all([
-          fetch("/api/inventory/user/categories").then((r) => r.json()).catch(() => ({ data: [] })),
-          fetch("/api/inventory/user/orders").then((r) => r.json()).catch(() => ({ data: [] })),
-        ]);
-
-        if (catRes.data) {
-          setCategories(catRes.data);
-        }
-        if (ordRes.data) {
-          setRecentOrders(ordRes.data.slice(0, 3)); // show top 3 recent orders
-        }
-      } catch (err) {
-        console.error("Failed to load dashboard data:", err);
-      } finally {
-        setLoadingData(false);
-      }
-    };
-
-    loadDashboardData();
-  }, []);
+  }, [searchParams, queryClient, router]);
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);

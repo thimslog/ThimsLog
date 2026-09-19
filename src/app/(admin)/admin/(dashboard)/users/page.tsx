@@ -1,7 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import { Loader2 } from "lucide-react";
 import { useAdminPage } from "@/context/admin-page-context";
 import { toast } from "@/components/ui/toast";
@@ -22,110 +24,92 @@ function UsersContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   // Read initial params
   const initialPage = Math.max(Number(searchParams.get("page")) || 1, 1);
   const initialSearch = searchParams.get("search") || "";
 
-  const [users, setUsers] = useState<UserRecord[]>([]);
   const [page, setPage] = useState(initialPage);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
-
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
   const [userToDelete, setUserToDelete] = useState<UserRecord | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Core fetch function
-  const fetchUsers = useCallback(async (targetPage: number, search: string) => {
-    try {
-      setLoading(true);
-      setError("");
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: String(PAGE_SIZE),
+  });
+  if (debouncedSearch.trim()) {
+    queryParams.append("search", debouncedSearch.trim());
+  }
 
-      const params = new URLSearchParams({
-        page: String(targetPage),
-        limit: String(PAGE_SIZE),
-      });
+  const {
+    data: rawData,
+    isLoading: loading,
+    isRefetching,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin", "users", page, debouncedSearch],
+    queryFn: () =>
+      apiGet<UsersResponse>(`/api/user/getAllUsers?${queryParams.toString()}`),
+    staleTime: 30 * 1000,
+  });
 
-      if (search.trim()) {
-        params.append("search", search.trim());
-      }
+  const users: UserRecord[] = (rawData?.data?.users || []).map((user) => ({
+    id: user.id,
+    name:
+      `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+      user.userName ||
+      "Unnamed User",
+    email: user.email,
+    username: user.userName,
+    phoneNumber: user.phoneNumber,
+    referralCode: user.referralCode,
+    referredBy: user.referredBy
+      ? {
+          id: user.referredBy.id,
+          name:
+            `${user.referredBy.firstName || ""} ${user.referredBy.lastName || ""}`.trim() ||
+            user.referredBy.userName,
+          username: user.referredBy.userName,
+        }
+      : null,
+    balance:
+      user.wallet?.balance !== undefined ? Number(user.wallet.balance) : 0,
+    currency: user.wallet?.currency || "NGN",
+    joinedAt: user.createdAt,
+    lastActive: user.updatedAt || user.createdAt,
+  }));
 
-      const response = await fetch(`/api/user/getAllUsers?${params.toString()}`, {
-        method: "GET",
-        cache: "no-store",
-      });
+  const pagination = rawData?.data?.pagination || null;
+  const error = queryError ? (queryError as any).message || "Failed to fetch users" : "";
 
-      const data: UsersResponse = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data?.message || "Failed to fetch users");
-      }
-
-      const mappedUsers: UserRecord[] = data.data.users.map((user) => ({
-        id: user.id,
-        name:
-          `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-          user.userName ||
-          "Unnamed User",
-        email: user.email,
-        username: user.userName,
-        phoneNumber: user.phoneNumber,
-        referralCode: user.referralCode,
-        referredBy: user.referredBy
-          ? {
-              id: user.referredBy.id,
-              name:
-                `${user.referredBy.firstName || ""} ${user.referredBy.lastName || ""}`.trim() ||
-                user.referredBy.userName,
-              username: user.referredBy.userName,
-            }
-          : null,
-        balance:
-          user.wallet?.balance !== undefined ? Number(user.wallet.balance) : 0,
-        currency: user.wallet?.currency || "NGN",
-        joinedAt: user.createdAt,
-        lastActive: user.updatedAt || user.createdAt,
-      }));
-
-      setUsers(mappedUsers);
-      setPagination(data.data.pagination);
-      setPage(data.data.pagination.page);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to fetch users";
-      setError(msg);
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const handleDeleteUser = async () => {
-    if (!userToDelete) return;
-    try {
-      setDeleting(true);
-      const res = await fetch(`/api/admin/users/${userToDelete.id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to delete user");
-      }
-      toast.success(data.message || "User deleted successfully");
+  const deleteMutation = useMutation({
+    mutationFn: (userId: string) =>
+      apiMutate<{ success: boolean; message?: string }>(
+        `/api/admin/users/${userId}`,
+        "DELETE"
+      ),
+    onSuccess: (res) => {
+      toast.success(res.message || "User deleted successfully");
       setUserToDelete(null);
-      fetchUsers(page, debouncedSearch);
-    } catch (err: any) {
-      toast.error(err.message || "An error occurred while deleting user");
-    } finally {
-      setDeleting(false);
-    }
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "An error occurred while deleting user");
+    },
+  });
+
+  const handleDeleteUser = () => {
+    if (!userToDelete) return;
+    deleteMutation.mutate(userToDelete.id);
   };
+
+  const deleting = deleteMutation.isPending;
 
   // Live debounce for typing in search input (350ms)
   const handleSearchChange = (value: string) => {
@@ -145,8 +129,6 @@ function UsersContent() {
       if (clean) params.set("search", clean);
       const qs = params.toString();
       router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
-
-      fetchUsers(1, clean);
     }, 350);
   };
 
@@ -165,8 +147,6 @@ function UsersContent() {
     if (clean) params.set("search", clean);
     const qs = params.toString();
     router.push(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
-
-    fetchUsers(1, clean);
   };
 
   // Clear search input
@@ -179,7 +159,6 @@ function UsersContent() {
     setPage(1);
 
     router.replace(pathname, { scroll: false });
-    fetchUsers(1, "");
   };
 
   // Handle Page navigation
@@ -195,23 +174,20 @@ function UsersContent() {
 
     const qs = params.toString();
     router.push(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
-
-    fetchUsers(newPage, debouncedSearch);
   };
 
   // Refresh current list
-  const handleRefresh = () => {
-    fetchUsers(page, debouncedSearch);
+  const handleRefresh = async () => {
+    await refetch();
     toast.success("User list refreshed");
   };
 
-  // Initial load
+  // Cleanup debounce timer
   useEffect(() => {
-    fetchUsers(initialPage, initialSearch);
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
-  }, [fetchUsers, initialPage, initialSearch]);
+  }, []);
 
   // Update Page Title
   useEffect(() => {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api-client";
 import Link from "next/link";
 import { ExternalLink, Loader2, Video, Send, MessageSquare } from "lucide-react";
 
@@ -44,27 +45,14 @@ function CommunityVectorIcon({ className = "w-5 h-5" }: { className?: string }) 
 }
 
 export default function HelpCenterPage() {
-  const [links, setLinks] = useState<HelpCenterLink[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["help-center", "links"],
+    queryFn: () =>
+      apiGet<{ success: boolean; data: HelpCenterLink[] }>("/api/user/help-center"),
+    staleTime: 10 * 60 * 1000,
+  });
 
-  const fetchLinks = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/user/help-center", { cache: "no-store" });
-      const data = await res.json();
-      if (res.ok && data.success && Array.isArray(data.data)) {
-        setLinks(data.data);
-      }
-    } catch (err) {
-      console.error("Failed to load help center links:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLinks();
-  }, []);
+  const links = data?.data || [];
 
   // Filter links into sections
   const tutorialLinks = links.filter((l) => l.section === "TUTORIALS_CHANNEL");

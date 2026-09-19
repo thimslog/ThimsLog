@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/toast";
 import TransferFundsModal from "@/components/dashboard/TransferFundsModal";
 import { useAuth } from "@/context/auth-context";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import {
   TransactionRow,
   TransactionsHeader,
@@ -12,77 +14,34 @@ import {
 } from "@/components/dashboard/transactions";
 
 export default function TransactionsPage() {
-  const { user, refreshUser } = useAuth();
-  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<TransactionRow | null>(null);
-  const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
 
-  const refetchTransactions = async () => {
-    try {
-      const res = await fetch("/api/wallet/transactions");
-      if (res.ok) {
-        const data = await res.json();
-        setTransactions(data.transactions || []);
-      }
-    } catch (err) {
-      console.error("Failed to refresh transactions:", err);
-    }
-  };
+  // 1. React Query for transactions list
+  const {
+    data: transactionsData,
+    isLoading: loading,
+    isFetching: refreshing,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["wallet", "transactions"],
+    queryFn: () => apiGet<{ transactions: TransactionRow[] }>("/api/wallet/transactions"),
+    staleTime: 30 * 1000,
+  });
 
-  const handleManualRefresh = async () => {
-    setRefreshing(true);
-    try {
-      const res = await fetch("/api/wallet/transactions");
-      if (res.ok) {
-        const data = await res.json();
-        setTransactions(data.transactions || []);
-        toast.success("Transactions updated!");
-      } else {
-        toast.error("Failed to refresh transactions");
-      }
-      await refreshUser();
-    } catch (err) {
-      console.error("Failed to refresh transactions:", err);
-      toast.error("Network error while refreshing transactions");
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  const transactions = transactionsData?.transactions || [];
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch("/api/wallet/transactions");
-        if (!res.ok) throw new Error("Could not load transaction history");
-        const data = await res.json();
-        setTransactions(data.transactions || []);
-      } catch (err) {
-        setError((err as Error).message);
-        toast.error((err as Error).message || "Could not load transaction history");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
-
-  const handleVerify = async (id: string) => {
-    setVerifyingId(id);
-    try {
-      const res = await fetch(`/api/wallet/transactions/${id}/verify`, {
-        method: "POST",
-      });
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        toast.error(data.message || "Could not verify transaction");
-        return;
-      }
-
+  // 2. React Query Mutation for verifying a transaction
+  const verifyMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiMutate<{ updated?: boolean; message?: string }>(
+        `/api/wallet/transactions/${id}/verify`,
+        { method: "POST" }
+      ),
+    onSuccess: (data) => {
       if (data.updated) {
         toast.success(
           data.message || "Transaction verified successfully! Wallet balance updated."
@@ -92,13 +51,22 @@ export default function TransactionsPage() {
           data.message || "Transaction is still pending on payment gateway."
         );
       }
-
-      await refetchTransactions();
-      await refreshUser();
-    } catch (err: any) {
+      queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet", "virtual-account"] });
+      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+    },
+    onError: (err: any) => {
       toast.error(err?.message || "Network error while querying transaction");
-    } finally {
-      setVerifyingId(null);
+    },
+  });
+
+  const handleManualRefresh = async () => {
+    try {
+      await refetch();
+      await queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+      toast.success("Transactions updated!");
+    } catch {
+      toast.error("Failed to refresh transactions");
     }
   };
 
@@ -117,8 +85,9 @@ export default function TransactionsPage() {
         onClose={() => setShowTransferModal(false)}
         availableBalance={Number(user?.wallet?.balance ?? 0)}
         onSuccess={() => {
-          refetchTransactions();
-          refreshUser();
+          queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["wallet", "virtual-account"] });
+          queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
         }}
       />
 
@@ -126,10 +95,10 @@ export default function TransactionsPage() {
       <TransactionsTable
         transactions={transactions}
         loading={loading}
-        error={error}
-        verifyingId={verifyingId}
+        error={error ? (error as Error).message : ""}
+        verifyingId={verifyMutation.isPending ? (verifyMutation.variables as string) : null}
         onSelectTransaction={setSelected}
-        onVerifyTransaction={handleVerify}
+        onVerifyTransaction={(id) => verifyMutation.mutate(id)}
       />
 
       {/* 4. Transaction Details Modal */}

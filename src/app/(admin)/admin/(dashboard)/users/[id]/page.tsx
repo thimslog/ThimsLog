@@ -3,6 +3,8 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import {
   ArrowLeft,
   Copy,
@@ -61,14 +63,7 @@ export default function SingleUserPage({
   const { id } = use(params);
   const router = useRouter();
   const { setPageTitle } = useAdminPage();
-
-  const [user, setUser] = useState<UserDetail | null>(null);
-  const [wallet, setWallet] = useState<WalletDetail | null>(null);
-  const [transactions, setTransactions] = useState<TransactionDetail[]>([]);
-  const [orders, setOrders] = useState<OrderDetail[]>([]);
-  const [stats, setStats] = useState<UserStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
 
   // Active Tab: 'transactions' | 'orders'
   const [activeTab, setActiveTab] = useState<"transactions" | "orders">("transactions");
@@ -78,28 +73,78 @@ export default function SingleUserPage({
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [selectedTx, setSelectedTx] = useState<TransactionDetail | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
-
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
-  const handleDeleteUser = async () => {
-    try {
-      setDeleting(true);
-      const res = await fetch(`/api/admin/users/${id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to delete user");
-      }
+  const {
+    data: rawData,
+    isLoading: loading,
+    isRefetching,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin", "user", id],
+    queryFn: () =>
+      apiGet<{
+        success: boolean;
+        data: {
+          user: UserDetail;
+          wallet: WalletDetail;
+          transactions: TransactionDetail[];
+          orders: OrderDetail[];
+          stats: UserStats;
+        };
+      }>(`/api/admin/users/${id}`),
+    staleTime: 30 * 1000,
+    enabled: Boolean(id),
+  });
+
+  const user = rawData?.data?.user || null;
+  const wallet = rawData?.data?.wallet || null;
+  const transactions = rawData?.data?.transactions || [];
+  const orders = rawData?.data?.orders || [];
+  const stats = rawData?.data?.stats || null;
+  const error = queryError ? (queryError as any).message || "Failed to load user details" : "";
+
+  const deleteMutation = useMutation({
+    mutationFn: () =>
+      apiMutate<{ success: boolean; message?: string }>(
+        `/api/admin/users/${id}`,
+        "DELETE"
+      ),
+    onSuccess: (data) => {
       toast.success(data.message || "User deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       router.push("/admin/users");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete user");
-    } finally {
-      setDeleting(false);
-    }
-  };
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to delete user");
+    },
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: (txId: string) =>
+      apiMutate<{ updated: boolean; message?: string }>(
+        `/api/admin/transactions/${txId}/verify`,
+        "POST"
+      ),
+    onSuccess: (data) => {
+      if (data.updated) {
+        toast.success(data.message || "Transaction verified & updated!");
+      } else {
+        toast.info(data.message || "Transaction is still pending on gateway.");
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin", "user", id] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Error querying transaction");
+    },
+    onSettled: () => {
+      setVerifyingId(null);
+    },
+  });
 
   useEffect(() => {
     setPageTitle({
@@ -108,41 +153,6 @@ export default function SingleUserPage({
     });
   }, [setPageTitle]);
 
-  const fetchUserDetails = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const res = await fetch(`/api/admin/users/${id}`, {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to load user details");
-      }
-
-      setUser(data.data.user);
-      setWallet(data.data.wallet);
-      setTransactions(data.data.transactions || []);
-      setOrders(data.data.orders || []);
-      setStats(data.data.stats);
-    } catch (err: any) {
-      setError(err.message || "Failed to load user details");
-      toast.error(err.message || "Failed to load user details");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (id) {
-      fetchUserDetails();
-    }
-  }, [id]);
-
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
@@ -150,31 +160,16 @@ export default function SingleUserPage({
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const handleQueryTransaction = async (txId: string) => {
+  const handleQueryTransaction = (txId: string) => {
     setVerifyingId(txId);
-    try {
-      const res = await fetch(`/api/admin/transactions/${txId}/verify`, {
-        method: "POST",
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to query transaction");
-      }
-
-      if (data.updated) {
-        toast.success(data.message || "Transaction verified & updated!");
-      } else {
-        toast.info(data.message || "Transaction is still pending on gateway.");
-      }
-
-      await fetchUserDetails();
-    } catch (err: any) {
-      toast.error(err.message || "Error querying transaction");
-    } finally {
-      setVerifyingId(null);
-    }
+    verifyMutation.mutate(txId);
   };
+
+  const handleDeleteUser = () => {
+    deleteMutation.mutate();
+  };
+
+  const deleting = deleteMutation.isPending;
 
   const getToneForStatus = (status: string): "good" | "warn" | "bad" | "neutral" => {
     switch (status) {
@@ -383,11 +378,18 @@ export default function SingleUserPage({
 
             <button
               type="button"
-              onClick={fetchUserDetails}
-              className="p-2 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
+              onClick={async () => {
+                await refetch();
+                toast.success("User details refreshed");
+              }}
+              disabled={loading || isRefetching}
+              className="p-2 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
               title="Refresh data"
             >
-              <RefreshCw size={13} />
+              <RefreshCw
+                size={13}
+                className={loading || isRefetching ? "animate-spin text-sky-500" : ""}
+              />
             </button>
           </div>
         </div>

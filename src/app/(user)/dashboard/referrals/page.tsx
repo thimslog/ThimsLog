@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Gift, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import {
   ReferralData,
   ReferralHeroCard,
@@ -13,59 +15,44 @@ import {
 } from "@/components/dashboard/referrals";
 
 export default function ReferralsPage() {
-  const [data, setData] = useState<ReferralData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [claimCode, setClaimCode] = useState("");
-  const [claiming, setClaiming] = useState(false);
   const [activeTab, setActiveTab] = useState<"friends" | "rewards">("friends");
 
-  const fetchReferrals = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/user/referrals");
-      const json = await res.json();
-      if (json.success && json.data) {
-        setData(json.data);
-      } else {
-        toast.error(json.message || "Failed to load referral details");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Network error loading referrals");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 1. React Query for Referrals Hub (2 mins cache)
+  const { data: referralsResponse, isLoading: loading } = useQuery({
+    queryKey: ["user", "referrals"],
+    queryFn: () => apiGet<{ success: boolean; data: ReferralData }>("/api/user/referrals"),
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const handleClaimReferrer = async (e: React.FormEvent) => {
+  const data = referralsResponse?.data || null;
+
+  // 2. React Query Mutation for Claiming / Linking Referrer
+  const claimMutation = useMutation({
+    mutationFn: (referralCode: string) =>
+      apiMutate<{ success: boolean; message?: string }>("/api/user/referrals", {
+        method: "POST",
+        body: { referralCode },
+      }),
+    onSuccess: (res) => {
+      toast.success(res.message || "Referrer linked successfully!");
+      setClaimCode("");
+      queryClient.invalidateQueries({ queryKey: ["user", "referrals"] });
+      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "An error occurred");
+    },
+  });
+
+  const handleClaimReferrer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!claimCode.trim()) return;
-    try {
-      setClaiming(true);
-      const res = await fetch("/api/user/referrals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ referralCode: claimCode.trim() }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || "Failed to link referral code");
-      }
-      toast.success(json.message || "Referrer linked successfully!");
-      setClaimCode("");
-      fetchReferrals();
-    } catch (err: any) {
-      toast.error(err.message || "An error occurred");
-    } finally {
-      setClaiming(false);
-    }
+    claimMutation.mutate(claimCode.trim());
   };
-
-  useEffect(() => {
-    fetchReferrals();
-  }, []);
 
   const copyLink = () => {
     if (!data?.referralLink) return;
@@ -136,12 +123,12 @@ export default function ReferralsPage() {
           <ReferrerClaimCard
             referredBy={data?.referredBy}
             claimCode={claimCode}
-            claiming={claiming}
+            claiming={claimMutation.isPending}
             onClaimCodeChange={setClaimCode}
             onSubmitClaim={handleClaimReferrer}
           />
 
-          {/* 4. KPI Metrics */}
+          {/* 4. KPI Performance Stats */}
           <ReferralStatsCards
             metrics={
               data?.metrics || {
@@ -153,10 +140,10 @@ export default function ReferralsPage() {
             commissionRatePercent={data?.commissionRatePercent || "1%"}
           />
 
-          {/* 5. How it works 3 Steps */}
+          {/* 5. How It Works Guide */}
           <ReferralHowItWorks />
 
-          {/* 6. Tabs: Referred Friends vs Commission Payouts History */}
+          {/* 6. Referral Activity History Tabs */}
           <ReferralActivityTabs
             activeTab={activeTab}
             onTabChange={setActiveTab}

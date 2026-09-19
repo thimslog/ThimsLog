@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api-client";
 import {
   Plus,
   MoreVertical,
@@ -60,19 +61,34 @@ interface AdminsResponse {
 
 export default function AdminsPage() {
   const { setPageTitle } = useAdminPage();
-  const [admins, setAdmins] = useState<AdminRecord[]>([]);
-
+  const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
-
   const [page, setPage] = useState(1);
 
-  const [pagination, setPagination] =
-    useState<Pagination | null>(null);
+  const {
+    data: rawData,
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin", "admins-list", page],
+    queryFn: () =>
+      apiGet<AdminsResponse>(`/api/admin?page=${page}&limit=${PAGE_SIZE}`),
+    staleTime: 30 * 1000,
+  });
 
-  const [loading, setLoading] = useState(true);
+  const admins: AdminRecord[] = (rawData?.data?.admins || []).map((admin) => ({
+    id: admin.id,
+    name: `${admin.firstName} ${admin.lastName}`,
+    email: admin.email,
+    role: admin.role as AdminRecord["role"],
+    status: admin.isVerified ? "active" : "active",
+    lastActive: admin.updatedAt || admin.createdAt,
+    createdAt: admin.createdAt,
+  }));
 
-  const [error, setError] = useState("");
-
+  const pagination = rawData?.data?.pagination || null;
+  const error = queryError ? (queryError as any).message || "Failed to fetch admins" : "";
 
   useEffect(() => {
     setPageTitle({
@@ -83,77 +99,10 @@ export default function AdminsPage() {
     });
   }, [setPageTitle, pagination]);
 
-  const fetchAdmins = useCallback(
-    async (requestedPage = page) => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const response = await fetch(
-          `/api/admin?page=${requestedPage}&limit=${PAGE_SIZE}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          },
-        );
-
-        const data: AdminsResponse =
-          await response.json();
-
-        if (!response.ok || !data.success) {
-          throw new Error(
-            data?.message ||
-              "Failed to fetch admins",
-          );
-        }
-
-        const mappedAdmins: AdminRecord[] =
-          data.data.admins.map((admin) => ({
-            id: admin.id,
-
-            name: `${admin.firstName} ${admin.lastName}`,
-
-            email: admin.email,
-
-            role: admin.role as AdminRecord["role"],
-
-            status: admin.isVerified
-              ? "active"
-              : "active",
-
-            lastActive: admin.updatedAt
-              || admin.createdAt,
-
-            createdAt: admin.createdAt,
-          }));
-
-        setAdmins(mappedAdmins);
-
-        setPagination(data.data.pagination);
-
-        setPage(data.data.pagination.page);
-      } catch (error) {
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch admins",
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [page],
-  );
-
-  useEffect(() => {
-    fetchAdmins(1);
-  }, []);
-
-  async function handleAdminCreated() {
-    // Go back to page 1 because the new admin
-    // is sorted to the top by createdAt.
-    await fetchAdmins(1);
-  }
+  const handleAdminCreated = () => {
+    setPage(1);
+    queryClient.invalidateQueries({ queryKey: ["admin", "admins-list"] });
+  };
 
   return (
     <>
@@ -175,7 +124,7 @@ export default function AdminsPage() {
             <span>{error}</span>
 
             <button
-              onClick={() => fetchAdmins(page)}
+              onClick={() => refetch()}
               className="font-medium underline cursor-pointer hover:opacity-80"
             >
               Retry
@@ -275,8 +224,8 @@ export default function AdminsPage() {
               <button
                 type="button"
                 disabled={!pagination.hasPreviousPage}
-                onClick={() => fetchAdmins(page - 1)}
-                className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
               >
                 Previous
               </button>
@@ -284,8 +233,8 @@ export default function AdminsPage() {
               <button
                 type="button"
                 disabled={!pagination.hasNextPage}
-                onClick={() => fetchAdmins(page + 1)}
-                className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => setPage((p) => p + 1)}
+                className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0b101b] px-3.5 py-1.5 text-[12.5px] font-medium text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
               >
                 Next
               </button>

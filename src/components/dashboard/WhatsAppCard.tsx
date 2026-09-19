@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api-client";
 import { ExternalLink } from "lucide-react";
 
 interface HelpLink {
@@ -19,65 +20,35 @@ const DEFAULT_WHATSAPP_FALLBACK =
   "https://t.me/thimslog1";
 
 export default function WhatsAppCard() {
-  const [targetUrl, setTargetUrl] = useState<string>(DEFAULT_WHATSAPP_FALLBACK);
-  const [cardTitle, setCardTitle] = useState<string>("ThimsLog News");
-  const [cardSubtitle, setCardSubtitle] = useState<string>(
-    "Get exclusive updates & drops"
+  const { data } = useQuery({
+    queryKey: ["help-center", "links"],
+    queryFn: () =>
+      apiGet<{ success: boolean; data: HelpLink[] }>("/api/user/help-center"),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const links = data?.data || [];
+
+  const whatsappChannel = links.find(
+    (l) => l.section === "WHATSAPP_CHANNEL" && l.url
   );
+  const whatsappIconLink = links.find(
+    (l) => l.iconType?.toLowerCase() === "whatsapp" && l.url
+  );
+  const communityLink = links.find(
+    (l) => l.section === "COMMUNITY_SUPPORT" && l.url
+  );
+  const firstAvailable = links.find((l) => l.url);
 
-  useEffect(() => {
-    let isMounted = true;
+  const chosen =
+    whatsappChannel ||
+    whatsappIconLink ||
+    communityLink ||
+    firstAvailable;
 
-    async function loadLink() {
-      try {
-        const res = await fetch("/api/user/help-center", { cache: "no-store" });
-        if (!res.ok) return;
-
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          const links: HelpLink[] = data.data;
-
-          // Priority 1: Specifically WHATSAPP_CHANNEL section
-          const whatsappChannel = links.find(
-            (l) => l.section === "WHATSAPP_CHANNEL" && l.url
-          );
-
-          // Priority 2: Any link with whatsapp icon
-          const whatsappIconLink = links.find(
-            (l) => l.iconType?.toLowerCase() === "whatsapp" && l.url
-          );
-
-          // Priority 3: Community & Support group link
-          const communityLink = links.find(
-            (l) => l.section === "COMMUNITY_SUPPORT" && l.url
-          );
-
-          // Priority 4: Any first active link available
-          const firstAvailable = links.find((l) => l.url);
-
-          const chosen =
-            whatsappChannel ||
-            whatsappIconLink ||
-            communityLink ||
-            firstAvailable;
-
-          if (chosen && isMounted) {
-            setTargetUrl(chosen.url);
-            if (chosen.title) setCardTitle(chosen.title);
-            if (chosen.description) setCardSubtitle(chosen.description);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load WhatsApp link from backend:", err);
-      }
-    }
-
-    loadLink();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const targetUrl = chosen?.url || DEFAULT_WHATSAPP_FALLBACK;
+  const cardTitle = chosen?.title || "ThimsLog News";
+  const cardSubtitle = chosen?.description || "Get exclusive updates & drops";
 
   return (
     <div className="relative flex max-w-xs flex-col items-center overflow-hidden rounded-3xl border border-emerald-200/90 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-950/20 px-5 py-6 text-center shadow-xs transition-all hover:shadow-md">

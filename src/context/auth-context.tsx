@@ -2,12 +2,10 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
-  useEffect,
-  useState,
   type ReactNode,
 } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type AuthUser = {
   id: string;
@@ -50,56 +48,46 @@ const AuthContext = createContext<AuthContextValue>({
   setUser: () => {},
 });
 
+export const USER_AUTH_QUERY_KEY = ["auth", "user"];
+
+async function fetchCurrentUser(): Promise<AuthUser | null> {
+  const response = await fetch("/api/user/getCurrentUser", {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = await response.json();
+  if (data.success && data.user) {
+    return data.user;
+  }
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const refreshUser = useCallback(async (): Promise<AuthUser | null> => {
-    try {
-      const response = await fetch("/api/user/getCurrentUser", {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      });
+  const { data: user = null, isLoading: loading } = useQuery({
+    queryKey: USER_AUTH_QUERY_KEY,
+    queryFn: fetchCurrentUser,
+    staleTime: 60 * 1000, // 1 minute
+  });
 
-      if (!response.ok) {
-        setUser(null);
-        return null;
-      }
+  const refreshUser = async (): Promise<AuthUser | null> => {
+    const result = await queryClient.fetchQuery({
+      queryKey: USER_AUTH_QUERY_KEY,
+      queryFn: fetchCurrentUser,
+    });
+    return result;
+  };
 
-      const data = await response.json();
-
-      if (data.success && data.user) {
-        setUser(data.user);
-        return data.user;
-      } else {
-        setUser(null);
-        return null;
-      }
-    } catch (error) {
-      console.error("Failed to fetch current user:", error);
-      setUser(null);
-      return null;
-    }
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-    const initializeAuth = async () => {
-      try {
-        await refreshUser();
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
-    return () => {
-      isMounted = false;
-    };
-  }, [refreshUser]);
+  const setUser = (newUser: AuthUser | null) => {
+    queryClient.setQueryData(USER_AUTH_QUERY_KEY, newUser);
+  };
 
   const signOut = async () => {
     try {
@@ -110,7 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Sign out error:", error);
     } finally {
-      setUser(null);
+      queryClient.setQueryData(USER_AUTH_QUERY_KEY, null);
+      queryClient.removeQueries({ queryKey: USER_AUTH_QUERY_KEY });
     }
   };
 

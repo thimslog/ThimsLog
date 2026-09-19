@@ -7,7 +7,7 @@ import { toast } from "@/components/ui/toast";
 interface SyncPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => Promise<void>;
+  onSuccess: () => Promise<void> | void;
 }
 
 export function SyncPaymentModal({

@@ -2,12 +2,10 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
-  useEffect,
-  useState,
   type ReactNode,
 } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type AuthAdmin = {
   id: string;
@@ -34,47 +32,41 @@ const AuthContext = createContext<AdminAuthContextValue>({
   refreshAdmin: async () => {},
 });
 
+export const ADMIN_AUTH_QUERY_KEY = ["auth", "admin"];
+
+async function fetchCurrentAdmin(): Promise<AuthAdmin | null> {
+  const response = await fetch("/api/admin/getCurrentAdmin", {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = await response.json();
+  if (data.success && data.admin) {
+    return data.admin;
+  }
+  return null;
+}
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [admin, setAdmin] = useState<AuthAdmin | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const refreshAdmin = useCallback(async () => {
-    try {
-      const response = await fetch("/api/admin/getCurrentAdmin", {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      });
+  const { data: admin = null, isLoading: loading } = useQuery({
+    queryKey: ADMIN_AUTH_QUERY_KEY,
+    queryFn: fetchCurrentAdmin,
+    staleTime: 60 * 1000, // 1 minute
+  });
 
-      if (!response.ok) {
-        setAdmin(null);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setAdmin(data.admin);
-      } else {
-        setAdmin(null);
-      }
-    } catch (error) {
-      console.error("Failed to fetch current admin:", error);
-      setAdmin(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        await refreshAdmin();
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-  }, [refreshAdmin]);
+  const refreshAdmin = async () => {
+    await queryClient.fetchQuery({
+      queryKey: ADMIN_AUTH_QUERY_KEY,
+      queryFn: fetchCurrentAdmin,
+    });
+  };
 
   const signOut = async () => {
     try {
@@ -85,7 +77,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Sign out error:", error);
     } finally {
-      setAdmin(null);
+      queryClient.setQueryData(ADMIN_AUTH_QUERY_KEY, null);
+      queryClient.removeQueries({ queryKey: ADMIN_AUTH_QUERY_KEY });
     }
   };
 

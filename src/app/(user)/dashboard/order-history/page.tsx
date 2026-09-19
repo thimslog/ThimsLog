@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import Link from "next/link";
+import { apiGet } from "@/lib/api-client";
 import {
   OrderItem,
   OrderHistoryHeader,
@@ -11,37 +13,18 @@ import {
 } from "@/components/dashboard/order-history";
 
 export default function OrderHistoryPage() {
-  const [orders, setOrders] = useState<OrderItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/inventory/user/orders");
-      const json = await res.json();
-      if (json.success && json.data) {
-        setOrders(json.data);
-        // Expand the first order by default
-        if (json.data.length > 0) {
-          setExpandedOrders({ [json.data[0].id]: true });
-        }
-      } else {
-        toast.error(json.message || "Failed to fetch orders");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Network error while fetching order history");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query for User Orders
+  const { data: ordersData, isLoading: loading } = useQuery({
+    queryKey: ["inventory", "user", "orders"],
+    queryFn: () => apiGet<{ success: boolean; data: OrderItem[] }>("/api/inventory/user/orders"),
+    staleTime: 30 * 1000,
+  });
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  const orders = ordersData?.data || [];
 
   const toggleExpand = (id: string) => {
     setExpandedOrders((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -107,11 +90,15 @@ export default function OrderHistoryPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredOrders.map((order) => (
+          {filteredOrders.map((order, idx) => (
             <OrderCard
               key={order.id}
               order={order}
-              isExpanded={Boolean(expandedOrders[order.id])}
+              isExpanded={
+                expandedOrders[order.id] !== undefined
+                  ? expandedOrders[order.id]
+                  : idx === 0 // expand first order by default
+              }
               onToggleExpand={() => toggleExpand(order.id)}
               copiedKey={copiedKey}
               copyWithFeedback={copyWithFeedback}

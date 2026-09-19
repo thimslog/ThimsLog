@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Search,
@@ -20,6 +21,8 @@ import {
 } from "lucide-react";
 import { PlatformIcon, getPlatformConfig } from "@/lib/platform-icons";
 import { toast } from "@/components/ui/toast";
+import { apiGet, apiMutate } from "@/lib/api-client";
+import { useAuth } from "@/context/auth-context";
 
 interface AccountItem {
   id: string;
@@ -53,11 +56,30 @@ const formatNaira = (n: number) =>
 export default function ProductPurchasePage() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const accountTypeId = params?.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [product, setProduct] = useState<ProductDetail | null>(null);
-  const [walletBalance, setWalletBalance] = useState<number>(0);
+  // React Query for Product Detail & Accounts
+  const {
+    data: productResponse,
+    isLoading: loading,
+    refetch,
+  } = useQuery({
+    queryKey: ["inventory", "product", accountTypeId],
+    queryFn: () =>
+      apiGet<{ success: boolean; data: ProductDetail; walletBalance?: number }>(
+        `/api/inventory/user/account-types/${accountTypeId}`
+      ),
+    enabled: Boolean(accountTypeId),
+    staleTime: 60 * 1000,
+  });
+
+  const product = productResponse?.data || null;
+  const walletBalance =
+    typeof productResponse?.walletBalance === "number"
+      ? productResponse.walletBalance
+      : Number(user?.wallet?.balance ?? 0);
 
   // Cart & Search State
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -66,35 +88,46 @@ export default function ProductPurchasePage() {
   // Modals
   const [previewAccount, setPreviewAccount] = useState<AccountItem | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [purchasing, setPurchasing] = useState(false);
   const [purchasedOrder, setPurchasedOrder] = useState<any | null>(null);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/inventory/user/account-types/${accountTypeId}`);
-      const json = await res.json();
-      if (json.success && json.data) {
-        setProduct(json.data);
-        if (typeof json.walletBalance === "number") {
-          setWalletBalance(json.walletBalance);
+  // React Query Mutation for Checkout
+  const checkoutMutation = useMutation({
+    mutationFn: (accountIds: string[]) =>
+      apiMutate<{ success: boolean; data: any; code?: string; message?: string }>(
+        "/api/inventory/user/checkout",
+        {
+          method: "POST",
+          body: {
+            accountTypeId: product?.id,
+            accountIds,
+          },
         }
+      ),
+    onSuccess: (data) => {
+      toast.success("Purchase successful! Accounts delivered.");
+      setPurchasedOrder(data.data);
+      setSelectedIds([]);
+      // Invalidate queries across the app
+      queryClient.invalidateQueries({ queryKey: ["inventory", "product", accountTypeId] });
+      queryClient.invalidateQueries({ queryKey: ["inventory", "categories"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory", "user", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet", "virtual-account"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+    },
+    onError: (err: any) => {
+      if (err.message?.includes("INSUFFICIENT_FUNDS")) {
+        toast.error("Insufficient funds! Please top up your wallet.");
+      } else if (err.message?.includes("ACCOUNTS_UNAVAILABLE")) {
+        toast.error("Some accounts were just taken! Refreshing list...");
+        refetch();
       } else {
-        toast.error(json.message || "Failed to load product");
+        toast.error(err.message || "Failed to process purchase");
       }
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Could not fetch product details");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
-  useEffect(() => {
-    if (accountTypeId) {
-      fetchData();
-    }
-  }, [accountTypeId]);
+  const purchasing = checkoutMutation.isPending;
 
   // Selected Accounts objects
   const selectedAccounts = useMemo(() => {
@@ -164,7 +197,7 @@ export default function ProductPurchasePage() {
   const remainingBalance = walletBalance - totalCost;
 
   // Checkout execution
-  const handleConfirmPurchase = async () => {
+  const handleConfirmPurchase = () => {
     if (selectedAccounts.length === 0) {
       toast.error("Please select at least one account to buy");
       return;
@@ -173,45 +206,7 @@ export default function ProductPurchasePage() {
       toast.error("Insufficient wallet balance. Please fund your wallet.");
       return;
     }
-
-    try {
-      setPurchasing(true);
-      const res = await fetch("/api/inventory/user/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accountTypeId: product?.id,
-          accountIds: selectedIds,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        if (data.code === "INSUFFICIENT_FUNDS") {
-          toast.error("Insufficient funds! Please top up your wallet.");
-        } else if (data.code === "ACCOUNTS_UNAVAILABLE") {
-          toast.error("Some accounts were just taken! Refreshing list...");
-          fetchData();
-        } else {
-          toast.error(data.message || "Failed to process purchase");
-        }
-        return;
-      }
-
-      toast.success("Purchase successful! Accounts delivered.");
-      setPurchasedOrder(data.data);
-      if (typeof data.data?.remainingBalance === "number") {
-        setWalletBalance(data.data.remainingBalance);
-      }
-      setSelectedIds([]);
-      fetchData();
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Network error during checkout. Please try again.");
-    } finally {
-      setPurchasing(false);
-    }
+    checkoutMutation.mutate(selectedIds);
   };
 
   if (loading) {

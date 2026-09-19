@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
+import QueryProvider from "@/providers/QueryProvider";
 
 const body = Inter({ subsets: ["latin"], variable: "--font-body" });
 const display = Space_Grotesk({
@@ -89,12 +90,13 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body bg-slate-50 text-slate-900 dark:bg-[#060a14] dark:text-slate-200 antialiased">
-        <ToastProvider>
-          {children}
-          <PwaRegister />
-        </ToastProvider>
+        <QueryProvider>
+          <ToastProvider>
+            {children}
+            <PwaRegister />
+          </ToastProvider>
+        </QueryProvider>
       </body>
     </html>
   );
 }
-

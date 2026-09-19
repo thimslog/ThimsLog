@@ -1,8 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import {
   Search,
   RefreshCw,
@@ -88,15 +90,12 @@ function AdminTicketsContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const initialPage = Math.max(Number(searchParams.get("page")) || 1, 1);
   const initialStatus = searchParams.get("status") || "ALL";
   const initialPriority = searchParams.get("priority") || "ALL";
   const initialSearch = searchParams.get("search") || "";
-
-  const [tickets, setTickets] = useState<TicketRecord[]>([]);
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
 
   const [page, setPage] = useState(initialPage);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
@@ -104,18 +103,53 @@ function AdminTicketsContent() {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
   // Selected Ticket for View / Reply Modal
   const [selectedTicket, setSelectedTicket] = useState<TicketRecord | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [adminReply, setAdminReply] = useState("");
   const [replyStatus, setReplyStatus] = useState<string>("KEEP");
-  const [sendingReply, setSendingReply] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: String(PAGE_SIZE),
+  });
+  if (statusFilter !== "ALL") queryParams.append("status", statusFilter);
+  if (priorityFilter !== "ALL") queryParams.append("priority", priorityFilter);
+  if (debouncedSearch.trim()) queryParams.append("search", debouncedSearch.trim());
+
+  const {
+    data: rawData,
+    isLoading: loading,
+    isRefetching,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      "admin",
+      "tickets",
+      page,
+      statusFilter,
+      priorityFilter,
+      debouncedSearch,
+    ],
+    queryFn: () =>
+      apiGet<{
+        success: boolean;
+        data: {
+          tickets: TicketRecord[];
+          metrics: Metrics;
+          pagination: Pagination;
+        };
+      }>(`/api/admin/tickets?${queryParams.toString()}`),
+    staleTime: 30 * 1000,
+  });
+
+  const tickets = rawData?.data?.tickets || [];
+  const metrics = rawData?.data?.metrics || null;
+  const pagination = rawData?.data?.pagination || null;
+  const error = queryError ? (queryError as any).message || "Failed to load tickets" : "";
 
   useEffect(() => {
     setPageTitle({
@@ -126,54 +160,67 @@ function AdminTicketsContent() {
     });
   }, [setPageTitle, metrics]);
 
-  const fetchTickets = useCallback(
-    async (
-      targetPage = page,
-      status = statusFilter,
-      priority = priorityFilter,
-      search = debouncedSearch
-    ) => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const params = new URLSearchParams({
-          page: String(targetPage),
-          limit: String(PAGE_SIZE),
-        });
-
-        if (status !== "ALL") params.append("status", status);
-        if (priority !== "ALL") params.append("priority", priority);
-        if (search.trim()) params.append("search", search.trim());
-
-        const res = await fetch(`/api/admin/tickets?${params.toString()}`, {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.message || "Failed to fetch tickets");
-        }
-
-        setTickets(data.data.tickets);
-        setMetrics(data.data.metrics);
-        setPagination(data.data.pagination);
-        setPage(data.data.pagination.page);
-      } catch (err: any) {
-        const msg = err.message || "Failed to load tickets";
-        setError(msg);
-        toast.error(msg);
-      } finally {
-        setLoading(false);
+  // Quick status change mutation
+  const statusMutation = useMutation({
+    mutationFn: ({ ticketId, newStatus }: { ticketId: string; newStatus: string }) =>
+      apiMutate<{ success: boolean; message?: string }>(
+        `/api/admin/tickets/${ticketId}`,
+        "PATCH",
+        { status: newStatus }
+      ),
+    onSuccess: (data, { ticketId, newStatus }) => {
+      toast.success(`Ticket marked as ${newStatus}`);
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      if (selectedTicket && selectedTicket.id === ticketId) {
+        setSelectedTicket((prev) =>
+          prev ? { ...prev, status: newStatus as any } : null
+        );
       }
     },
-    [page, statusFilter, priorityFilter, debouncedSearch]
-  );
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to update ticket status");
+    },
+  });
 
-  useEffect(() => {
-    fetchTickets(page, statusFilter, priorityFilter, debouncedSearch);
-  }, [fetchTickets, page, statusFilter, priorityFilter, debouncedSearch]);
+  // Admin reply mutation
+  const replyMutation = useMutation({
+    mutationFn: ({
+      ticketId,
+      message,
+      status,
+    }: {
+      ticketId: string;
+      message: string;
+      status: string;
+    }) =>
+      apiMutate<{ success: boolean; message?: string }>(
+        `/api/admin/tickets/${ticketId}/reply`,
+        "POST",
+        { message, status }
+      ),
+    onSuccess: async (data, { ticketId, status }) => {
+      toast.success(`Response sent & ticket marked as ${status}!`);
+      setAdminReply("");
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+
+      // Refresh modal ticket
+      try {
+        const updated = await apiGet<{ success: boolean; data: TicketRecord }>(
+          `/api/admin/tickets/${ticketId}`
+        );
+        if (updated.success) {
+          setSelectedTicket(updated.data);
+        }
+      } catch (err) {
+        console.error("Failed to re-fetch ticket detail:", err);
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to send response");
+    },
+  });
 
   // Open modal with full ticket detail
   const openTicketModal = async (ticketSummary: TicketRecord) => {
@@ -183,12 +230,11 @@ function AdminTicketsContent() {
     setModalLoading(true);
 
     try {
-      const res = await fetch(`/api/admin/tickets/${ticketSummary.id}`, {
-        cache: "no-store",
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setSelectedTicket(data.data);
+      const res = await apiGet<{ success: boolean; data: TicketRecord }>(
+        `/api/admin/tickets/${ticketSummary.id}`
+      );
+      if (res.success) {
+        setSelectedTicket(res.data);
       }
     } catch (err) {
       console.error("Failed to load full ticket details:", err);
@@ -197,41 +243,11 @@ function AdminTicketsContent() {
     }
   };
 
-  // Change Ticket Status directly
-  const handleQuickStatusChange = async (ticketId: string, newStatus: string) => {
-    try {
-      setUpdatingStatus(true);
-      const res = await fetch(`/api/admin/tickets/${ticketId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to update status");
-      }
-
-      toast.success(`Ticket marked as ${newStatus}`);
-
-      // Update in local state
-      setTickets((prev) =>
-        prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus as any } : t))
-      );
-      if (selectedTicket && selectedTicket.id === ticketId) {
-        setSelectedTicket((prev) => (prev ? { ...prev, status: newStatus as any } : null));
-      }
-
-      await fetchTickets(page, statusFilter, priorityFilter, debouncedSearch);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update ticket status");
-    } finally {
-      setUpdatingStatus(false);
-    }
+  const handleQuickStatusChange = (ticketId: string, newStatus: string) => {
+    statusMutation.mutate({ ticketId, newStatus });
   };
 
-  // Admin Send Reply
-  const handleAdminReplySubmit = async (e: React.FormEvent, customStatus?: string) => {
+  const handleAdminReplySubmit = (e: React.FormEvent, customStatus?: string) => {
     e.preventDefault();
     if (!selectedTicket || !adminReply.trim()) {
       toast.error("Please enter a response message");
@@ -243,41 +259,15 @@ function AdminTicketsContent() {
       (replyStatus === "KEEP" ? selectedTicket.status : replyStatus) ||
       selectedTicket.status;
 
-    try {
-      setSendingReply(true);
-      const res = await fetch(`/api/admin/tickets/${selectedTicket.id}/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: adminReply.trim(),
-          status: finalStatus,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to send reply");
-      }
-
-      toast.success(`Response sent & ticket marked as ${finalStatus}!`);
-      setAdminReply("");
-
-      // Re-fetch ticket detail
-      const updatedRes = await fetch(`/api/admin/tickets/${selectedTicket.id}`, {
-        cache: "no-store",
-      });
-      const updatedData = await updatedRes.json();
-      if (updatedRes.ok && updatedData.success) {
-        setSelectedTicket(updatedData.data);
-      }
-
-      await fetchTickets(page, statusFilter, priorityFilter, debouncedSearch);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send response");
-    } finally {
-      setSendingReply(false);
-    }
+    replyMutation.mutate({
+      ticketId: selectedTicket.id,
+      message: adminReply.trim(),
+      status: finalStatus,
+    });
   };
+
+  const sendingReply = replyMutation.isPending;
+  const updatingStatus = statusMutation.isPending;
 
   // Live search input
   const handleSearchChange = (val: string) => {
@@ -518,14 +508,17 @@ function AdminTicketsContent() {
           {/* Refresh button */}
           <button
             type="button"
-            onClick={() => fetchTickets(page, statusFilter, priorityFilter, debouncedSearch)}
-            disabled={loading}
-            className="p-2 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer shrink-0"
+            onClick={async () => {
+              await refetch();
+              toast.success("Tickets refreshed");
+            }}
+            disabled={loading || isRefetching}
+            className="p-2 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
             title="Refresh tickets"
           >
             <RefreshCw
               size={14}
-              className={loading ? "animate-spin text-sky-600" : ""}
+              className={loading || isRefetching ? "animate-spin text-sky-600" : ""}
             />
           </button>
         </div>

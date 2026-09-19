@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import {
   User,
   Lock,
@@ -22,6 +24,7 @@ import { toast } from "@/components/ui/toast";
 export default function AdminSettingsPage() {
   const { setPageTitle } = useAdminPage();
   const { admin: authAdmin, refreshAdmin } = useAuth();
+  const queryClient = useQueryClient();
 
   // Profile Form state
   const [firstName, setFirstName] = useState("");
@@ -29,7 +32,6 @@ export default function AdminSettingsPage() {
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
-  const [savingProfile, setSavingProfile] = useState(false);
 
   // Security Form state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -38,9 +40,6 @@ export default function AdminSettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
-
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setPageTitle({
@@ -49,37 +48,66 @@ export default function AdminSettingsPage() {
     });
   }, [setPageTitle]);
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/admin/profile", { credentials: "include" });
-      const data = await res.json();
-      if (res.ok && data.success && data.admin) {
-        setFirstName(data.admin.firstName || "");
-        setLastName(data.admin.lastName || "");
-        setUserName(data.admin.userName || "");
-        setEmail(data.admin.email || "");
-        setRole(data.admin.role || "ADMIN");
-      } else if (authAdmin) {
-        setFirstName(authAdmin.firstName || "");
-        setLastName(authAdmin.lastName || "");
-        setUserName(authAdmin.userName || "");
-        setEmail(authAdmin.email || "");
-        setRole(authAdmin.role || "ADMIN");
-      }
-    } catch (err) {
-      console.error("Failed to load profile:", err);
-      toast.error("Failed to load profile data");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: profileData, isLoading: loading } = useQuery({
+    queryKey: ["admin", "profile"],
+    queryFn: () =>
+      apiGet<{ success: boolean; admin: any }>("/api/admin/profile"),
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (profileData?.admin) {
+      setFirstName(profileData.admin.firstName || "");
+      setLastName(profileData.admin.lastName || "");
+      setUserName(profileData.admin.userName || "");
+      setEmail(profileData.admin.email || "");
+      setRole(profileData.admin.role || "ADMIN");
+    } else if (authAdmin) {
+      setFirstName(authAdmin.firstName || "");
+      setLastName(authAdmin.lastName || "");
+      setUserName(authAdmin.userName || "");
+      setEmail(authAdmin.email || "");
+      setRole(authAdmin.role || "ADMIN");
+    }
+  }, [profileData, authAdmin]);
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const updateProfileMutation = useMutation({
+    mutationFn: (body: any) =>
+      apiMutate<{ success: boolean; message?: string }>(
+        "/api/admin/profile",
+        "PATCH",
+        body
+      ),
+    onSuccess: async (data) => {
+      toast.success(data.message || "Profile updated successfully!");
+      queryClient.invalidateQueries({ queryKey: ["admin", "profile"] });
+      queryClient.invalidateQueries({ queryKey: ["auth", "admin"] });
+      await refreshAdmin();
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Error updating profile");
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: (body: any) =>
+      apiMutate<{ success: boolean; message?: string }>(
+        "/api/admin/profile",
+        "PATCH",
+        body
+      ),
+    onSuccess: () => {
+      toast.success("Password changed successfully!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Error changing password");
+    },
+  });
+
+  const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!firstName.trim() || !lastName.trim()) {
@@ -87,35 +115,14 @@ export default function AdminSettingsPage() {
       return;
     }
 
-    try {
-      setSavingProfile(true);
-      const res = await fetch("/api/admin/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          userName: userName.trim() || undefined,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to update profile");
-      }
-
-      toast.success(data.message || "Profile updated successfully!");
-      await refreshAdmin();
-    } catch (err: any) {
-      toast.error(err.message || "Error updating profile");
-    } finally {
-      setSavingProfile(false);
-    }
+    updateProfileMutation.mutate({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      userName: userName.trim() || undefined,
+    });
   };
 
-  const handleSavePassword = async (e: React.FormEvent) => {
+  const handleSavePassword = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentPassword) {
@@ -133,35 +140,15 @@ export default function AdminSettingsPage() {
       return;
     }
 
-    try {
-      setSavingPassword(true);
-      const res = await fetch("/api/admin/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-          confirmPassword,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to change password");
-      }
-
-      toast.success("Password changed successfully!");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err: any) {
-      toast.error(err.message || "Error changing password");
-    } finally {
-      setSavingPassword(false);
-    }
+    changePasswordMutation.mutate({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
   };
+
+  const savingProfile = updateProfileMutation.isPending;
+  const savingPassword = changePasswordMutation.isPending;
 
   if (loading) {
     return (

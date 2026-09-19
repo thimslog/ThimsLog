@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import {
   User,
   Lock,
@@ -19,6 +21,7 @@ import { toast } from "@/components/ui/toast";
 
 export default function ProfileSettingsPage() {
   const { user, refreshUser } = useAuth();
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
 
@@ -31,7 +34,6 @@ export default function ProfileSettingsPage() {
     phoneNumber: "",
   });
 
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -57,32 +59,25 @@ export default function ProfileSettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
   // Fetch full profile telemetry including cooldown
-  const fetchProfileMeta = async () => {
-    try {
-      const res = await fetch("/api/user/profile");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
-          setCanChangeUsername(data.user.canChangeUsername ?? true);
-          setDaysRemaining(data.user.daysRemaining ?? 0);
-          setNextAllowedDate(data.user.nextAllowedDate || null);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch profile meta:", err);
-    }
-  };
+  const { data: profileMeta } = useQuery({
+    queryKey: ["user", "profile"],
+    queryFn: () => apiGet<{ user: any }>("/api/user/profile"),
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
-    fetchProfileMeta();
-  }, []);
+    if (profileMeta?.user) {
+      setCanChangeUsername(profileMeta.user.canChangeUsername ?? true);
+      setDaysRemaining(profileMeta.user.daysRemaining ?? 0);
+      setNextAllowedDate(profileMeta.user.nextAllowedDate || null);
+    }
+  }, [profileMeta]);
 
   useEffect(() => {
     if (user) {
@@ -114,10 +109,11 @@ export default function ProfileSettingsPage() {
     setCheckingUsername(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/user/profile/check-username?username=${encodeURIComponent(clean)}`
-        );
-        const data = await res.json();
+        const data = await apiGet<{
+          available: boolean;
+          isCurrent?: boolean;
+          message?: string;
+        }>(`/api/user/profile/check-username?username=${encodeURIComponent(clean)}`);
         setUsernameAvailability(data);
       } catch {
         setUsernameAvailability(null);
@@ -129,83 +125,32 @@ export default function ProfileSettingsPage() {
     return () => clearTimeout(timer);
   }, [profileData.userName, user?.userName]);
 
-  const handleCopyUsername = () => {
-    if (!user?.userName) return;
-    navigator.clipboard.writeText(`@${user.userName}`);
-    setCopiedUsername(true);
-    toast.success(`Copied @${user.userName} to clipboard!`);
-    setTimeout(() => setCopiedUsername(false), 2000);
-  };
-
-  const handleProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingProfile(true);
-    setProfileMessage(null);
-
-    try {
-      const res = await fetch("/api/user/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName: profileData.firstName,
-          lastName: profileData.lastName,
-          phoneNumber: profileData.phoneNumber,
-          userName: profileData.userName,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to update profile");
-      }
-
+  const updateProfileMutation = useMutation({
+    mutationFn: (body: any) => apiMutate("/api/user/profile", "PUT", body),
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
       await refreshUser();
-      await fetchProfileMeta();
       setProfileMessage({
         type: "success",
         text: "Profile updated successfully!",
       });
       toast.success("Profile updated successfully!");
-    } catch (err: any) {
-      const msg = err?.message || "Something went wrong";
+    },
+    onError: (err: any) => {
+      const msg = err?.message || "Failed to update profile";
       setProfileMessage({
         type: "error",
         text: msg,
       });
       toast.error(msg);
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
+    },
+  });
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingPassword(true);
-    setPasswordMessage(null);
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordMessage({
-        type: "error",
-        text: "New passwords do not match",
-      });
-      setIsSavingPassword(false);
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/user/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(passwordData),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to update password");
-      }
-
+  const changePasswordMutation = useMutation({
+    mutationFn: (body: any) =>
+      apiMutate("/api/user/change-password", "POST", body),
+    onSuccess: () => {
       setPasswordMessage({
         type: "success",
         text: "Password changed successfully!",
@@ -216,15 +161,51 @@ export default function ProfileSettingsPage() {
         newPassword: "",
         confirmPassword: "",
       });
-    } catch (err: any) {
+    },
+    onError: (err: any) => {
       setPasswordMessage({
         type: "error",
         text: err?.message || "Something went wrong",
       });
-    } finally {
-      setIsSavingPassword(false);
-    }
+    },
+  });
+
+  const handleCopyUsername = () => {
+    if (!user?.userName) return;
+    navigator.clipboard.writeText(`@${user.userName}`);
+    setCopiedUsername(true);
+    toast.success(`Copied @${user.userName} to clipboard!`);
+    setTimeout(() => setCopiedUsername(false), 2000);
   };
+
+  const handleProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileMessage(null);
+    updateProfileMutation.mutate({
+      firstName: profileData.firstName,
+      lastName: profileData.lastName,
+      phoneNumber: profileData.phoneNumber,
+      userName: profileData.userName,
+    });
+  };
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMessage(null);
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordMessage({
+        type: "error",
+        text: "New passwords do not match",
+      });
+      return;
+    }
+
+    changePasswordMutation.mutate(passwordData);
+  };
+
+  const isSavingProfile = updateProfileMutation.isPending;
+  const isSavingPassword = changePasswordMutation.isPending;
 
   const formatAllowedDate = (iso: string | null) => {
     if (!iso) return "";

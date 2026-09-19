@@ -3,18 +3,39 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiMutate } from "@/lib/api-client";
 import { Send, ArrowLeft, Loader2, CheckCircle2, LifeBuoy } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 
 export default function CreateTicketPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [subject, setSubject] = useState("");
   const [priority, setPriority] = useState("HIGH");
   const [message, setMessage] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const createTicketMutation = useMutation({
+    mutationFn: (body: { subject: string; priority: string; message: string }) =>
+      apiMutate<{ success: boolean; data: { id: string } }>(
+        "/api/user/tickets",
+        "POST",
+        body
+      ),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["tickets", "user"] });
+      toast.success("Support ticket submitted successfully!");
+      router.push(`/dashboard/help-center/tickets/${data.data.id}`);
+    },
+    onError: (err: any) => {
+      toast.error(
+        err?.message || "Something went wrong while submitting ticket"
+      );
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!subject.trim()) {
@@ -27,32 +48,14 @@ export default function CreateTicketPage() {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      const res = await fetch("/api/user/tickets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject: subject.trim(),
-          priority,
-          message: message.trim(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to create support ticket");
-      }
-
-      toast.success("Support ticket submitted successfully!");
-      router.push(`/dashboard/help-center/tickets/${data.data.id}`);
-    } catch (err: any) {
-      toast.error(err.message || "Something went wrong while submitting ticket");
-    } finally {
-      setSubmitting(false);
-    }
+    createTicketMutation.mutate({
+      subject: subject.trim(),
+      priority,
+      message: message.trim(),
+    });
   };
+
+  const submitting = createTicketMutation.isPending;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-16">

@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import {
   Plus,
   Pencil,
@@ -51,9 +53,8 @@ const ICON_OPTIONS = [
 
 export default function AdminHelpCenterPage() {
   const { setPageTitle } = useAdminPage();
+  const queryClient = useQueryClient();
 
-  const [links, setLinks] = useState<HelpCenterLink[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedSection, setSelectedSection] = useState("ALL");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -61,7 +62,6 @@ export default function AdminHelpCenterPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<HelpCenterLink | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HelpCenterLink | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
   // Form fields
   const [title, setTitle] = useState("");
@@ -80,25 +80,64 @@ export default function AdminHelpCenterPage() {
     });
   }, [setPageTitle]);
 
-  const fetchLinks = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/admin/help-center", { cache: "no-store" });
-      const data = await res.json();
-      if (res.ok && data.success && Array.isArray(data.data)) {
-        setLinks(data.data);
-      }
-    } catch (err) {
-      console.error("Failed to load help center links:", err);
-      toast.error("Failed to load help center links");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const {
+    data: rawData,
+    isLoading: loading,
+    isRefetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin", "help-center"],
+    queryFn: () =>
+      apiGet<{ success: boolean; data: HelpCenterLink[] }>("/api/admin/help-center"),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchLinks();
-  }, [fetchLinks]);
+  const links = rawData?.data || [];
+
+  const saveMutation = useMutation({
+    mutationFn: ({ id, payload }: { id?: string; payload: any }) => {
+      if (id) {
+        return apiMutate<{ success: boolean; message?: string }>(
+          `/api/admin/help-center/${id}`,
+          "PATCH",
+          payload
+        );
+      }
+      return apiMutate<{ success: boolean; message?: string }>(
+        "/api/admin/help-center",
+        "POST",
+        payload
+      );
+    },
+    onSuccess: (data, { id }) => {
+      toast.success(
+        id ? "Link updated successfully!" : "Link created successfully!"
+      );
+      queryClient.invalidateQueries({ queryKey: ["admin", "help-center"] });
+      queryClient.invalidateQueries({ queryKey: ["help-center", "links"] });
+      setModalOpen(false);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Something went wrong");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiMutate<{ success: boolean; message?: string }>(
+        `/api/admin/help-center/${id}`,
+        "DELETE"
+      ),
+    onSuccess: () => {
+      toast.success("Link removed successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin", "help-center"] });
+      queryClient.invalidateQueries({ queryKey: ["help-center", "links"] });
+      setDeleteTarget(null);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to delete link");
+    },
+  });
 
   const openCreateModal = () => {
     setEditingLink(null);
@@ -136,7 +175,7 @@ export default function AdminHelpCenterPage() {
     setModalOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim() || !url.trim()) {
@@ -159,63 +198,15 @@ export default function AdminHelpCenterPage() {
       isActive,
     };
 
-    try {
-      setSubmitting(true);
-      if (editingLink) {
-        const res = await fetch(`/api/admin/help-center/${editingLink.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.message || "Failed to update link");
-        }
-        toast.success("Link updated successfully!");
-      } else {
-        const res = await fetch("/api/admin/help-center", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.message || "Failed to create link");
-        }
-        toast.success("Link created successfully!");
-      }
-
-      setModalOpen(false);
-      await fetchLinks();
-    } catch (err: any) {
-      toast.error(err.message || "Something went wrong");
-    } finally {
-      setSubmitting(false);
-    }
+    saveMutation.mutate({ id: editingLink?.id, payload });
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deleteTarget) return;
-
-    try {
-      setSubmitting(true);
-      const res = await fetch(`/api/admin/help-center/${deleteTarget.id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to delete link");
-      }
-
-      toast.success("Link removed successfully");
-      setDeleteTarget(null);
-      await fetchLinks();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete link");
-    } finally {
-      setSubmitting(false);
-    }
+    deleteMutation.mutate(deleteTarget.id);
   };
+
+  const submitting = saveMutation.isPending || deleteMutation.isPending;
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -303,11 +294,15 @@ export default function AdminHelpCenterPage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={fetchLinks}
-            className="p-2 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            onClick={async () => {
+              await refetch();
+              toast.success("Help center links refreshed");
+            }}
+            disabled={loading || isRefetching}
+            className="p-2 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
             title="Refresh links"
           >
-            <RefreshCw size={15} className={loading ? "animate-spin text-sky-600" : ""} />
+            <RefreshCw size={15} className={loading || isRefetching ? "animate-spin text-sky-600" : ""} />
           </button>
 
           <button

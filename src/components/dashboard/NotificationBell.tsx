@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiMutate } from "@/lib/api-client";
 import {
   Bell,
   Check,
@@ -27,40 +29,50 @@ interface NotificationItem {
 }
 
 export default function NotificationBell() {
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [loading, setLoading] = useState(false);
-  const [markingAll, setMarkingAll] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await fetch("/api/user/notifications?limit=8");
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
-      }
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-    }
-  };
+  const { data, refetch } = useQuery({
+    queryKey: ["user", "notifications", 8],
+    queryFn: () =>
+      apiGet<{ notifications: NotificationItem[]; unreadCount: number }>(
+        "/api/user/notifications?limit=8"
+      ),
+    staleTime: 15 * 1000,
+    refetchInterval: 30000,
+  });
 
-  useEffect(() => {
-    fetchNotifications();
+  const notifications = data?.notifications || [];
+  const unreadCount = data?.unreadCount ?? notifications.filter((n) => !n.read).length;
 
-    // Poll every 30 seconds for live notifications
-    const interval = setInterval(fetchNotifications, 30000);
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiMutate("/api/user/notifications", "PATCH", {
+        action: "mark_read",
+        id,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user", "notifications"] });
+    },
+    onError: (err) => {
+      console.error("Failed to mark notification as read:", err);
+    },
+  });
 
-    const handleFocus = () => fetchNotifications();
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, []);
+  const markAllReadMutation = useMutation({
+    mutationFn: () =>
+      apiMutate("/api/user/notifications", "PATCH", {
+        action: "mark_all_read",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user", "notifications"] });
+      toast.success("All notifications marked as read");
+    },
+    onError: () => {
+      toast.error("Failed to mark all as read");
+    },
+  });
 
   // Handle click outside dropdown
   useEffect(() => {
@@ -78,46 +90,14 @@ export default function NotificationBell() {
     };
   }, [isOpen]);
 
-  const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
+  const handleMarkAsRead = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      const res = await fetch("/api/user/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark_read", id }),
-      });
-
-      if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
-    } catch (err) {
-      console.error("Failed to mark notification as read:", err);
-    }
+    markReadMutation.mutate(id);
   };
 
-  const handleMarkAllRead = async () => {
-    if (unreadCount === 0 || markingAll) return;
-    setMarkingAll(true);
-    try {
-      const res = await fetch("/api/user/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark_all_read" }),
-      });
-
-      if (res.ok) {
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-        setUnreadCount(0);
-        toast.success("All notifications marked as read");
-      }
-    } catch (err) {
-      toast.error("Failed to mark all as read");
-    } finally {
-      setMarkingAll(false);
-    }
+  const handleMarkAllRead = () => {
+    if (unreadCount === 0 || markAllReadMutation.isPending) return;
+    markAllReadMutation.mutate();
   };
 
   const formatRelativeTime = (iso: string) => {
@@ -168,7 +148,7 @@ export default function NotificationBell() {
         type="button"
         onClick={() => {
           setIsOpen((prev) => !prev);
-          if (!isOpen) fetchNotifications();
+          if (!isOpen) refetch();
         }}
         className="relative w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer shadow-2xs"
         title="Notifications"
@@ -202,10 +182,10 @@ export default function NotificationBell() {
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                disabled={markingAll}
+                disabled={markAllReadMutation.isPending}
                 className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 flex items-center gap-1 cursor-pointer disabled:opacity-50"
               >
-                {markingAll ? (
+                {markAllReadMutation.isPending ? (
                   <Loader2 size={12} className="animate-spin" />
                 ) : (
                   <CheckCheck size={13} />
