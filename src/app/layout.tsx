@@ -23,11 +23,78 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://thimslog.com");
+
 export const metadata: Metadata = {
-  title: "Thimslog - Social Accounts & Inventory Platform",
-  description: "Secure digital assets, verified social inventory, and instant account delivery platform.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Thimslog | Buy Verified Social Accounts & Digital Assets",
+    template: "%s | Thimslog",
+  },
+  description:
+    "Nigeria's premier marketplace for verified social media accounts, aged profiles, and digital inventory with instant automated delivery and secure escrow protection.",
   applicationName: "Thimslog",
+  keywords: [
+    "social media accounts",
+    "buy verified accounts",
+    "buy aged instagram accounts",
+    "buy twitter x accounts",
+    "buy tiktok accounts",
+    "buy telegram accounts",
+    "buy facebook accounts",
+    "verified social inventory",
+    "thimslog",
+    "instant social account delivery",
+    "escrow marketplace nigeria",
+    "digital assets marketplace",
+  ],
+  authors: [{ name: "Thimslog Marketplace", url: siteUrl }],
+  creator: "Thimslog",
+  publisher: "Thimslog",
+  category: "technology",
   manifest: "/manifest.json",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_NG",
+    url: siteUrl,
+    siteName: "Thimslog",
+    title: "Thimslog | Buy Verified Social Accounts & Digital Assets",
+    description:
+      "Instant automated delivery of verified social media accounts, aged profiles, and digital inventory with 100% escrow protection.",
+    images: [
+      {
+        url: "/api/og?title=Thimslog&desc=Verified+Social+Accounts+%26+Digital+Assets",
+        width: 1200,
+        height: 630,
+        alt: "Thimslog - Verified Social Inventory & Escrow Platform",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Thimslog | Buy Verified Social Accounts & Digital Assets",
+    description:
+      "Instant automated delivery of verified social media accounts, aged profiles, and digital inventory with 100% escrow protection.",
+    images: ["/api/og?title=Thimslog&desc=Verified+Social+Accounts+%26+Digital+Assets"],
+    creator: "@thimslog",
+    site: "@thimslog",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -65,6 +132,42 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Thimslog" />
         <link rel="apple-touch-icon" href="/favicon.png" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": `${siteUrl}/#organization`,
+                  name: "Thimslog",
+                  url: siteUrl,
+                  logo: `${siteUrl}/favicon.png`,
+                  description:
+                    "Nigeria's verified marketplace for social media accounts, aged profiles, and digital inventory with escrow security.",
+                  sameAs: ["https://twitter.com/thimslog"],
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": `${siteUrl}/#website`,
+                  url: siteUrl,
+                  name: "Thimslog",
+                  description:
+                    "Buy verified social media accounts, aged profiles, and digital inventory.",
+                  publisher: {
+                    "@id": `${siteUrl}/#organization`,
+                  },
+                  potentialAction: {
+                    "@type": "SearchAction",
+                    target: `${siteUrl}/products?q={search_term_string}`,
+                    "query-input": "required name=search_term_string",
+                  },
+                },
+              ],
+            }),
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
