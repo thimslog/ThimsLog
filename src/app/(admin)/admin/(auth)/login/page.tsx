@@ -13,6 +13,16 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [inactivityNotice, setInactivityNotice] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("reason") === "inactivity") {
+        setInactivityNotice(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     async function checkAuthentication() {
@@ -89,6 +99,17 @@ export default function LoginPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {inactivityNotice && (
+          <div className="flex items-start gap-2.5 p-3 rounded-card bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300">
+            <span>Your session expired due to 15 minutes of inactivity. Please sign in again.</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-start gap-2.5 p-3 rounded-card bg-rose-500/10 border border-rose-500/20 text-xs text-rose-700 dark:text-rose-300">
+            <span>{error}</span>
+          </div>
+        )}
         <div>
           <label
             htmlFor="email"

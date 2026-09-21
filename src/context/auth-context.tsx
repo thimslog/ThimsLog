@@ -3,9 +3,12 @@
 import {
   createContext,
   useContext,
+  useCallback,
   type ReactNode,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/components/ui/toast";
+import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 
 export type AuthUser = {
   id: string;
@@ -89,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.setQueryData(USER_AUTH_QUERY_KEY, newUser);
   };
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await fetch("/api/auth/signout", {
         method: "POST",
@@ -102,7 +105,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(USER_AUTH_QUERY_KEY, null);
       queryClient.clear();
     }
-  };
+  }, [queryClient]);
+
+  // 15-minute inactivity auto-logout
+  const handleInactivityTimeout = useCallback(async () => {
+    toast.error("You have been logged out due to 15 minutes of inactivity.");
+    await signOut();
+    if (typeof window !== "undefined") {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith("/dashboard") || pathname.startsWith("/products")) {
+        window.location.href = "/signin?reason=inactivity";
+      }
+    }
+  }, [signOut]);
+
+  useInactivityTimeout({
+    isAuthenticated: Boolean(user),
+    onTimeout: handleInactivityTimeout,
+    storageKey: "thimslog_user_last_activity",
+    timeoutMs: 15 * 60 * 1000, // 15 minutes
+  });
 
   return (
     <AuthContext.Provider

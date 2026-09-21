@@ -16,6 +16,16 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inactivityNotice, setInactivityNotice] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("reason") === "inactivity") {
+        setInactivityNotice(true);
+      }
+    }
+  }, []);
 
   // If already logged in, redirect to dashboard smoothly
   useEffect(() => {
@@ -69,6 +79,13 @@ export default function SignInPage() {
       subtitle="Sign in to access your ThimsLog dashboard and active escrows."
     >
       <form onSubmit={handleSubmit} className="space-y-5">
+        {inactivityNotice && (
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>You were logged out due to 15 minutes of inactivity. Please sign in again.</span>
+          </div>
+        )}
+
         {error && (
           <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-sm text-rose-700 dark:text-rose-300">
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />

@@ -53,6 +53,27 @@ const formatNaira = (n: number) =>
     maximumFractionDigits: 2,
   })}`;
 
+const getValidUrl = (url?: string | null) => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
+
+const formatDisplayUrl = (url?: string | null) => {
+  if (!url) return "";
+  try {
+    const valid = getValidUrl(url);
+    const parsed = new URL(valid);
+    const path = parsed.pathname !== "/" ? parsed.pathname : "";
+    return `${parsed.hostname.replace(/^www\./, "")}${path}`;
+  } catch {
+    return url.replace(/^https?:\/\/(www\.)?/, "");
+  }
+};
+
 export default function ProductPurchasePage() {
   const params = useParams();
   const router = useRouter();
@@ -148,6 +169,7 @@ export default function ProductPurchasePage() {
       (a) =>
         a.username?.toLowerCase().includes(q) ||
         a.name?.toLowerCase().includes(q) ||
+        a.url?.toLowerCase().includes(q) ||
         a.country?.toLowerCase().includes(q) ||
         a.notes?.toLowerCase().includes(q) ||
         a.id.toLowerCase().includes(q)
@@ -270,7 +292,7 @@ export default function ProductPurchasePage() {
         {/* ======================================================================= */}
         {/* LEFT COLUMN: PRODUCT DETAIL CARD                                       */}
         {/* ======================================================================= */}
-        <div className="lg:col-span-4 xl:col-span-4 sticky top-6">
+        <div className="lg:col-span-4 xl:col-span-4 lg:sticky lg:top-6">
           <div className="relative overflow-hidden bg-white dark:bg-[#0b101b] rounded-3xl border border-slate-200/90 dark:border-white/10 p-6 shadow-sm">
             {/* Background Faded Watermark Icon */}
             <div className="absolute -top-6 -right-6 opacity-5 pointer-events-none transform scale-150 rotate-12">
@@ -371,9 +393,23 @@ export default function ProductPurchasePage() {
                         size={14}
                         className="w-7 h-7 rounded-lg shrink-0"
                       />
-                      <span className="font-medium font-mono text-xs text-slate-800 dark:text-slate-200 truncate">
-                        {account.username || account.id}
-                      </span>
+                      <div className="min-w-0 flex flex-col">
+                        <span className="font-semibold font-mono text-xs text-slate-800 dark:text-slate-200 truncate">
+                          {account.username || account.name || account.id}
+                        </span>
+                        {account.url && (
+                          <a
+                            href={getValidUrl(account.url)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-sky-600 dark:text-sky-400 hover:underline truncate max-w-[200px]"
+                            title={account.url}
+                          >
+                            <span className="truncate">{formatDisplayUrl(account.url)}</span>
+                            <ExternalLink size={10} className="shrink-0" />
+                          </a>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -436,7 +472,7 @@ export default function ProductPurchasePage() {
                 />
                 <input
                   type="text"
-                  placeholder="Search by username or prev..."
+                  placeholder="Search by username, URL or ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-500/20"
@@ -466,7 +502,8 @@ export default function ProductPurchasePage() {
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-white/5 text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-wider">
                     <th className="pb-3 pl-2">NETWORK</th>
-                    <th className="pb-3">UID</th>
+                    <th className="pb-3">USERNAME</th>
+                    <th className="pb-3">PAGE / URL</th>
                     <th className="pb-3">PRICE</th>
                     <th className="pb-3 text-center">VIEW</th>
                     <th className="pb-3 text-center">SELECT</th>
@@ -475,7 +512,7 @@ export default function ProductPurchasePage() {
                 <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs">
                   {filteredAccounts.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-400">
+                      <td colSpan={6} className="py-8 text-center text-slate-400">
                         No available accounts match your search.
                       </td>
                     </tr>
@@ -498,10 +535,39 @@ export default function ProductPurchasePage() {
                             />
                           </td>
 
-                          {/* UID */}
-                          <td className="py-3 font-mono font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
-                              onClick={() => setPreviewAccount(acc)}>
-                            {acc.username || acc.id}
+                          {/* USERNAME */}
+                          <td className="py-3">
+                            <div className="flex flex-col">
+                              <span
+                                className="font-mono font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer inline-block"
+                                onClick={() => setPreviewAccount(acc)}
+                              >
+                                {acc.username || acc.name || acc.id}
+                              </span>
+                              {acc.country && (
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                                  {acc.country}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* PAGE / URL */}
+                          <td className="py-3">
+                            {acc.url ? (
+                              <a
+                                href={getValidUrl(acc.url)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/40 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-xs font-semibold transition-all group max-w-[200px]"
+                                title={`Check out page: ${acc.url}`}
+                              >
+                                <span className="truncate">{formatDisplayUrl(acc.url)}</span>
+                                <ExternalLink size={12} className="shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 dark:text-slate-600 text-xs">—</span>
+                            )}
                           </td>
 
                           {/* PRICE */}
@@ -578,6 +644,29 @@ export default function ProductPurchasePage() {
                     {product.name}
                   </span>
                 </div>
+                {previewAccount.username && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Username:</span>
+                    <span className="font-mono font-bold text-purple-600 dark:text-purple-400">
+                      {previewAccount.username}
+                    </span>
+                  </div>
+                )}
+                {previewAccount.url && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Page URL:</span>
+                    <a
+                      href={getValidUrl(previewAccount.url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 font-semibold text-sky-600 dark:text-sky-400 hover:underline max-w-[220px] truncate text-xs"
+                      title={previewAccount.url}
+                    >
+                      <span className="truncate">{formatDisplayUrl(previewAccount.url)}</span>
+                      <ExternalLink size={12} className="shrink-0" />
+                    </a>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-slate-400">Unit Price:</span>
                   <span className="font-bold text-slate-900 dark:text-white">
@@ -614,6 +703,23 @@ export default function ProductPurchasePage() {
                   <p className="text-slate-700 dark:text-slate-300">
                     {previewAccount.notes}
                   </p>
+                </div>
+              )}
+
+              {previewAccount.url && (
+                <div className="p-3 bg-sky-50 dark:bg-sky-950/30 rounded-2xl border border-sky-100 dark:border-sky-900/30 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-sky-900 dark:text-sky-300 block text-xs">🌐 Check Page Preview</span>
+                    <p className="text-[11px] text-sky-700 dark:text-sky-400">Visit and inspect this page before buying.</p>
+                  </div>
+                  <a
+                    href={getValidUrl(previewAccount.url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold text-xs inline-flex items-center gap-1.5 transition-colors shadow-xs"
+                  >
+                    <span>Visit</span> <ExternalLink size={12} />
+                  </a>
                 </div>
               )}
 
@@ -690,10 +796,24 @@ export default function ProductPurchasePage() {
                     key={acc.id}
                     className="flex items-center justify-between text-xs font-mono"
                   >
-                    <span className="text-slate-700 dark:text-slate-300">
-                      {acc.username || acc.id}
-                    </span>
-                    <span className="font-bold text-slate-900 dark:text-white">
+                    <div className="min-w-0 pr-2">
+                      <span className="text-slate-700 dark:text-slate-300 font-semibold truncate block">
+                        {acc.username || acc.name || acc.id}
+                      </span>
+                      {acc.url && (
+                        <a
+                          href={getValidUrl(acc.url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] text-sky-600 dark:text-sky-400 hover:underline font-sans truncate max-w-[180px]"
+                          title={acc.url}
+                        >
+                          <span className="truncate">{formatDisplayUrl(acc.url)}</span>
+                          <ExternalLink size={9} className="shrink-0" />
+                        </a>
+                      )}
+                    </div>
+                    <span className="font-bold text-slate-900 dark:text-white shrink-0">
                       {formatNaira(product.price)}
                     </span>
                   </div>

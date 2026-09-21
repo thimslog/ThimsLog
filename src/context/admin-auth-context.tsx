@@ -3,9 +3,12 @@
 import {
   createContext,
   useContext,
+  useCallback,
   type ReactNode,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/components/ui/toast";
+import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 
 type AuthAdmin = {
   id: string;
@@ -68,7 +71,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await fetch("/api/adminAuth/signout", {
         method: "POST",
@@ -80,7 +83,23 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       queryClient.clear();
       queryClient.setQueryData(ADMIN_AUTH_QUERY_KEY, null);
     }
-  };
+  }, [queryClient]);
+
+  // 15-minute inactivity auto-logout
+  const handleInactivityTimeout = useCallback(async () => {
+    toast.error("Session expired due to 15 minutes of inactivity.");
+    await signOut();
+    if (typeof window !== "undefined") {
+      window.location.href = "/admin/login?reason=inactivity";
+    }
+  }, [signOut]);
+
+  useInactivityTimeout({
+    isAuthenticated: Boolean(admin),
+    onTimeout: handleInactivityTimeout,
+    storageKey: "thimslog_admin_last_activity",
+    timeoutMs: 15 * 60 * 1000, // 15 minutes
+  });
 
   return (
     <AuthContext.Provider
