@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api-client";
+import { useSocket } from "@/context/socket-context";
 import Link from "next/link";
 import {
   Plus,
@@ -40,6 +41,8 @@ interface SupportTicket {
 
 export default function UserTicketsPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const queryClient = useQueryClient();
+  const { socket, isConnected } = useSocket();
 
   const {
     data,
@@ -54,6 +57,25 @@ export default function UserTicketsPage() {
   });
 
   const tickets = data?.data || [];
+
+  // Real-time socket event listeners for tickets list
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleTicketUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["tickets", "user"] });
+    };
+
+    socket.on("ticket:reply", handleTicketUpdate);
+    socket.on("ticket:created", handleTicketUpdate);
+    socket.on("ticket:status_changed", handleTicketUpdate);
+
+    return () => {
+      socket.off("ticket:reply", handleTicketUpdate);
+      socket.off("ticket:created", handleTicketUpdate);
+      socket.off("ticket:status_changed", handleTicketUpdate);
+    };
+  }, [socket, isConnected, queryClient]);
 
   const handleRefresh = async () => {
     await refetch();

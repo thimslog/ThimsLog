@@ -1,6 +1,7 @@
 import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPayment } from "@/services/paymonetra";
+import { emitWalletBalanceUpdated } from "@/lib/socket-server";
 
 export interface ReconcileOptions {
   walletId?: string;
@@ -211,10 +212,22 @@ export async function reconcilePendingTransactions(
             finalStatus === "UNDERPAID") &&
           tx.type === "FUNDING"
         ) {
-          await prismaTx.wallet.update({
+          const updatedW = await prismaTx.wallet.update({
             where: { id: tx.walletId },
             data: { balance: { increment: creditAmount } },
+            select: { balance: true, currency: true, userId: true },
           });
+
+          // Broadcast live wallet balance update via Socket.IO
+          if (updatedW.userId) {
+            emitWalletBalanceUpdated({
+              userId: updatedW.userId,
+              balance: Number(updatedW.balance),
+              currency: updatedW.currency || "NGN",
+              delta: Number(creditAmount),
+              reason: `Wallet credited with ₦${Number(creditAmount).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`,
+            });
+          }
         }
       });
 

@@ -3,6 +3,7 @@ import { getCurrentAdmin } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { fallbackTickets } from "@/lib/ticket-store";
 import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
+import { emitTicketStatusChanged } from "@/lib/socket-server";
 
 export async function GET(
   request: NextRequest,
@@ -89,7 +90,7 @@ export async function PATCH(
     const body = await request.json();
     const { status, priority } = body;
 
-    let ticketData = null;
+    let ticketData: any = null;
 
     try {
       if ((prisma as any).supportTicket) {
@@ -121,6 +122,15 @@ export async function PATCH(
       if (priority) fb.priority = priority;
       fb.updatedAt = new Date().toISOString();
       ticketData = fb;
+    }
+
+    // Broadcast status change via Socket.IO
+    if (status && ["OPEN", "RESOLVED", "CLOSED"].includes(status)) {
+      emitTicketStatusChanged({
+        ticketId: id,
+        status,
+        userId: ticketData?.userId,
+      });
     }
 
     // Record Audit Log

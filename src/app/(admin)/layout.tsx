@@ -1,4 +1,5 @@
 import { AdminAuthProvider } from "@/context/admin-auth-context";
+import { SocketProvider } from "@/context/socket-context";
 
 export default function AdminLayout({
   children,
@@ -7,7 +8,9 @@ export default function AdminLayout({
 }) {
   return (
     <AdminAuthProvider>
-      {children}
+      <SocketProvider>
+        {children}
+      </SocketProvider>
     </AdminAuthProvider>
   );
 }

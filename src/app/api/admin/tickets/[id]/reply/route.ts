@@ -3,6 +3,7 @@ import { getCurrentAdmin } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { fallbackTickets, FallbackResponse } from "@/lib/ticket-store";
 import { recordAdminAudit, nigeriaTime } from "@/lib/audit";
+import { emitTicketReply, emitTicketStatusChanged } from "@/lib/socket-server";
 
 export async function POST(
   request: NextRequest,
@@ -34,6 +35,7 @@ export async function POST(
       "Support Admin";
 
     let replyResult: any = null;
+    let targetUserId: string | undefined = undefined;
 
     try {
       if ((prisma as any).ticketResponse && (prisma as any).supportTicket) {
@@ -47,6 +49,8 @@ export async function POST(
             { status: 404 }
           );
         }
+
+        targetUserId = ticket.userId;
 
         const reply = await (prisma as any).ticketResponse.create({
           data: {
@@ -83,6 +87,8 @@ export async function POST(
         );
       }
 
+      targetUserId = fbTicket.userId;
+
       const fallbackReply: FallbackResponse = {
         id: `resp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         ticketId: id,
@@ -100,6 +106,30 @@ export async function POST(
       }
       fbTicket.updatedAt = new Date().toISOString();
       replyResult = fallbackReply;
+    }
+
+    // Broadcast reply event via Socket.IO
+    emitTicketReply({
+      ticketId: id,
+      reply: {
+        id: replyResult.id,
+        ticketId: replyResult.ticketId || id,
+        senderType: replyResult.senderType || "ADMIN",
+        senderName: replyResult.senderName || senderName,
+        message: replyResult.message || message.trim(),
+        createdAt: replyResult.createdAt?.toISOString ? replyResult.createdAt.toISOString() : (replyResult.createdAt || new Date().toISOString()),
+      },
+      userId: targetUserId,
+      status: status || undefined,
+    });
+
+    // Broadcast status change event if status was changed
+    if (status && ["OPEN", "RESOLVED", "CLOSED"].includes(status)) {
+      emitTicketStatusChanged({
+        ticketId: id,
+        status,
+        userId: targetUserId,
+      });
     }
 
     // Record Audit Log

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiMutate } from "@/lib/api-client";
 import Link from "next/link";
@@ -15,8 +15,10 @@ import {
   ShieldCheck,
   MessageSquare,
   RefreshCw,
+  Radio,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { useSocket } from "@/context/socket-context";
 
 interface TicketResponse {
   id: string;
@@ -45,8 +47,10 @@ export default function UserTicketDetailPage({
   const resolvedParams = use(params);
   const ticketId = resolvedParams.id;
   const queryClient = useQueryClient();
+  const { socket, joinTicket, leaveTicket, isConnected } = useSocket();
 
   const [replyMessage, setReplyMessage] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
     data,
@@ -64,15 +68,107 @@ export default function UserTicketDetailPage({
 
   const ticket = data?.data || null;
 
+  // Real-time Socket.IO event listeners for live conversation updates
+  useEffect(() => {
+    if (!ticketId) return;
+
+    joinTicket(ticketId);
+
+    if (!socket) return;
+
+    const handleNewReply = (payload: {
+      ticketId: string;
+      reply: TicketResponse;
+      status?: string;
+    }) => {
+      if (payload.ticketId === ticketId && payload.reply) {
+        queryClient.setQueryData(
+          ["tickets", "detail", ticketId],
+          (prev: any) => {
+            if (!prev?.data) return prev;
+            const currentResponses: TicketResponse[] = prev.data.responses || [];
+            // Prevent duplicate message entry
+            if (currentResponses.some((r) => r.id === payload.reply.id)) {
+              return prev;
+            }
+            return {
+              ...prev,
+              data: {
+                ...prev.data,
+                status: (payload.status as any) || prev.data.status,
+                responses: [...currentResponses, payload.reply],
+              },
+            };
+          }
+        );
+
+        // Also invalidate user tickets list so response counts stay accurate
+        queryClient.invalidateQueries({ queryKey: ["tickets", "user"] });
+
+        // If message is from support admin, notify user
+        if (payload.reply.senderType === "ADMIN") {
+          toast.info("New message received from support agent!");
+        }
+      }
+    };
+
+    const handleStatusChange = (payload: {
+      ticketId: string;
+      status: "OPEN" | "RESOLVED" | "CLOSED";
+    }) => {
+      if (payload.ticketId === ticketId) {
+        queryClient.setQueryData(
+          ["tickets", "detail", ticketId],
+          (prev: any) => {
+            if (!prev?.data) return prev;
+            return {
+              ...prev,
+              data: {
+                ...prev.data,
+                status: payload.status,
+              },
+            };
+          }
+        );
+        queryClient.invalidateQueries({ queryKey: ["tickets", "user"] });
+        toast.info(`Ticket status updated to ${payload.status}`);
+      }
+    };
+
+    socket.on("ticket:reply", handleNewReply);
+    socket.on("ticket:status_changed", handleStatusChange);
+
+    return () => {
+      leaveTicket(ticketId);
+      socket.off("ticket:reply", handleNewReply);
+      socket.off("ticket:status_changed", handleStatusChange);
+    };
+  }, [socket, ticketId, joinTicket, leaveTicket, queryClient]);
+
   const replyMutation = useMutation({
     mutationFn: (msg: string) =>
       apiMutate(`/api/user/tickets/${ticketId}/reply`, "POST", {
         message: msg,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["tickets", "detail", ticketId],
-      });
+    onSuccess: (res: any) => {
+      // Optimistically append sent reply if not already present
+      if (res?.data) {
+        queryClient.setQueryData(
+          ["tickets", "detail", ticketId],
+          (prev: any) => {
+            if (!prev?.data) return prev;
+            const currentResponses: TicketResponse[] = prev.data.responses || [];
+            if (currentResponses.some((r) => r.id === res.data.id)) return prev;
+            return {
+              ...prev,
+              data: {
+                ...prev.data,
+                responses: [...currentResponses, res.data],
+              },
+            };
+          }
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["tickets", "user"] });
       toast.success("Reply sent!");
       setReplyMessage("");
@@ -133,21 +229,30 @@ export default function UserTicketDetailPage({
           <span>Back to All Tickets</span>
         </Link>
 
-        <button
-          type="button"
-          onClick={handleRefresh}
-          disabled={loading || isRefetching}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#0b101b] hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
-          title="Check if support agent has replied"
-        >
-          <RefreshCw
-            size={13}
-            className={`text-slate-500 dark:text-slate-400 ${
-              isRefetching || loading ? "animate-spin text-[#7c3aed]" : ""
-            }`}
-          />
-          <span>{isRefetching ? "Checking..." : "Check for Updates"}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {isConnected && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live Updates</span>
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={loading || isRefetching}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#0b101b] hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+            title="Check if support agent has replied"
+          >
+            <RefreshCw
+              size={13}
+              className={`text-slate-500 dark:text-slate-400 ${
+                isRefetching || loading ? "animate-spin text-[#7c3aed]" : ""
+              }`}
+            />
+            <span>{isRefetching ? "Checking..." : "Refresh"}</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (

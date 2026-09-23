@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/get-current-user";
 import { prisma } from "@/lib/prisma";
 import { fallbackTickets, FallbackResponse } from "@/lib/ticket-store";
+import { emitTicketReply } from "@/lib/socket-server";
 
 export async function POST(
   request: NextRequest,
@@ -68,6 +69,20 @@ export async function POST(
           },
         });
 
+        // Broadcast via Socket.IO
+        emitTicketReply({
+          ticketId: id,
+          reply: {
+            id: reply.id,
+            ticketId: reply.ticketId,
+            senderType: reply.senderType,
+            senderName: reply.senderName,
+            message: reply.message,
+            createdAt: reply.createdAt?.toISOString ? reply.createdAt.toISOString() : new Date().toISOString(),
+          },
+          userId: user.id,
+        });
+
         return NextResponse.json({
           success: true,
           message: "Reply sent successfully",
@@ -109,6 +124,13 @@ export async function POST(
     if (!fbTicket.responses) fbTicket.responses = [];
     fbTicket.responses.push(fallbackReply);
     fbTicket.updatedAt = new Date().toISOString();
+
+    // Broadcast fallback reply via Socket.IO
+    emitTicketReply({
+      ticketId: id,
+      reply: fallbackReply,
+      userId: user.id,
+    });
 
     return NextResponse.json({
       success: true,

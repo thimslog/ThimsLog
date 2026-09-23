@@ -30,6 +30,7 @@ import {
 import { useAdminPage } from "@/context/admin-page-context";
 import { StatusPill } from "@/components/admin/status-pill";
 import { toast } from "@/components/ui/toast";
+import { useSocket } from "@/context/socket-context";
 
 const PAGE_SIZE = 10;
 
@@ -91,6 +92,7 @@ function AdminTicketsContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { socket, joinAdmin, leaveAdmin, joinTicket, leaveTicket, isConnected } = useSocket();
 
   const initialPage = Math.max(Number(searchParams.get("page")) || 1, 1);
   const initialStatus = searchParams.get("status") || "ALL";
@@ -110,6 +112,90 @@ function AdminTicketsContent() {
   const [replyStatus, setReplyStatus] = useState<string>("KEEP");
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Join admin ticket room for real-time updates
+  useEffect(() => {
+    joinAdmin();
+    return () => {
+      leaveAdmin();
+    };
+  }, [joinAdmin, leaveAdmin]);
+
+  // Join active modal ticket room
+  useEffect(() => {
+    if (selectedTicket?.id) {
+      joinTicket(selectedTicket.id);
+      return () => {
+        leaveTicket(selectedTicket.id);
+      };
+    }
+  }, [selectedTicket?.id, joinTicket, leaveTicket]);
+
+  // Socket.IO Real-Time Listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleTicketReply = (payload: {
+      ticketId: string;
+      reply: TicketResponse;
+      status?: string;
+    }) => {
+      // Invalidate tickets list to keep counts / latest reply fresh
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+
+      // If active modal is viewing this ticket, append reply immediately
+      if (selectedTicket && selectedTicket.id === payload.ticketId && payload.reply) {
+        setSelectedTicket((prev) => {
+          if (!prev) return prev;
+          const currentResponses: TicketResponse[] = prev.responses || [];
+          if (currentResponses.some((r) => r.id === payload.reply.id)) {
+            return prev;
+          }
+          return {
+            ...prev,
+            status: (payload.status as any) || prev.status,
+            responses: [...currentResponses, payload.reply],
+            responseCount: (prev.responseCount || 0) + 1,
+          };
+        });
+      }
+
+      if (payload.reply?.senderType === "USER") {
+        toast.info(`New user reply on ticket #${payload.ticketId.slice(-6)}`);
+      }
+    };
+
+    const handleTicketCreated = (payload: { ticket: any }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      toast.info(`New support ticket: ${payload.ticket?.subject || "New Inquiry"}`);
+    };
+
+    const handleTicketStatusChanged = (payload: {
+      ticketId: string;
+      status: "OPEN" | "RESOLVED" | "CLOSED";
+    }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+
+      if (selectedTicket && selectedTicket.id === payload.ticketId) {
+        setSelectedTicket((prev) =>
+          prev ? { ...prev, status: payload.status } : null
+        );
+      }
+    };
+
+    socket.on("ticket:reply", handleTicketReply);
+    socket.on("ticket:created", handleTicketCreated);
+    socket.on("ticket:status_changed", handleTicketStatusChanged);
+
+    return () => {
+      socket.off("ticket:reply", handleTicketReply);
+      socket.off("ticket:created", handleTicketCreated);
+      socket.off("ticket:status_changed", handleTicketStatusChanged);
+    };
+  }, [socket, selectedTicket, queryClient]);
 
   const queryParams = new URLSearchParams({
     page: String(page),

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/get-current-user";
+import { emitWalletBalanceUpdated } from "@/lib/socket-server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
         data: { balance: { decrement: transferAmount } },
       });
 
-      await tx.wallet.update({
+      const updatedRecipientWallet = await tx.wallet.update({
         where: { id: recipientWallet.id },
         data: { balance: { increment: transferAmount } },
       });
@@ -317,12 +318,28 @@ export async function POST(request: NextRequest) {
 
       return {
         newBalance: updatedSenderWallet.balance,
+        recipientNewBalance: updatedRecipientWallet.balance,
         recipient: {
           userName: recipient.userName,
           fullName: recipientFullName,
         },
         amount: transferAmount,
       };
+    });
+
+    // Broadcast live balance changes via Socket.IO
+    emitWalletBalanceUpdated({
+      userId: sender.id,
+      balance: Number(result.newBalance),
+      delta: -transferAmount,
+      reason: `Sent ₦${transferAmount.toLocaleString()} to @${result.recipient.userName}`,
+    });
+
+    emitWalletBalanceUpdated({
+      userId: recipient.id,
+      balance: Number(result.recipientNewBalance),
+      delta: transferAmount,
+      reason: `Received ₦${transferAmount.toLocaleString()} from @${sender.userName}`,
     });
 
     return NextResponse.json({

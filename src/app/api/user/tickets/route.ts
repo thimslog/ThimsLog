@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/get-current-user";
 import { prisma } from "@/lib/prisma";
 import { fallbackTickets, FallbackTicket } from "@/lib/ticket-store";
+import { emitTicketCreated } from "@/lib/socket-server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -81,6 +82,27 @@ export async function POST(request: NextRequest) {
             responses: true,
           },
         });
+
+        // Broadcast to admin in real time
+        emitTicketCreated({
+          ticket: {
+            id: newTicket.id,
+            userId: user.id,
+            subject: newTicket.subject,
+            message: newTicket.message,
+            priority: newTicket.priority,
+            status: newTicket.status,
+            createdAt: newTicket.createdAt?.toISOString ? newTicket.createdAt.toISOString() : new Date().toISOString(),
+            user: {
+              id: user.id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              userName: user.userName,
+            },
+          },
+        });
+
         return NextResponse.json({
           success: true,
           message: "Support ticket created successfully",
@@ -119,6 +141,20 @@ export async function POST(request: NextRequest) {
     };
 
     fallbackTickets.unshift(fallbackNew);
+
+    // Broadcast fallback ticket
+    emitTicketCreated({
+      ticket: {
+        id: fallbackNew.id,
+        userId: user.id,
+        subject: fallbackNew.subject,
+        message: fallbackNew.message,
+        priority: fallbackNew.priority,
+        status: fallbackNew.status,
+        createdAt: fallbackNew.createdAt,
+        user: fallbackNew.user,
+      },
+    });
 
     return NextResponse.json({
       success: true,
